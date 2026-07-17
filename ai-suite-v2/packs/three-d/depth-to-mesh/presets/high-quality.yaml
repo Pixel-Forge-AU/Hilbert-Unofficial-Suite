@@ -1,0 +1,19 @@
+# High-quality Preset for Depth to Mesh
+
+name: High-quality
+description: Detailed geometry with full surface optimization
+
+geometry:
+  mesh_resolution: 2048
+  depth_scale: 1.5
+  watertight: true
+  smooth_iterations: 5
+
+quality:
+  enable_upscale: true
+  enable_sharpen: true
+  enable_face_restore: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false

@@ -1,0 +1,142 @@
+{
+  "version": "1.0.0",
+  "name": "Text to Image Batch API",
+  "description": "API-compatible version of text-to-image-batch workflow",
+  "nodes": {
+    "load_checkpoint": {
+      "type": "CheckpointLoader",
+      "model_path": "${checkpoint}",
+      "inputs": [],
+      "outputs": ["model", "clip", "vae"]
+    },
+    "positive_prompt": {
+      "type": "CLIPTextEncode",
+      "text": "${prompt}",
+      "clip": "clip",
+      "outputs": ["positive"]
+    },
+    "negative_prompt": {
+      "type": "CLIPTextEncode",
+      "text": "${negative_prompt}",
+      "clip": "clip",
+      "outputs": ["negative"]
+    },
+    "empty_latent": {
+      "type": "EmptyLatentImage",
+      "width": "${width}",
+      "height": "${height}",
+      "batch_size": "${batch_size}",
+      "outputs": ["latent"]
+    },
+    "sampler": {
+      "type": "KSampler",
+      "model": "model",
+      "positive": "positive",
+      "negative": "negative",
+      "latent_image": "latent",
+      "seed": "${seed}",
+      "steps": 25,
+      "cfg": "${cfg}",
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "outputs": ["latent_output"]
+    },
+    "vae_decode": {
+      "type": "VAEDecode",
+      "samples": "latent_output",
+      "vae": "vae",
+      "outputs": ["image"]
+    },
+    "output": {
+      "type": "SaveImage",
+      "images": "image",
+      "filename": "text-to-image-batch_${timestamp}",
+      "outputs": []
+    }
+  },
+  "connections": {
+    "load_checkpoint.clip": ["positive_prompt.clip", "negative_prompt.clip", "vae_decode.vae"],
+    "load_checkpoint.vae": ["vae_decode.vae"],
+    "empty_latent.latent": ["sampler.latent_image"],
+    "positive_prompt.conditioning": ["sampler.positive"],
+    "negative_prompt.conditioning": ["sampler.negative"],
+    "sampler.latent_output": ["vae_decode.samples"],
+    "vae_decode.image": ["output.images"]
+  },
+  "parameters": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "description": "Positive prompt describing the desired image"
+    },
+    "negative_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Negative prompt for undesirable elements"
+    },
+    "width": {
+      "type": "integer",
+      "required": false,
+      "default": 1024,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image width in pixels"
+    },
+    "height": {
+      "type": "integer",
+      "required": false,
+      "default": 1024,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image height in pixels"
+    },
+    "batch_size": {
+      "type": "integer",
+      "required": false,
+      "default": 4,
+      "minimum": 1,
+      "maximum": 16,
+      "step": 1,
+      "description": "Number of images to generate in batch"
+    },
+    "seed": {
+      "type": "integer",
+      "required": false,
+      "default": -1,
+      "minimum": -1,
+      "maximum": 1152921504606846975,
+      "description": "Random seed for reproducibility (-1 for random)"
+    },
+    "cfg": {
+      "type": "float",
+      "required": false,
+      "default": 8.0,
+      "minimum": 1.0,
+      "maximum": 20.0,
+      "step": 0.5,
+      "description": "Classifier-free guidance scale"
+    },
+    "checkpoint": {
+      "type": "string",
+      "required": false,
+      "default": "sdxl.safetensors",
+      "description": "Checkpoint model file name"
+    }
+  },
+  "outputs": {
+    "images": {
+      "type": "array[image]",
+      "description": "Array of generated images",
+      "size": "${batch_size}"
+    }
+  },
+  "batch_config": {
+    "max_batch_size": 16,
+    "auto_reduce_on_oom": true,
+    "sequential_saving": true
+  }
+}

@@ -1,0 +1,17 @@
+# Balanced Preset for Gaussian Splatting
+
+name: Balanced
+description: Good quality with reasonable computation
+
+gaussians:
+  density: 1.0
+  optimization_steps: 500
+  enable_sharpen: true
+
+quality:
+  resolution: 1024
+  enable_upscale: true
+
+runtime:
+  low_vram: true
+  cpu_offload: true

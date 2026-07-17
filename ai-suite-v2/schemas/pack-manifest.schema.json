@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ai-suite/v2/schemas/pack-manifest.schema.json",
+  "title": "Pack Manifest Schema",
+  "description": "Schema for defining a category pack containing multiple workflows",
+  "type": "object",
+  "required": ["id", "name", "version", "description", "workflows"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z-]+$",
+      "description": "Unique pack identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable pack name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of what this pack contains"
+    },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]+\\.[a-z-]+$"
+      },
+      "description": "List of workflow IDs included in this pack"
+    },
+    "default_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Dependencies on other packs"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Quality Preset for Text-to-Image Extreme
+
+name: Quality
+description: Maximum detail generation
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 75
+  cfg: 8.5
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: karras
+  denoise: 1.0
+
+quality:
+  enable_upscale: true
+  upscale_factor: 2
+  enable_face_restore: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

@@ -1,0 +1,104 @@
+id: studio.frame-interpolation
+name: Frame interpolation
+version: 2.0.0
+category: video-animation
+description: Migrated V1 Studio video workflow from frame-interpolation.json
+status: migrated
+media_type: video
+source:
+  suite: v1
+  path: legacy-workflows/frame-interpolation.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 16_sg_5.fps
+  label: FPS
+  type: int
+  required: false
+  default: 30
+  legacy_kind: number
+  node_id: 16_sg_5
+  node_type: CreateVideo
+  input: fps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 4.video
+  label: Input video
+  type: file
+  required: false
+  default: white_armored_warrior.mp4
+  legacy_kind: file
+  node_id: '4'
+  node_type: LoadVideo
+  input: video
+  accept: video/mp4,video/webm,video/quicktime,video/x-matroska
+- id: 16_sg_1.model_name
+  label: FrameInterpolationModelLoader model_name
+  type: text
+  required: false
+  default: film_net_fp16.safetensors
+  legacy_kind: text
+  node_id: 16_sg_1
+  node_type: FrameInterpolationModelLoader
+  input: model_name
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 16_sg_2.multiplier
+  label: FrameInterpolate multiplier
+  type: int
+  required: false
+  default: 2
+  legacy_kind: number
+  node_id: 16_sg_2
+  node_type: FrameInterpolate
+  input: multiplier
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 16_sg_9.value
+  label: PrimitiveInt value
+  type: int
+  required: false
+  default: 2
+  legacy_kind: number
+  node_id: 16_sg_9
+  node_type: PrimitiveInt
+  input: value
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 16_sg_10.switch
+  label: ComfySwitchNode switch
+  type: boolean
+  required: false
+  default: true
+  legacy_kind: checkbox
+  node_id: 16_sg_10
+  node_type: ComfySwitchNode
+  input: switch
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 16_sg_13.value
+  label: PrimitiveBoolean value
+  type: boolean
+  required: false
+  default: true
+  legacy_kind: checkbox
+  node_id: 16_sg_13
+  node_type: PrimitiveBoolean
+  input: value
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: video
+  type: video
+  description: Generated video output
+models:
+  required:
+  - node_id: 16_sg_1
+    node_type: FrameInterpolationModelLoader
+    name: film_net_fp16.safetensors
+    directory: frame_interpolation
+    url: https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/frame_interpolation/film_net_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

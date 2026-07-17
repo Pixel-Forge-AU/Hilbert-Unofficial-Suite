@@ -1,0 +1,157 @@
+# Alternate Universe Manifest
+
+id: weird.alternate-universe
+name: Alternate Universe
+version: "1.0.0"
+
+category: weird-experimental
+subcategory: experimental-reality
+
+description: >
+  Transforms any input into a vivid alternate universe with unique physics,
+  colors, and reality. Perfect for sci-fi concepts, fantasy worlds, and
+  mind-bending visual experiences.
+
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Prompt describing the alternate reality concept
+    
+  - id: universe_type
+    type: string
+    required: false
+    default: "cyberpunk"
+    enum:
+      - cyberpunk
+      - fantasy
+      - steampunk
+      - biopunk
+      - dystopian
+      - utopian
+      - alien
+    description: Type of alternate universe
+    
+  - id: reality_shift
+    type: float
+    required: false
+    default: 0.7
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.01
+    description: How much to shift reality
+    
+  - id: color_palette
+    type: string
+    required: false
+    default: "neon-cyberpunk"
+    enum:
+      - neon-cyberpunk
+      - pastel-fantasy
+      - sepia-vintage
+      - monochrome-silent
+      - ultraviolet-alien
+    description: Color palette for the universe
+    
+  - id: width
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+
+outputs:
+  - id: final_image
+    type: image
+    description: Alternate universe transformation
+  - id: reality_layers
+    type: array
+    description: Array of reality-shifting effect layers
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: text_encoder
+      suggested:
+        - t5xxl
+        - clip-l
+
+  optional:
+    - role: lora
+      suggested:
+        - universe-style-cyberpunk
+        - universe-style-fantasy
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-reality-shifter
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: heavy
+  batch_supported: false
+
+content:
+  themes:
+    - alternate-reality
+    - sci-fi
+    - fantasy
+    - surreal
+    - dreamlike
+  adult_only: false
+
+tags:
+  - experimental
+  - alternate-reality
+  - sci-fi
+  - fantasy
+  - surreal
+  - color-palette
+
+presets:
+  - subtle
+  - extreme

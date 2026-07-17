@@ -1,0 +1,28 @@
+# Subtle Preset for Dream Degradation
+
+name: Subtle
+description: Light degradation with minimal transformation
+
+degradation:
+  strength: 0.3
+  iterations: 2
+  blur_radius: 2
+  blur_sigma: 1.0
+  noise_intensity: 0.1
+  color_shift: 0.1
+
+color:
+  hue_shift: 0.02
+  saturation: 0.95
+  brightness: 1.0
+
+quality:
+  preserve_details: true
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false

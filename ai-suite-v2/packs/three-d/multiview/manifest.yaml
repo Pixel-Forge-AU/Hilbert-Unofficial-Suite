@@ -1,0 +1,123 @@
+id: three-d.multiview
+name: Multiview to 3D Mesh
+version: 2.0.0
+category: three-d
+description: Generate a GLB mesh from one or two reference views using the migrated
+  Hunyuan3D multi-view workflow.
+status: stable
+media_type: model
+source:
+  suite: v1
+  path: packs/studio-migrated/multi-image-to-3d-hunyuan3d/workflow.json
+  promoted_from: studio.multi-image-to-3d-hunyuan3d
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: front_image
+  label: Front/reference image
+  type: file
+  required: true
+  default: 3d_hunyuan3d_multiview_to_model_front_image.png
+  legacy_kind: file
+  node_id: '56'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Primary source image for multi-view GLB reconstruction
+- id: back_image
+  label: Back/secondary image
+  type: file
+  required: false
+  default: 3d_hunyuan3d_multiview_to_model_back_image.png
+  legacy_kind: file
+  node_id: '80'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Optional second view for multi-view reconstruction
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 7.5
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: mesh/ComfyUI
+  legacy_kind: text
+  node_id: '83'
+  node_type: SaveGLB
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: mesh_threshold
+  label: Mesh threshold
+  type: float
+  required: false
+  default: 0.6
+  legacy_kind: number
+  node_id: '82'
+  node_type: VoxelToMesh
+  input: threshold
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: mesh_resolution
+  label: Mesh resolution
+  type: int
+  required: false
+  default: 3072
+  legacy_kind: number
+  node_id: '66'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: model
+  type: model
+  description: Generated multi-view GLB mesh
+models:
+  required:
+  - node_id: '54'
+    node_type: ImageOnlyCheckpointLoader
+    name: hunyuan3d-dit-v2-mv_fp16.safetensors
+    directory: checkpoints
+    url: https://huggingface.co/Comfy-Org/hunyuan3D_2.0_repackaged/resolve/main/split_files/hunyuan3d-dit-v2-mv_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+tags:
+- 3d
+- glb
+- hunyuan3d
+- mesh

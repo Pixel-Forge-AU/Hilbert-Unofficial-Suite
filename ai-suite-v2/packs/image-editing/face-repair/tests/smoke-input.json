@@ -1,0 +1,14 @@
+{
+  "workflow_id": "editing.face-repair",
+  "preset": "quick",
+  "inputs": {
+    "image": "https://example.com/portrait-with-face-issues.jpg",
+    "enhancement_strength": 0.7,
+    "detail_preservation": 0.8
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

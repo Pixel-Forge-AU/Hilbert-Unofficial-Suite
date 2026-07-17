@@ -1,0 +1,21 @@
+{
+  "workflow_id": "horror.battle-damage",
+  "preset": "cinematic",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "battle damage, blood splatter, torn clothing, dirt and grime",
+    "negative_prompt": "clean, fresh, no damage",
+    "damage_intensity": 0.65,
+    "blood_amount": 0.55,
+    "dirt_amount": 0.55,
+    "tear_amount": 0.45,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

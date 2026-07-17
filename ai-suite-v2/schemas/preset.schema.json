@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ai-suite/v2/schemas/preset.schema.json",
+  "title": "Preset Schema",
+  "description": "Schema for generation presets that customize workflow parameters",
+  "type": "object",
+  "required": ["id", "name"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "generation": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "default": 1024
+        },
+        "height": {
+          "type": "integer",
+          "default": 1024
+        },
+        "steps": {
+          "type": "integer",
+          "default": 20
+        },
+        "guidance": {
+          "type": "number",
+          "default": 7.5
+        },
+        "batch_size": {
+          "type": "integer",
+          "default": 1
+        },
+        "denoise": {
+          "type": "number",
+          "default": 1.0
+        }
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "properties": {
+        "sampler": {
+          "type": "string",
+          "enum": ["euler", "euler_ancestral", "dpmpp_2m", "dpmpp_2m_karras", "dpmpp_sde", "lcm", "ddim"],
+          "default": "euler"
+        },
+        "scheduler": {
+          "type": "string",
+          "enum": ["normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform"],
+          "default": "normal"
+        }
+      }
+    },
+    "postprocess": {
+      "type": "object",
+      "properties": {
+        "upscale": {
+          "type": "boolean",
+          "default": false
+        },
+        "upscale_factor": {
+          "type": "number",
+          "default": 2.0
+        },
+        "face_restore": {
+          "type": "string",
+          "enum": ["never", "conditional", "always"],
+          "default": "conditional"
+        },
+        "sharpen": {
+          "type": "string",
+          "enum": ["none", "subtle", "moderate", "strong"],
+          "default": "none"
+        }
+      }
+    },
+    "quality_control": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "minimum_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "maximum_retries": {
+          "type": "integer",
+          "default": 3
+        }
+      }
+    }
+  }
+}

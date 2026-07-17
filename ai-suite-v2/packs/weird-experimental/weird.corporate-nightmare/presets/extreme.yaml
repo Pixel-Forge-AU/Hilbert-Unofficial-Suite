@@ -1,0 +1,26 @@
+# Extreme Preset for Corporate Nightmare
+
+name: Extreme
+description: Maximum corporate branding with heavy saturation
+
+branding:
+  intensity: 0.9
+  logo_count: 15
+  font_style: aggressive-serif
+  color_scheme: energy-orange
+
+colors:
+  vibrancy: 1.5
+  contrast: 1.3
+  highlight: 1.2
+
+quality:
+  preserve_details: false
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: true

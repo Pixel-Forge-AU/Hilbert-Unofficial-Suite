@@ -1,0 +1,18 @@
+{
+  "workflow_id": "character.full-body",
+  "preset": "detailed",
+  "inputs": {
+    "prompt": "full body portrait of a young warrior with silver armor, standing pose, dynamic lighting",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 512,
+    "height": 768,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

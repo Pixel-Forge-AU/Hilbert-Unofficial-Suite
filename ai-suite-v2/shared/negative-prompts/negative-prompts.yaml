@@ -1,0 +1,53 @@
+# AI Suite V2 Negative Prompts
+# Standard negative prompt templates
+
+negative_prompts:
+  # Standard high-quality negative
+  standard:
+    name: "Standard High Quality"
+    prompt: "low quality, worst quality, normal quality, lowres, blurry, text, watermark, logo, signature, cropped, out of frame, worst quality, low quality, normal quality, lowres, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, extra limbs, extra arms, extra legs, missing arms, missing legs, drawing, painting, cartoon, graphic, anime, screenshot, 3d, render, gordon, gpt, ai"
+    
+  # Portrait-focused
+  portrait:
+    name: "Portrait Specific"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, worst quality, low quality, normal quality, lowres, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, extra limbs, extra arms, extra legs, missing arms, missing legs, drawing, painting, cartoon, graphic, anime, screenshot, 3d, render, gordon, gpt, ai, deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, blurry, messy workspace, low contrast, high contrast, overexposed, underexposed, grayscale, monochrome"
+    
+  # General purpose
+  general:
+    name: "General Purpose"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, logo, signature, cropped, out of frame, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, missing limbs, drawing, painting, cartoon, graphic, 3d, render, gordon, gpt, ai"
+    
+  # Strict
+  strict:
+    name: "Strict Quality"
+    prompt: "low quality, worst quality, normal quality, lowres, blurry, text, watermark, logo, signature, cropped, out of frame, bad composition, bad proportions, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, extra limbs, extra arms, extra legs, missing arms, missing legs, drawing, painting, cartoon, graphic, anime, screenshot, 3d, render, gordon, gpt, ai, deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, blurry, messy workspace, low contrast, high contrast, overexposed, underexposed, grayscale, monochrome, bad hands, bad fingers, bad eyes, bad teeth, bad face, bad feet, bad hands, bad arms, bad legs"
+    
+  # Minimal
+  minimal:
+    name: "Minimal Restrictions"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, 3d, render, gordon, gpt, ai"
+    
+  # Artistic styles
+  artistic:
+    name: "Artistic Exclusion"
+    prompt: "photorealistic, realistic, 3d, render, gordon, gpt, ai, photograph, photo, photography, realistic lighting"
+    
+  # Fantasy
+  fantasy:
+    name: "Fantasy Specific"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, extra limbs, extra arms, extra legs, missing arms, missing legs, drawing, painting, cartoon, graphic, anime, screenshot, 3d, render, gordon, gpt, ai, modern, contemporary, industrial, futuristic, sci-fi, technology, electronic, digital, computer, screen"
+    
+  # Historical
+  historical:
+    name: "Historical Accuracy"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, modern, contemporary, futuristic, sci-fi, technology, electronic, digital, computer, screen, photorealistic, realistic, 3d, render, gordon, gpt, ai, space, alien, robot, cybernetic, mechanical, industrial"
+    
+  # Product photography
+  product:
+    name: "Product Photography"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, person, human, people, people, faces, face, eyes, hands, arms, legs, feet, body, skin, flesh, organic, biological, organic, messy, cluttered, background, environment, scene, setting, context"
+    
+  # Character focused
+  character:
+    name: "Character Focus"
+    prompt: "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, bad composition, bad proportions, extra fingers, extra digits, mutated hands, fused fingers, extra arms, extra legs, malformed limbs, extra limbs, extra arms, extra legs, missing arms, missing legs, drawing, painting, cartoon, graphic, anime, screenshot, 3d, render, gordon, gpt, ai, deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, blurry, messy workspace, low contrast, high contrast, overexposed, underexposed, grayscale, monochrome, bad hands, bad fingers, bad eyes, bad teeth, bad face, bad feet, bad hands, bad arms, bad legs, multiple people, multiple faces, multiple characters, crowd, group"

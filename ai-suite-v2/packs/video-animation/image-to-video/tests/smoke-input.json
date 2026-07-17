@@ -1,0 +1,17 @@
+{
+  "workflow_id": "video.image-to-video",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "A flowing river with smooth motion and gentle ripples",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "duration": 5.0,
+    "fps": 24,
+    "motion_scale": 8.0,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "video"
+  }
+}

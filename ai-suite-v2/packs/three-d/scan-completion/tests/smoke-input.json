@@ -1,0 +1,17 @@
+{
+  "workflow_id": "three-d.scan-completion",
+  "preset": "quick",
+  "inputs": {
+    "front_image": "scan_completion_smoke.png",
+    "back_image": "scan_completion_smoke.png",
+    "steps": 4,
+    "cfg": 6.5,
+    "mesh_resolution": 1024,
+    "mesh_threshold": 0.2,
+    "filename_prefix": "mesh/smoke-scan-completion"
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "expected_output_type": "glb"
+  }
+}

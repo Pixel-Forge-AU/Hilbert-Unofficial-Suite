@@ -1,0 +1,18 @@
+# Quick Preset for Depth to Mesh
+
+name: Quick
+description: Fast mesh extraction for prototyping
+
+geometry:
+  mesh_resolution: 512
+  depth_scale: 1.0
+  watertight: true
+  smooth_iterations: 1
+
+quality:
+  enable_upscale: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true

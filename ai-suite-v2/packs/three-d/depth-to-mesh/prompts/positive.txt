@@ -1,0 +1,1 @@
+geometry reconstruction, depth map, watertight mesh, proper normals, surface detail, 3D printable

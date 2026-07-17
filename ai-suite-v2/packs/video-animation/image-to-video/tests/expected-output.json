@@ -1,0 +1,35 @@
+{
+  "workflow_id": "video.image-to-video",
+  "inputs": {
+    "prompt": "A flowing river with smooth motion and gentle ripples",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "duration": 5.0,
+    "fps": 24,
+    "motion_scale": 8.0,
+    "seed": 42
+  },
+  "expected_output": {
+    "type": "video",
+    "format": "webp",
+    "duration": 5.0,
+    "fps": 24,
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "smooth_motion": true
+    }
+  },
+  "validation": {
+    "min_duration": 1.0,
+    "max_duration": 30.0,
+    "min_resolution": [256, 256],
+    "max_file_size_mb": 50,
+    "required_features": [
+      "water",
+      "flow",
+      "motion"
+    ]
+  }
+}

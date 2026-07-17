@@ -1,0 +1,26 @@
+# Extreme Preset for Alternate Universe
+
+name: Extreme
+description: Maximum reality shift with dramatic universe transformation
+
+reality:
+  shift: 0.9
+  preserve_details: false
+  subtle_changes: false
+
+colors:
+  palette: neon-cyberpunk
+  vibrancy: 1.8
+  contrast: 1.5
+
+physics:
+  gravity_shift: 0.5
+  time_bending: 0.7
+  perspective: 0.8
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: true
+  steps: 20
+  cfg: 9.0

@@ -1,0 +1,62 @@
+id: video.video-to-video
+name: Video Upscale
+version: 2.0.0
+category: video-animation
+description: Enhance an input video with the migrated RealESRGAN video-upscale workflow.
+status: stable
+media_type: video
+source:
+  suite: v1
+  path: packs/studio-migrated/video-upscale-gan/workflow.json
+  promoted_from: studio.video-upscale-gan
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: video
+  label: Input video
+  type: file
+  required: true
+  default: gan_input.mp4
+  legacy_kind: file
+  node_id: '9'
+  node_type: LoadVideo
+  input: video
+  accept: video/mp4,video/webm,video/quicktime,video/x-matroska
+  description: Input video to upscale
+- id: fps
+  label: FPS
+  type: int
+  required: false
+  default: 30
+  legacy_kind: number
+  node_id: '11'
+  node_type: CreateVideo
+  input: fps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: video
+  type: video
+  description: Upscaled video clip
+models:
+  required:
+  - node_id: '1'
+    node_type: UpscaleModelLoader
+    name: RealESRGAN_x4plus.safetensors
+    directory: upscale_models
+    url: https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/main/RealESRGAN_x4plus.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+tags:
+- enhancement
+- realesrgan
+- upscale
+- video
+- video-to-video

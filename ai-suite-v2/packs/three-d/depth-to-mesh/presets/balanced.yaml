@@ -1,0 +1,18 @@
+# Balanced Preset for Depth to Mesh
+
+name: Balanced
+description: Good surface quality with reasonable computation
+
+geometry:
+  mesh_resolution: 1024
+  depth_scale: 1.0
+  watertight: true
+  smooth_iterations: 3
+
+quality:
+  enable_upscale: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: true
+  cpu_offload: true

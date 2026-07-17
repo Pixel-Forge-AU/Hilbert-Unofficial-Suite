@@ -1,0 +1,78 @@
+# Feature Flags Configuration
+# Enable/disable specific features
+
+features:
+  # Enable the workflow registry system
+  workflow_registry:
+    enabled: true
+    
+  # Enable preset system
+  preset_system:
+    enabled: true
+    
+  # Enable batch processing
+  batch_processing:
+    enabled: true
+    max_batch_size: 16
+    
+  # Enable dependency checking
+  dependency_check:
+    enabled: true
+    strict_mode: false  # If false, warn but don't block
+    
+  # Enable quality control stages
+  quality_control:
+    enabled: true
+    default_enabled: false
+    
+  # Enable job queue system
+  job_queue:
+    enabled: true
+    max_queue_size: 50
+    
+  # Enable history tracking
+  history:
+    enabled: true
+    max_entries: 100
+    
+  # Enable gallery view
+  gallery:
+    enabled: true
+    thumbnail_size: 256
+    thumbnail_format: "webp"
+    
+  # Enable API mode
+  api_mode:
+    enabled: true
+    
+  # Enable websocket updates
+  websocket:
+    enabled: true
+    heartbeat_interval: 30
+    
+  # Enable pack management
+  pack_management:
+    enabled: true
+    
+  # Enable LLM enhancements
+  llm_enhancement:
+    enabled: true
+    
+  # Enable three.js 3D viewer
+  three_d_viewer:
+    enabled: true
+    
+  # Enable sequence generation
+  sequence_generation:
+    enabled: true
+    
+  # Enable workflow import/export
+  workflow_io:
+    enabled: true
+
+# Development flags (for testing)
+development:
+  debug_mode: false
+  verbose_logging: false
+  enable_test_workflows: false
+  mock_comfyui: false

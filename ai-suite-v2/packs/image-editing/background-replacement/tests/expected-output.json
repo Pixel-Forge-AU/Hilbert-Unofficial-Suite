@@ -1,0 +1,25 @@
+{
+  "workflow_id": "editing.background-replacement",
+  "inputs": {
+    "subject_image": "https://example.com/subject.jpg",
+    "new_background": "https://example.com/background.jpg",
+    "blend_strength": 0.8,
+    "match_lighting": true
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "properties": {
+      "seamless_composite": true,
+      "lighting_matched": true,
+      "no_artifacts": true
+    }
+  },
+  "validation": {
+    "required_features": [
+      "subject_preserved",
+      "background_visible",
+      "natural_blending"
+    ]
+  }
+}

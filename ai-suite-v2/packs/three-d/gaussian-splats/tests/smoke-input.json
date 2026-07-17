@@ -1,0 +1,16 @@
+{
+  "workflow_id": "three-d.gaussian-splats",
+  "preset": "balanced",
+  "inputs": {
+    "image": "base64_image",
+    "prompt": "cute robot character",
+    "views": 4,
+    "density": 1.0,
+    "optimization_steps": 500
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "gaussian_splats"
+  }
+}

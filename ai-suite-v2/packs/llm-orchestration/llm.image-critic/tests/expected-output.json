@@ -1,0 +1,54 @@
+{
+  "workflow_id": "llm.image-critic",
+  "inputs": {
+    "image": "test_image.png",
+    "original_prompt": "a futuristic city with flying cars at sunset",
+    "critique_depth": 2,
+    "focus_areas": "all",
+    "llm_model": "gpt-4o"
+  },
+  "expected_output": {
+    "critique": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "has_composition_analysis": true,
+        "has_quality_assessment": true,
+        "has_prompt_adherence": true
+      }
+    },
+    "strengths": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "lists_at_least_2_strengths": true
+      }
+    },
+    "weaknesses": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "lists_at_least_2_weaknesses": true
+      }
+    },
+    "score": {
+      "type": "float",
+      "format": "number",
+      "properties": {
+        "min": 0,
+        "max": 10,
+        "is_numeric": true
+      }
+    }
+  },
+  "validation": {
+    "min_length": 100,
+    "max_length": 5000,
+    "required_fields": [
+      "critique",
+      "strengths",
+      "weaknesses",
+      "score"
+    ]
+  }
+}

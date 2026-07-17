@@ -1,0 +1,156 @@
+# Expression Sheet Workflow Manifest
+
+id: character.expression-sheet
+name: Character Expression Sheet
+version: "1.0.0"
+
+category: character
+subcategory: expression-sheet
+
+description: >
+  Facial expression sheet generation with multiple expressions.
+  Optimized for character animation, expression reference, and facial
+  expression documentation. Creates a grid of different expressions.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Positive prompt describing the character face
+    
+  - id: negative_prompt
+    type: text
+    required: false
+    default: ""
+    description: Negative prompt for undesirable elements
+    
+  - id: width
+    type: int
+    required: false
+    default: 1024
+    minimum: 512
+    maximum: 4096
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 768
+    minimum: 512
+    maximum: 4096
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+    
+  - id: steps
+    type: int
+    required: false
+    default: 30
+    minimum: 10
+    maximum: 100
+    step: 1
+    description: Number of inference steps
+    
+  - id: checkpoint
+    type: model
+    required: false
+    default: "juggernaut-xl-v9.safetensors"
+    description: Checkpoint model to use
+    
+  - id: expressions
+    type: text
+    required: false
+    default: "happy,sad,angry,surprised,neutral"
+    description: Comma-separated list of expressions to generate
+
+outputs:
+  - id: image
+    type: image
+    description: Generated expression sheet with multiple faces
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+
+  optional:
+    - role: lora
+      suggested:
+        - character-style
+        - expression-sheet
+    - role: controlnet
+      suggested:
+        - face
+        - pose
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-faceanalysis
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: large
+  batch_supported: true
+
+content:
+  themes:
+    - facial-expressions
+    - animation
+    - reference-sheet
+    - character-expression
+  adult_only: false
+
+tags:
+  - expression-sheet
+  - face-sheet
+  - expressions
+  - animation
+  - reference-sheet
+  - 1024x768
+  - face-reference
+  - multiple-faces
+
+presets:
+  - quick
+  - detailed

@@ -1,0 +1,20 @@
+{
+  "workflow_id": "horror.zombie-progression",
+  "preset": "mid-stage",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "zombie infection, rotting skin, discolored flesh",
+    "negative_prompt": "healthy, clean, no infection",
+    "infection_stage": 3,
+    "progression_speed": 1.0,
+    "severity": 0.8,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 30
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "workflow_id": "weird.ai-telephone",
+  "preset": "subtle",
+  "inputs": {
+    "prompt": "A simple red apple on a white background",
+    "generations": 3,
+    "prompt_modifier": "transform this in an unusual and creative way",
+    "width": 512,
+    "height": 512,
+    "seed": 42,
+    "cfg": 2.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

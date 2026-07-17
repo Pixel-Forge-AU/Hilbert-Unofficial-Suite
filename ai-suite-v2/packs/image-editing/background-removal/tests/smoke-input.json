@@ -1,0 +1,15 @@
+{
+  "workflow_id": "editing.background-removal",
+  "preset": "quick",
+  "inputs": {
+    "image": "https://example.com/test-image.jpg",
+    "precision_mode": false,
+    "dilation": 0,
+    "blur_edges": 2.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

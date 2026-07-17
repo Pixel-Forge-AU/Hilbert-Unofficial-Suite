@@ -1,0 +1,1 @@
+Refine this content: {initial_content}\n\nFocus: {refinement_focus}\n\nRespond with JSON: {"content": "refined_version", "feedback": "feedback_text"}

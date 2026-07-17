@@ -1,0 +1,21 @@
+# High-quality Preset for Image to 3D Mesh
+
+name: High-quality
+description: Maximum detail with full texture resolution
+
+generation:
+  mesh_resolution: 2048
+  smooth_iterations: 5
+  texture_quality: 4096
+  batch_size: 1
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

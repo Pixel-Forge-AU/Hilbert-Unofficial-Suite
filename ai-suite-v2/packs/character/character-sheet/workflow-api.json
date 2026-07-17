@@ -1,0 +1,93 @@
+{
+  "name": "Character Sheet API",
+  "description": "Character sheet generation with multiple angles (front, side, back)",
+  "version": "1.0.0",
+  "workflow_id": "character.character-sheet",
+  "endpoints": {
+    "generate": {
+      "path": "/api/v1/generate/character-character-sheet",
+      "method": "POST",
+      "description": "Generate a character sheet with multiple angles"
+    },
+    "preview": {
+      "path": "/api/v1/preview/character-character-sheet",
+      "method": "GET",
+      "description": "Preview the character sheet generation"
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "Positive prompt describing the character"
+      },
+      "negative_prompt": {
+        "type": "string",
+        "default": "",
+        "description": "Negative prompt for undesirable elements"
+      },
+      "width": {
+        "type": "integer",
+        "default": 1536,
+        "minimum": 768,
+        "maximum": 4096
+      },
+      "height": {
+        "type": "integer",
+        "default": 768,
+        "minimum": 512,
+        "maximum": 4096
+      },
+      "seed": {
+        "type": "integer",
+        "default": -1
+      },
+      "cfg": {
+        "type": "number",
+        "default": 7.0
+      },
+      "steps": {
+        "type": "integer",
+        "default": 30
+      },
+      "checkpoint": {
+        "type": "string",
+        "default": "flux"
+      },
+      "view_configuration": {
+        "type": "string",
+        "default": "3-view",
+        "enum": ["3-view", "4-view", "character-design"]
+      }
+    },
+    "required": ["prompt"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "format": "uri"
+      },
+      "seed": {
+        "type": "integer"
+      },
+      "metadata": {
+        "type": "object"
+      }
+    }
+  },
+  "models": {
+    "required": [
+      "flux",
+      "sdxl",
+      "sd15",
+      "sd3"
+    ],
+    "optional": [
+      "lora",
+      "controlnet"
+    ]
+  }
+}

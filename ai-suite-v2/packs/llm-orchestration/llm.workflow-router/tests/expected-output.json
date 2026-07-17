@@ -1,0 +1,45 @@
+{
+  "workflow_id": "llm.workflow-router",
+  "inputs": {
+    "input_text": "Enhance this prompt for a beautiful landscape photo",
+    "context": "User wants better results for image generation",
+    "available_workflows": "llm.prompt-engineer,llm.image-critic,llm.workflow-router,llm.best-of-n,llm.iterative-refinement",
+    "llm_model": "gpt-4o"
+  },
+  "expected_output": {
+    "selected_workflow": "llm.prompt-engineer",
+    "confidence": {
+      "type": "float",
+      "format": "number",
+      "properties": {
+        "min": 0,
+        "max": 1,
+        "is_numeric": true
+      }
+    },
+    "reasoning": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "contains_explanation": true
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "format": "json",
+      "properties": {
+        "has_workflow_parameters": true
+      }
+    }
+  },
+  "validation": {
+    "min_confidence": 0.5,
+    "max_candidates": 3,
+    "required_fields": [
+      "selected_workflow",
+      "confidence",
+      "reasoning",
+      "parameters"
+    ]
+  }
+}

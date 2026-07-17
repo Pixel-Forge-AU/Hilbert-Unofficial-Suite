@@ -1,0 +1,37 @@
+{
+  "workflow_id": "three-d.multiview",
+  "inputs": {
+    "prompt": "3D model of a cute robot character",
+    "negative_prompt": "blurry, low quality, artifacts",
+    "views": "4-view",
+    "width": 1024,
+    "height": 1024,
+    "consistency_strength": 0.7
+  },
+  "expected_output": {
+    "type": "multi-view",
+    "layout": "grid",
+    "views": 4,
+    "properties": {
+      "has_consistent_lighting": true,
+      "consistent_style": true,
+      "proper_proportions": true,
+      "view_angles": ["front", "side", "back", "top"]
+    },
+    "output_resolution": [1024, 1024],
+    "format": "webp"
+  },
+  "validation": {
+    "min_views": 4,
+    "max_views": 8,
+    "required_features": [
+      "consistent-lighting",
+      "consistent-style",
+      "proper-proportions"
+    ],
+    "optional_features": [
+      "consistent-perspective",
+      "clean-geometry"
+    ]
+  }
+}

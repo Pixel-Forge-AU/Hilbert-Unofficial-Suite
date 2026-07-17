@@ -1,0 +1,1 @@
+multi-view object reconstruction, completed geometry, clean GLB mesh, coherent shape from scan views

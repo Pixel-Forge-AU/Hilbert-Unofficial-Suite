@@ -1,0 +1,36 @@
+{
+  "workflow_id": "horror.blood-overlay",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "blood splatter, gore, violent damage",
+    "negative_prompt": "clean, no blood, no gore",
+    "blood_amount": 0.5,
+    "intensity": 0.6,
+    "opacity": 0.7,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "show_blood": true,
+      "show_gore": true,
+      "violence": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 20,
+    "required_features": [
+      "blood",
+      "gore",
+      "violence"
+    ]
+  }
+}

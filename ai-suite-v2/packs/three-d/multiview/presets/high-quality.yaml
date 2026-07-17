@@ -1,0 +1,21 @@
+# High-quality Preset for Multiview
+
+name: High-quality
+description: Maximum view consistency and detail
+
+views:
+  arrangement: "6-view"
+  width: 2048
+  height: 2048
+
+quality:
+  steps: 40
+  consistency_strength: 0.9
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false

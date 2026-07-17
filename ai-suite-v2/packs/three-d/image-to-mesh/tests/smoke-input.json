@@ -1,0 +1,16 @@
+{
+  "workflow_id": "three-d.image-to-mesh",
+  "preset": "balanced",
+  "inputs": {
+    "image": "base64_encoded_test_image",
+    "prompt": "detailed 3D model of a futuristic robot",
+    "mesh_resolution": 1024,
+    "smooth_iterations": 3,
+    "texture_quality": 2048
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "mesh"
+  }
+}

@@ -1,0 +1,163 @@
+# Corporate Nightmare Workflow Manifest
+
+id: weird.corporate-nightmare
+name: Corporate Nightmare
+version: "1.0.0"
+
+category: weird-experimental
+subcategory: experimental-stylize
+
+description: >
+  Creates a corporate branding nightmare - applying excessive branding,
+  awkward fonts, and corporate clichés to any input. Perfect for satirical
+  corporate presentations and dystopian branding concepts.
+
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Prompt describing the corporate concept
+    
+  - id: branding_intensity
+    type: float
+    required: false
+    default: 0.8
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.01
+    description: How much branding to apply
+    
+  - id: logo_count
+    type: int
+    required: false
+    default: 5
+    minimum: 1
+    maximum: 20
+    step: 1
+    description: Number of logos to overlay
+    
+  - id: font_style
+    type: string
+    required: false
+    default: "corporate-sans"
+    enum:
+      - corporate-sans
+      - aggressive-serif
+      - tech-futuristic
+      - bureaucratic-std
+    description: Typography style
+    
+  - id: color_scheme
+    type: string
+    required: false
+    default: "corporate-blue"
+    enum:
+      - corporate-blue
+      - energy-orange
+      - eco-green
+      - luxury-black
+    description: Corporate color palette
+    
+  - id: width
+    type: int
+    required: false
+    default: 1920
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 1080
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+
+outputs:
+  - id: final_image
+    type: image
+    description: Corporate nightmare image with branding overlays
+  - id: logo_layers
+    type: array
+    description: Array of logo and branding overlays
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: text_encoder
+      suggested:
+        - t5xxl
+        - clip-l
+
+  optional:
+    - role: lora
+      suggested:
+        - corporate-style
+        - branding-overlay
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-logo-overlay
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: heavy
+  batch_supported: false
+
+content:
+  themes:
+    - corporate
+    - branding
+    - nightmare
+    - satire
+    - dystopian
+  adult_only: false
+
+tags:
+  - experimental
+  - corporate
+  - branding
+  - satire
+  - dystopian
+  - typography
+  - logos
+
+presets:
+  - subtle
+  - extreme

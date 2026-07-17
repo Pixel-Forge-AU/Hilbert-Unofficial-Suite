@@ -1,0 +1,83 @@
+{
+  "name": "Zombie Infection Progression API",
+  "description": "Generate zombie infection progression effects for horror and gore applications",
+  "version": "1.0.0",
+  "workflow_id": "horror.zombie-progression",
+  "endpoints": {
+    "generate": {
+      "path": "/api/v1/generate/horror-zombie-progression",
+      "method": "POST",
+      "description": "Apply Zombie Infection Progression effects"
+    },
+    "preview": {
+      "path": "/api/v1/preview/horror-zombie-progression",
+      "method": "GET",
+      "description": "Preview the Zombie Infection Progression effect"
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "format": "uri",
+        "description": "Base image to apply effects to"
+      },
+      "prompt": {
+        "type": "string",
+        "default": "",
+        "description": "Positive prompt for additional details"
+      },
+      "negative_prompt": {
+        "type": "string",
+        "default": "",
+        "description": "Negative prompt for undesirable elements"
+      },
+      "seed": {
+        "type": "integer",
+        "default": -1
+      },
+      "cfg": {
+        "type": "number",
+        "default": 7.0
+      },
+      "steps": {
+        "type": "integer",
+        "default": 25
+      }
+    },
+    "required": [
+      "image"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "format": "uri"
+      },
+      "mask": {
+        "type": "string",
+        "format": "uri"
+      },
+      "metadata": {
+        "type": "object"
+      }
+    }
+  },
+  "models": {
+    "required": [
+      "flux",
+      "sdxl",
+      "sd15",
+      "qwen",
+      "wan",
+      "hunyuan"
+    ],
+    "optional": [
+      "lora",
+      "controlnet"
+    ]
+  }
+}

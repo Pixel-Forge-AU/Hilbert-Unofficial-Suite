@@ -1,0 +1,21 @@
+# Precise Preset for Object Removal
+
+name: Precise
+description: High-quality removal with detailed inpainting
+
+generation:
+  segmentation_model: sam2
+  inpainting_strength: 0.8
+  context_preservation: 0.9
+  batch_size: 1
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: true
+  enable_cpu_offload: false

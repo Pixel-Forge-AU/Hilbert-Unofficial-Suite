@@ -1,0 +1,27 @@
+{
+  "workflow_id": "weird.ai-telephone",
+  "inputs": {
+    "prompt": "A simple red apple on a white background",
+    "generations": 3,
+    "prompt_modifier": "transform this in an unusual and creative way",
+    "width": 512,
+    "height": 512,
+    "seed": 42,
+    "cfg": 2.0
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [512, 512],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true
+    }
+  },
+  "validation": {
+    "min_resolution": [256, 256],
+    "max_file_size_mb": 5,
+    "expected_transformation": "creative"
+  }
+}

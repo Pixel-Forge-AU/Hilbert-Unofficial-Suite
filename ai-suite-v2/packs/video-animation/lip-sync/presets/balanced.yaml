@@ -1,0 +1,19 @@
+name: Balanced
+description: Short InfiniteTalk clip with modest motion context
+
+generation:
+  frames: 17
+  fps: 16
+  steps: 4
+  cfg: 1.0
+  width: 832
+  height: 480
+
+motion:
+  audio_scale: 1.0
+  motion_frame_count: 9
+  lora_strength: 1.0
+
+sampling:
+  sampler_name: euler
+  scheduler: normal

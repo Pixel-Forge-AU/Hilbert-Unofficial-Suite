@@ -1,0 +1,18 @@
+{
+  "workflow_id": "weird.alternate-universe",
+  "preset": "subtle",
+  "inputs": {
+    "prompt": "A forest landscape",
+    "universe_type": "cyberpunk",
+    "reality_shift": 0.6,
+    "color_palette": "neon-cyberpunk",
+    "width": 1024,
+    "height": 1024,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

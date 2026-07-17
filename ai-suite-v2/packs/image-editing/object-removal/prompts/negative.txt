@@ -1,0 +1,1 @@
+visible seams, unnatural textures, distorted background, visible mask, artifacts, noise, compression artifacts, duplicate elements, wrong context

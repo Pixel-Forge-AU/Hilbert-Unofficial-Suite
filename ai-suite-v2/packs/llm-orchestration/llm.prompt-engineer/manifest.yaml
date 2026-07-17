@@ -1,0 +1,93 @@
+id: llm.prompt-engineer
+name: LLM Prompt Engineer
+version: 2.0.0
+category: llm-orchestration
+subcategory: prompt-optimization
+description: 'Enhance and refine prompts using LLM intelligence for better image generation
+  results. Analyzes and optimizes prompts with natural language processing to improve
+  output quality, consistency, and creative potential.
+
+  Runs locally through the AI Suite llama.cpp service instead of ComfyUI custom nodes.
+
+  '
+status: stable
+entrypoints:
+  service: llama_cpp
+inputs:
+- id: prompt
+  type: text
+  required: true
+  description: Original prompt to enhance and refine
+- id: negative_prompt
+  type: text
+  required: false
+  default: ''
+  description: Negative prompt to exclude unwanted elements
+- id: enhancement_level
+  type: int
+  required: false
+  default: 2
+  minimum: 1
+  maximum: 5
+  step: 1
+  description: Level of enhancement (1=minimal, 5=maximum creativity)
+- id: style_presets
+  type: text
+  required: false
+  default: masterpiece, best quality
+  description: Style presets to apply
+- id: llm_model
+  type: text
+  required: false
+  default: gpt-4o
+  description: LLM model to use for enhancement
+outputs:
+- id: enhanced_prompt
+  type: text
+  description: Enhanced and refined prompt
+- id: negative_prompt_enhanced
+  type: text
+  description: Enhanced negative prompt
+- id: analysis
+  type: text
+  description: Analysis of the original prompt
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required: []
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: light
+  batch_supported: false
+  type: llm_service
+  service: llama_cpp
+  endpoint: http://127.0.0.1:8080/v1/chat/completions
+content:
+  themes:
+  - llm
+  - prompt-engineering
+  - optimization
+  - nlp
+  adult_only: false
+tags:
+- creative
+- enhancement
+- intelligent
+- llama-cpp
+- llm
+- local-llm
+- nlp
+- optimization
+- prompt-engineer
+- refinement
+- service-workflow
+presets:
+- creative
+- precise
+media_type: text

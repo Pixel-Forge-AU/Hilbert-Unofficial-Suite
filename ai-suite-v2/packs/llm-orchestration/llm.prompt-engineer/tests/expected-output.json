@@ -1,0 +1,46 @@
+{
+  "workflow_id": "llm.prompt-engineer",
+  "inputs": {
+    "prompt": "a futuristic city with flying cars",
+    "negative_prompt": "low quality, blurry",
+    "enhancement_level": 3,
+    "style_presets": "masterpiece, best quality",
+    "llm_model": "gpt-4o"
+  },
+  "expected_output": {
+    "enhanced_prompt": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "has_masterpiece": true,
+        "has_quality": true,
+        "has_detail": true,
+        "length_range": [50, 500]
+      }
+    },
+    "negative_prompt_enhanced": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "has_quality_terms": true,
+        "has_artifacts_terms": true
+      }
+    },
+    "analysis": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "provides_feedback": true
+      }
+    }
+  },
+  "validation": {
+    "min_length": 20,
+    "max_length": 2000,
+    "required_fields": [
+      "enhanced_prompt",
+      "negative_prompt_enhanced",
+      "analysis"
+    ]
+  }
+}

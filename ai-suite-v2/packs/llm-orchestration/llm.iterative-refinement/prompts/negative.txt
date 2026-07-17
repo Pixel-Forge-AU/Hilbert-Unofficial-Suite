@@ -1,0 +1,2 @@
+Avoid: superficial improvements, ignoring feedback, circular refinement, quality regression
+Focus on: meaningful improvement, addressing feedback, progressive enhancement, measurable gains

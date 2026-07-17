@@ -1,0 +1,35 @@
+{
+  "workflow_id": "horror.eldritch-corruption",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "mutation, horror, grotesque",
+    "negative_prompt": "clean, normal, no mutation",
+    "mutation_strength": 0.6,
+    "chaos_factor": 0.7,
+    "seed": 42,
+    "cfg": 7.5,
+    "steps": 30
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "show_mutation": true,
+      "show_horrifice": true,
+      "grotesque": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 20,
+    "required_features": [
+      "mutation",
+      "horror",
+      "grotesque"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "workflow_id": "editing.face-repair",
+  "inputs": {
+    "image": "https://example.com/portrait-with-face-issues.jpg",
+    "enhancement_strength": 0.7,
+    "detail_preservation": 0.8
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "properties": {
+      "faces_repaired": true,
+      "natural_appearance": true,
+      "details_enhanced": true,
+      "no_artifacts": true
+    }
+  },
+  "validation": {
+    "required_features": [
+      "face_structure_preserved",
+      "skin_smoothed",
+      "features_enhanced"
+    ]
+  }
+}

@@ -1,0 +1,161 @@
+# Character Portrait Workflow Manifest
+
+id: character.portrait
+name: Character Portrait
+version: "1.0.0"
+
+category: character
+subcategory: portrait
+
+description: >
+  High-quality character portrait generation focusing on face and upper body.
+  Optimized for detailed facial features, expressions, and character consistency.
+  Perfect for character designs, headshots, and detailed portraits.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Positive prompt describing the character portrait
+    
+  - id: negative_prompt
+    type: text
+    required: false
+    default: ""
+    description: Negative prompt for undesirable elements
+    
+  - id: width
+    type: int
+    required: false
+    default: 768
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+    
+  - id: steps
+    type: int
+    required: false
+    default: 25
+    minimum: 10
+    maximum: 100
+    step: 1
+    description: Number of inference steps
+    
+  - id: checkpoint
+    type: model
+    required: false
+    default: "juggernaut-xl-v9.safetensors"
+    description: Checkpoint model to use
+    
+  - id: reference_image
+    type: image
+    required: false
+    description: Reference image for character consistency
+
+outputs:
+  - id: image
+    type: image
+    description: Generated character portrait
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: text_encoder
+      suggested:
+        - t5xxl
+        - clip-l
+
+  optional:
+    - role: lora
+      suggested:
+        - character-style
+        - portrait-posing
+    - role: controlnet
+      suggested:
+        - depth
+        - pose
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-pulid
+    - comfyui-instantid
+
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: medium
+  batch_supported: true
+
+content:
+  themes:
+    - character-design
+    - portrait
+    - headshot
+    - detailed-face
+    - expressions
+  adult_only: false
+
+tags:
+  - portrait
+  - character
+  - face
+  - upper-body
+  - detailed
+  - headshot
+  - expressions
+  - 768x1024
+
+presets:
+  - quick
+  - detailed

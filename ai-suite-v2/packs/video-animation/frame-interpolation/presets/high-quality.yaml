@@ -1,0 +1,23 @@
+# High Quality Preset for Frame Interpolation
+
+name: High Quality
+description: Maximum quality frame interpolation with natural motion
+
+interpolation:
+  fps_multiplier: 2.0
+  interpolation_quality: 0.95
+  motion_preservation: 0.95
+  smoothing: 0.2
+  output_fps: 60
+
+quality:
+  enable_upscale: true
+  upscale_factor: 2
+  enable_denoise: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

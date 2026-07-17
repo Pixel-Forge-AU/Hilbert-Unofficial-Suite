@@ -1,0 +1,15 @@
+{
+  "workflow_id": "editing.background-replacement",
+  "preset": "quick",
+  "inputs": {
+    "subject_image": "https://example.com/subject.jpg",
+    "new_background": "https://example.com/background.jpg",
+    "blend_strength": 0.8,
+    "match_lighting": true
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

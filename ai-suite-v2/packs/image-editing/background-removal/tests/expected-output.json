@@ -1,0 +1,25 @@
+{
+  "workflow_id": "editing.background-removal",
+  "inputs": {
+    "image": "https://example.com/test-image.jpg",
+    "precision_mode": false,
+    "dilation": 0,
+    "blur_edges": 2.0
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "properties": {
+      "has_transparent_background": true,
+      "no_artifacts": true,
+      "subject_preserved": true
+    }
+  },
+  "validation": {
+    "min_transparency_ratio": 0.1,
+    "required_features": [
+      "subject",
+      "clean_edges"
+    ]
+  }
+}

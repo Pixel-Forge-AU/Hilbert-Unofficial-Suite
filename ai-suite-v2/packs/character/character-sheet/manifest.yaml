@@ -1,0 +1,159 @@
+# Character Sheet Workflow Manifest
+
+id: character.character-sheet
+name: Character Character Sheet
+version: "1.0.0"
+
+category: character
+subcategory: character-sheet
+
+description: >
+  Character sheet generation with multiple angles (front, side, back).
+  Optimized for character design documentation and reference sheets.
+  Includes multiple views in a single composition.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Positive prompt describing the character
+    
+  - id: negative_prompt
+    type: text
+    required: false
+    default: ""
+    description: Negative prompt for undesirable elements
+    
+  - id: width
+    type: int
+    required: false
+    default: 1536
+    minimum: 768
+    maximum: 4096
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 768
+    minimum: 512
+    maximum: 4096
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+    
+  - id: steps
+    type: int
+    required: false
+    default: 30
+    minimum: 10
+    maximum: 100
+    step: 1
+    description: Number of inference steps
+    
+  - id: checkpoint
+    type: model
+    required: false
+    default: "juggernaut-xl-v9.safetensors"
+    description: Checkpoint model to use
+    
+  - id: view_configuration
+    type: text
+    required: false
+    default: "3-view"
+    options:
+      - "3-view"
+      - "4-view"
+      - "character-design"
+    description: View configuration layout
+
+outputs:
+  - id: image
+    type: image
+    description: Generated character sheet with multiple angles
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+
+  optional:
+    - role: lora
+      suggested:
+        - character-style
+        - design-sheet
+    - role: controlnet
+      suggested:
+        - pose
+        - depth
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: large
+  batch_supported: true
+
+content:
+  themes:
+    - character-design
+    - reference-sheet
+    - multi-angle
+    - documentation
+  adult_only: false
+
+tags:
+  - character-sheet
+  - reference
+  - multi-angle
+  - character-design
+  - documentation
+  - 1536x768
+  - 3-view
+  - 4-view
+
+presets:
+  - quick
+  - detailed

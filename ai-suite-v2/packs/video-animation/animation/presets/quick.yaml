@@ -1,0 +1,20 @@
+# Quick Preset for Animation
+
+name: Quick
+description: Fast animation generation for rapid preview
+
+animation:
+  animation_strength: 0.5
+  frame_count: 30
+  fps: 24
+
+quality:
+  enable_upscale: false
+  enable_motion_refine: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: true
+  enable_cpu_offload: true

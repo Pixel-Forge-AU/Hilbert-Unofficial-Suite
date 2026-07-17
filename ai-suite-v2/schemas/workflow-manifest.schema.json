@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ai-suite/v2/schemas/workflow-manifest.schema.json",
+  "title": "Workflow Manifest Schema",
+  "description": "Schema for defining a ComfyUI workflow module in the AI Suite",
+  "type": "object",
+  "required": ["id", "name", "version", "category", "description", "entrypoints", "inputs", "outputs", "models", "custom_nodes", "hardware"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z-]+$",
+      "description": "Unique workflow identifier (e.g., 'core.text-to-image-fast')"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable workflow name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semver version string"
+    },
+    "category": {
+      "type": "string",
+      "description": "Category pack name (e.g., 'core-generation', 'character', 'horror-gore')"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Subcategory for better organization"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what the workflow does"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["experimental", "stable", "deprecated"],
+      "default": "stable",
+      "description": "Workflow maturity status"
+    },
+    "entrypoints": {
+      "type": "object",
+      "required": ["ui", "api"],
+      "properties": {
+        "ui": {
+          "type": "string",
+          "description": "Path to UI workflow JSON file"
+        },
+        "api": {
+          "type": "string",
+          "description": "Path to API workflow JSON file"
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Input identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["image", "text", "float", "int", "boolean", "model", "mask"]
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "default": {},
+          "minimum": {
+            "type": "number"
+          },
+          "maximum": {
+            "type": "number"
+          },
+          "step": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Output identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["image", "mask", "video", "text", "metadata"]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "description": "Model role (checkpoint, vae, text_encoder, etc.)"
+              },
+              "family": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["flux", "sdxl", "sd15", "qwen", "hidream", "wan", "hunyuan", "sdxl-lightning", "sd3"]
+                }
+              }
+            }
+          }
+        },
+        "optional": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "suggested": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "custom_nodes": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Custom node package name"
+          }
+        },
+        "optional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "required": ["minimum_vram_gb", "recommended_vram_gb"],
+      "properties": {
+        "minimum_vram_gb": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "recommended_vram_gb": {
+          "type": "integer",
+          "minimum": 8
+        },
+        "supports_low_vram": {
+          "type": "boolean",
+          "default": false
+        },
+        "supports_cpu_offload": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": ["light", "medium", "heavy"],
+          "description": "Computational complexity class"
+        },
+        "batch_supported": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "themes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "adult_only": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "presets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of preset file names in presets/ directory"
+    }
+  }
+}

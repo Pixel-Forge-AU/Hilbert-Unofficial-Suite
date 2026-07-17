@@ -1,0 +1,88 @@
+id: llm.best-of-n
+name: LLM Best of N
+version: 2.0.0
+category: llm-orchestration
+subcategory: generation
+description: 'Generate multiple variants of an output and use LLM to evaluate and
+  select the best one. Perfect for scenarios where you want multiple options and need
+  intelligent selection. Supports text, images, and other content types.
+
+  Runs locally through the AI Suite llama.cpp service instead of ComfyUI custom nodes.
+
+  '
+status: stable
+entrypoints:
+  service: llama_cpp
+inputs:
+- id: input_prompt
+  type: text
+  required: true
+  description: Base prompt for generating variants
+- id: num_variants
+  type: int
+  required: false
+  default: 3
+  description: Number of variants to generate
+  minimum: 1
+  maximum: 10
+- id: llm_model
+  type: text
+  required: false
+  default: gpt-4o
+  description: LLM model for evaluation
+- id: evaluation_criteria
+  type: text
+  required: false
+  default: quality, creativity, relevance
+  description: Criteria for selecting the best variant
+outputs:
+- id: selected_variant
+  type: text
+  description: The best variant according to LLM evaluation
+- id: variant_scores
+  type: object
+  description: Scores for all variants
+- id: evaluation_reasoning
+  type: text
+  description: Explanation for the selection
+- id: all_variants
+  type: array
+  description: All generated variants
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required: []
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: medium
+  batch_supported: false
+  type: llm_service
+  service: llama_cpp
+  endpoint: http://127.0.0.1:8080/v1/chat/completions
+content:
+  themes:
+  - llm
+  - orchestration
+  - selection
+  - optimization
+  adult_only: false
+tags:
+- best-of-n
+- evaluation
+- llama-cpp
+- llm
+- local-llm
+- optimization
+- selection
+- service-workflow
+- variant-generation
+presets:
+- creative
+- precise
+media_type: text

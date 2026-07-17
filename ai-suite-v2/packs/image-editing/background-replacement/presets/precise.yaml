@@ -1,0 +1,21 @@
+# Precise Preset for Background Replacement
+
+name: Precise
+description: High-quality compositing with advanced blending
+
+generation:
+  segmentation_model: sam2
+  blend_strength: 0.9
+  match_lighting: true
+  batch_size: 1
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: true
+  enable_cpu_offload: false

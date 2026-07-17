@@ -1,0 +1,19 @@
+name: Quick
+description: Short experimental InfiniteTalk preview
+
+generation:
+  frames: 9
+  fps: 8
+  steps: 1
+  cfg: 1.0
+  width: 832
+  height: 480
+
+motion:
+  audio_scale: 1.0
+  motion_frame_count: 1
+  lora_strength: 1.0
+
+sampling:
+  sampler_name: euler
+  scheduler: normal

@@ -1,0 +1,19 @@
+# High-quality Preset for Gaussian Splatting
+
+name: High-quality
+description: Maximum fidelity with full optimization
+
+gaussians:
+  density: 1.5
+  optimization_steps: 1000
+  enable_sharpen: true
+  high_fidelity: true
+
+quality:
+  resolution: 2048
+  enable_upscale: true
+  enable_face_restore: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false

@@ -1,0 +1,31 @@
+# Pronounced Mutation Preset
+
+name: Pronounced Mutation
+description: Visible mutations for horror creatures
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 30
+  cfg: 7.5
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+mutation:
+  strength: 0.6
+  chaos_factor: 0.7
+  features: 3
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false

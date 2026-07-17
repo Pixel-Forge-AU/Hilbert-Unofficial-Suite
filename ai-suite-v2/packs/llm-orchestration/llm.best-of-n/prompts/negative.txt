@@ -1,0 +1,2 @@
+Avoid: similar variants, low creativity, ignoring parameters, poor quality output
+Focus on: diverse variations, creative exploration, quality output, clear structure

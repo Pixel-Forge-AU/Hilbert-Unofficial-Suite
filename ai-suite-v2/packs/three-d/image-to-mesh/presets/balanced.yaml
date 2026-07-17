@@ -1,0 +1,21 @@
+# Balanced Preset for Image to 3D Mesh
+
+name: Balanced
+description: Good quality with reasonable computation time
+
+generation:
+  mesh_resolution: 1024
+  smooth_iterations: 3
+  texture_quality: 2048
+  batch_size: 1
+
+quality:
+  enable_upscale: true
+  enable_face_restore: false
+  enable_sharpen: true
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

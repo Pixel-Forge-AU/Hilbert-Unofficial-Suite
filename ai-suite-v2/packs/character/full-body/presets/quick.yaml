@@ -1,0 +1,27 @@
+# Quick Preset for Character Full Body
+
+name: Quick
+description: Fast generation for quick full body character shots
+
+generation:
+  width: 512
+  height: 768
+  steps: 15
+  cfg: 5.0
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

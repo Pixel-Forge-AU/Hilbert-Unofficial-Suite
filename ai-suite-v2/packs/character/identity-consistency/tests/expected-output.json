@@ -1,0 +1,36 @@
+{
+  "workflow_id": "character.identity-consistency",
+  "inputs": {
+    "prompt": "make a polished studio portrait with softer lighting while keeping the same person",
+    "identity_image": "example.png",
+    "identity_mode": "strict",
+    "edit_strength": 0.16,
+    "width": 768,
+    "height": 768,
+    "seed": 42,
+    "cfg": 5.0,
+    "steps": 24
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "png",
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "identity_preserved": true,
+      "face_consistent": true,
+      "high_quality": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 20,
+    "required_features": [
+      "identity-consistency",
+      "face-preservation",
+      "img2img",
+      "reference-preserving-edit"
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+# Hardware Profiles Configuration
+# Define different hardware configurations and their optimized settings
+
+profiles:
+  # Low-end GPU (4-6GB VRAM)
+  low_vram:
+    name: "Low VRAM (4-6GB)"
+    vram_gb: 4
+    recommended_vram_gb: 6
+    optimization:
+      cpu_offload: true
+      low_vram_mode: true
+      batch_size: 1
+      precision: "fp16"
+      attention_backend: "sage_attn"
+      enable_memory_optimizations: true
+    generation_defaults:
+      max_resolution: 768
+      max_steps: 30
+      max_guidance: 8.0
+    compatible_workflows:
+      - "core.*"
+      - "editing.*"
+      
+  # Mid-range GPU (8-12GB VRAM)
+  mid_vram:
+    name: "Mid VRAM (8-12GB)"
+    vram_gb: 8
+    recommended_vram_gb: 12
+    optimization:
+      cpu_offload: false
+      low_vram_mode: false
+      batch_size: 2
+      precision: "fp16"
+      attention_backend: "xformers"
+      enable_memory_optimizations: true
+    generation_defaults:
+      max_resolution: 1024
+      max_steps: 50
+      max_guidance: 10.0
+    compatible_workflows:
+      - "core.*"
+      - "editing.*"
+      - "character.*"
+      - "horror.*"
+      
+  # High-end GPU (16-24GB VRAM)
+  high_vram:
+    name: "High VRAM (16-24GB)"
+    vram_gb: 16
+    recommended_vram_gb: 24
+    optimization:
+      cpu_offload: false
+      low_vram_mode: false
+      batch_size: 4
+      precision: "fp16"
+      attention_backend: "flash_attn"
+      enable_memory_optimizations: false
+    generation_defaults:
+      max_resolution: 2048
+      max_steps: 100
+      max_guidance: 12.0
+    compatible_workflows:
+      - "core.*"
+      - "editing.*"
+      - "character.*"
+      - "horror.*"
+      - "video.*"
+      - "three-d.*"
+      
+  # Premium GPU (24GB+ VRAM)
+  premium_vram:
+    name: "Premium VRAM (24GB+)"
+    vram_gb: 24
+    recommended_vram_gb: 48
+    optimization:
+      cpu_offload: false
+      low_vram_mode: false
+      batch_size: 8
+      precision: "fp16"
+      attention_backend: "flash_attn"
+      enable_memory_optimizations: false
+    generation_defaults:
+      max_resolution: 4096
+      max_steps: 150
+      max_guidance: 15.0
+    compatible_workflows:
+      - "*"
+      
+  # CPU-only (no GPU)
+  cpu_only:
+    name: "CPU Only"
+    vram_gb: 0
+    recommended_vram_gb: 0
+    optimization:
+      cpu_offload: true
+      low_vram_mode: true
+      batch_size: 1
+      precision: "fp32"
+      attention_backend: "torch"
+      enable_memory_optimizations: true
+    generation_defaults:
+      max_resolution: 512
+      max_steps: 20
+      max_guidance: 5.0
+    compatible_workflows:
+      - "core.text-to-image-fast"
+      - "core.outpainting-square-to-landscape"
+      
+# Workflow-specific overrides
+workflow_overrides:
+  "video.*":
+    recommended_profile: "high_vram"
+    min_profile: "mid_vram"
+    
+  "three-d.*":
+    recommended_profile: "high_vram"
+    min_profile: "mid_vram"
+    
+  "character.*":
+    recommended_profile: "mid_vram"
+    min_profile: "low_vram"
+    
+  "horror.*":
+    recommended_profile: "mid_vram"
+    min_profile: "low_vram"

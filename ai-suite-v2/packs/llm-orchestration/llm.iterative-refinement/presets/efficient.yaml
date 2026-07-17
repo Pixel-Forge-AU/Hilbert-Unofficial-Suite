@@ -1,0 +1,20 @@
+# Efficient Preset for LLM Iterative Refinement
+
+name: Efficient
+description: Balanced refinement with efficient processing
+
+refinement:
+  iterations: 3
+  temperature: 0.6
+  depth: standard
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.6
+  top_p: 0.85
+  max_tokens: 2048
+
+feedback:
+  focus: "key improvement areas"
+  detail_level: concise
+  include_examples: false

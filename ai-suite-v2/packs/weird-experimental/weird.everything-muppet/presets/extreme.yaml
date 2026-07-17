@@ -1,0 +1,26 @@
+# Extreme Preset for Everything Muppet
+
+name: Extreme
+description: Maximum Muppet effect with heavy transformation
+
+muppet:
+  intensity: 0.9
+  texture_detail: 14
+  color_saturation: 1.5
+  edge_style: hand-stitched
+
+colors:
+  vibrancy: 1.4
+  contrast: 1.2
+  highlight: 1.1
+
+quality:
+  preserve_details: false
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: true

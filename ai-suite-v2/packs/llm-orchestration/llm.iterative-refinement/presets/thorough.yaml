@@ -1,0 +1,20 @@
+# Thorough Preset for LLM Iterative Refinement
+
+name: Thorough
+description: Deep refinement with maximum quality focus
+
+refinement:
+  iterations: 5
+  temperature: 0.5
+  depth: deep
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.5
+  top_p: 0.8
+  max_tokens: 4096
+
+feedback:
+  focus: "comprehensive improvement areas"
+  detail_level: detailed
+  include_examples: true

@@ -1,0 +1,30 @@
+# Creative Preset for LLM Prompt Engineer
+
+name: Creative
+description: Maximum creativity and artistic enhancement
+
+enhancement:
+  level: 4
+  creativity_boost: true
+  add_descriptive_keywords: true
+  add_artistic_terms: true
+  add_quality_markers: true
+  max_length: 500
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.8
+  top_p: 0.9
+  max_tokens: 4096
+
+style:
+  apply_masterpiece: true
+  apply_quality: true
+  apply_detail: true
+  apply_lighting: true
+  apply_composition: true
+
+output:
+  format: "enhanced"
+  include_analysis: true
+  include_negative: true

@@ -1,0 +1,31 @@
+{
+  "workflow_id": "core.text-to-image-quality",
+  "inputs": {
+    "prompt": "A majestic castle on a cliff overlooking the ocean at sunset",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 1024,
+    "seed": 12345,
+    "cfg": 7.0
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 15,
+    "required_features": [
+      "castle",
+      "cliff",
+      "ocean",
+      "sunset"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ai-suite/v2/schemas/model-manifest.schema.json",
+  "title": "Model Manifest Schema",
+  "description": "Schema for defining model dependencies and metadata",
+  "type": "object",
+  "required": ["id", "name", "family", "files"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "family": {
+      "type": "string",
+      "enum": ["flux", "sdxl", "sd15", "qwen", "hidream", "wan", "hunyuan", "sdxl-lightning", "sd3"]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "size_gb"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path where file should be stored"
+          },
+          "size_gb": {
+            "type": "number",
+            "description": "File size in gigabytes"
+          },
+          "url": {
+            "type": "string",
+            "description": "Download URL (optional)"
+          }
+        }
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "recommended_use": {
+      "type": "string"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["checkpoint", "vae", "text_encoder", "clip", "t5", "lora", "controlnet", "upscale", "segmentation", "face_detection"]
+      }
+    }
+  }
+}

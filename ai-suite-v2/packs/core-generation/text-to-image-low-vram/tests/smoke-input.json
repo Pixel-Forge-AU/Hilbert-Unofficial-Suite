@@ -1,0 +1,18 @@
+{
+  "workflow_id": "core.text-to-image-low-vram",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "A peaceful forest path with sunlight filtering through trees",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 768,
+    "height": 768,
+    "seed": 54321,
+    "cfg": 7.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image",
+    "low_vram_mode": true
+  }
+}

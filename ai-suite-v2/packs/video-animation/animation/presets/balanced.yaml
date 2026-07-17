@@ -1,0 +1,20 @@
+# Balanced Preset for Animation
+
+name: Balanced
+description: Natural animation with good quality
+
+animation:
+  animation_strength: 0.7
+  frame_count: 60
+  fps: 24
+
+quality:
+  enable_upscale: false
+  enable_motion_refine: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

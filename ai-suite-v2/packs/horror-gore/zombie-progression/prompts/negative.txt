@@ -1,0 +1,1 @@
+clean, normal, healthy, no infection, no decay, no zombies

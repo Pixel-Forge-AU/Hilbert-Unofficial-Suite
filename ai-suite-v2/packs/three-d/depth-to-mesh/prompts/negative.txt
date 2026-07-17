@@ -1,0 +1,1 @@
+noise, artifacts, non-manifold geometry, inverted normals, poor surface quality, bad depth reconstruction

@@ -1,0 +1,23 @@
+# Quick Preset for Video to Video
+
+name: Quick
+description: Fast video enhancement for rapid processing
+
+enhancement:
+  factor: 1.5
+  steps: 10
+  denoise: 0.3
+  stabilization: false
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+  output_fps: 24
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: true
+  enable_cpu_offload: true
+  batch_size: 4

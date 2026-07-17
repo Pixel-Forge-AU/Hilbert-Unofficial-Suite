@@ -1,0 +1,25 @@
+# High Quality Preset for Video to Video
+
+name: High Quality
+description: Maximum quality enhancement for professional output
+
+enhancement:
+  factor: 2.0
+  steps: 40
+  denoise: 0.6
+  stabilization: true
+  fps_boost: true
+
+quality:
+  enable_upscale: true
+  upscale_factor: 2
+  enable_face_restore: true
+  enable_sharpen: subtle
+  output_fps: 30
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false
+  batch_size: 1

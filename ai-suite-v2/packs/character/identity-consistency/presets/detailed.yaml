@@ -1,0 +1,27 @@
+# Detailed Preset for Character Identity Consistency
+
+name: Detailed
+description: Higher-quality img2img pass for identity-preserving character output
+
+generation:
+  width: 768
+  height: 768
+  steps: 40
+  cfg: 5.5
+  batch_size: 1
+
+sampling:
+  edit_strength: 0.24
+  identity_mode: balanced
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: true
+  sharpen_amount: 0.3
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

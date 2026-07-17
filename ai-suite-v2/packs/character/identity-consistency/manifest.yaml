@@ -1,0 +1,239 @@
+# Identity Consistency Workflow Manifest
+
+id: character.identity-consistency
+name: Character Identity Consistency
+version: "2.1.1"
+
+category: character
+subcategory: identity-consistency
+media_type: image
+
+description: >
+  Stable reference-preserving character img2img workflow. Upload a source
+  portrait or character image, describe a modest edit, and choose how tightly
+  to preserve the original identity. This is an honest local fallback for
+  identity consistency; it does not claim InstantID, PuLID, or IPAdapter face
+  transfer unless those nodes are installed later.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+
+inputs:
+  - id: identity_image
+    label: Source/reference image
+    type: file
+    required: true
+    default: example.png
+    node_id: "8"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Source image whose face, hair, pose, and broad character identity should be preserved
+
+  - id: prompt
+    label: Target edit
+    type: textarea
+    required: true
+    default: "subtle polished portrait of the same person, improve lighting and detail, keep the same face and hairstyle"
+    node_id: "2"
+    node_type: CLIPTextEncode
+    input: text
+    description: Describe a modest change to make while preserving the source identity
+
+  - id: identity_mode
+    label: Identity mode
+    type: select
+    required: false
+    default: balanced
+    options:
+      - strict
+      - balanced
+      - creative
+    description: Strict preserves most; creative follows larger edits but may drift
+
+  - id: negative_prompt
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: "different person, changed identity, different face, face morph, altered facial structure, changed hairstyle, changed age, distorted face, extra face, low quality, blurry, text, watermark"
+    node_id: "4"
+    node_type: CLIPTextEncode
+    input: text
+    description: Things to avoid
+
+  - id: edit_strength
+    label: Edit strength
+    type: float
+    required: false
+    default: 0.22
+    minimum: 0.05
+    maximum: 0.55
+    step: 0.01
+    node_id: "5"
+    node_type: KSampler
+    input: denoise
+    description: Lower preserves the uploaded reference more strongly; raise only for larger edits
+
+  - id: width
+    label: Width
+    type: int
+    required: false
+    default: 768
+    minimum: 512
+    maximum: 2048
+    step: 64
+    node_id: "9"
+    node_type: ImageScale
+    input: width
+    description: Output image width in pixels
+
+  - id: height
+    label: Height
+    type: int
+    required: false
+    default: 768
+    minimum: 512
+    maximum: 2048
+    step: 64
+    node_id: "9"
+    node_type: ImageScale
+    input: height
+    description: Output image height in pixels
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    node_id: "5"
+    node_type: KSampler
+    input: seed
+    description: Random seed for reproducibility (-1 for random)
+
+  - id: cfg
+    label: CFG
+    type: float
+    required: false
+    default: 5.5
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    node_id: "5"
+    node_type: KSampler
+    input: cfg
+    description: Guidance scale
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 30
+    minimum: 1
+    maximum: 100
+    step: 1
+    node_id: "5"
+    node_type: KSampler
+    input: steps
+    description: Number of inference steps
+
+  - id: checkpoint
+    label: Checkpoint
+    type: model
+    required: false
+    default: "juggernaut-xl-v9.safetensors"
+    node_id: "1"
+    node_type: CheckpointLoaderSimple
+    input: ckpt_name
+    description: Checkpoint model to use
+
+  - id: sampler_name
+    label: Sampler
+    type: select
+    required: false
+    default: dpmpp_2m
+    options:
+      - dpmpp_2m
+      - dpmpp_2m_sde
+      - euler
+      - euler_ancestral
+    node_id: "5"
+    node_type: KSampler
+    input: sampler_name
+    description: Sampling method
+
+  - id: scheduler
+    label: Scheduler
+    type: select
+    required: false
+    default: karras
+    options:
+      - karras
+      - normal
+      - simple
+      - exponential
+    node_id: "5"
+    node_type: KSampler
+    input: scheduler
+    description: Noise schedule
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: ai-suite/identity
+    node_id: "7"
+    node_type: SaveImage
+    input: filename_prefix
+    description: Output filename prefix
+
+outputs:
+  - id: image
+    type: image
+    description: Generated image guided by the uploaded identity reference
+
+models:
+  required:
+    - type: checkpoints
+      name: juggernaut-xl-v9.safetensors
+      url: ""
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: large
+  batch_supported: true
+
+content:
+  themes:
+    - identity-preservation
+    - character-consistency
+    - reference-image
+    - img2img
+    - reference-preserving-edit
+  adult_only: false
+
+tags:
+  - identity-consistency
+  - identity-preservation
+  - character-consistency
+  - reference-image
+  - img2img
+  - reference-preserving-edit
+
+presets:
+  - quick
+  - detailed

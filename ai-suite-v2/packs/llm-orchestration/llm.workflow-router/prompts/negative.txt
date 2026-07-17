@@ -1,0 +1,2 @@
+Avoid: incorrect routing, low confidence decisions, ignoring available workflows, missing context
+Focus on: accurate workflow identification, confidence scoring, clear reasoning, parameter suggestions

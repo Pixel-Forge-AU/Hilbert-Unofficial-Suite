@@ -1,0 +1,108 @@
+{
+  "name": "Battle Damage API",
+  "description": "Apply realistic battle damage including dirt, blood, torn clothing, and combat wear effects",
+  "version": "1.0.0",
+  "workflow_id": "horror.battle-damage",
+  "endpoints": {
+    "generate": {
+      "path": "/api/v1/generate/horror-battle-damage",
+      "method": "POST",
+      "description": "Apply battle damage effects to an image"
+    },
+    "preview": {
+      "path": "/api/v1/preview/horror-battle-damage",
+      "method": "GET",
+      "description": "Preview the battle damage effect"
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "format": "uri",
+        "description": "Base image to apply battle damage to"
+      },
+      "prompt": {
+        "type": "string",
+        "default": "",
+        "description": "Positive prompt for additional details"
+      },
+      "negative_prompt": {
+        "type": "string",
+        "default": "",
+        "description": "Negative prompt for undesirable elements"
+      },
+      "damage_intensity": {
+        "type": "number",
+        "default": 0.7,
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "blood_amount": {
+        "type": "number",
+        "default": 0.6,
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "dirt_amount": {
+        "type": "number",
+        "default": 0.5,
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "tear_amount": {
+        "type": "number",
+        "default": 0.4,
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "seed": {
+        "type": "integer",
+        "default": -1
+      },
+      "cfg": {
+        "type": "number",
+        "default": 7.0
+      },
+      "steps": {
+        "type": "integer",
+        "default": 25
+      }
+    },
+    "required": ["image"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "format": "uri"
+      },
+      "mask": {
+        "type": "string",
+        "format": "uri"
+      },
+      "seed": {
+        "type": "integer"
+      },
+      "metadata": {
+        "type": "object"
+      }
+    }
+  },
+  "models": {
+    "required": [
+      "flux",
+      "sdxl",
+      "sd15",
+      "qwen",
+      "wan",
+      "hunyuan"
+    ],
+    "optional": [
+      "lora",
+      "controlnet"
+    ]
+  }
+}

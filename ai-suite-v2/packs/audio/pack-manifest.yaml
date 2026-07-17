@@ -1,0 +1,15 @@
+# Audio Pack Manifest
+
+id: audio
+name: Audio
+version: "2.0.0"
+
+description: >
+  Audio generation workflows including music, speech, and sound effects
+  using ComfyUI audio models like ACE Step and DiffRhythm.
+
+workflows:
+  - audio.ace-step-1-5
+  - audio.diffrhythm
+
+default_enabled: true

@@ -1,0 +1,17 @@
+{
+  "workflow_id": "core.text-to-image-extreme",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "A breathtaking view of the northern lights over a mountain lake with pine trees",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 1024,
+    "seed": 54321,
+    "cfg": 8.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

@@ -1,0 +1,23 @@
+# Horror & Gore Pack Manifest
+
+id: horror-gore
+name: Horror & Gore
+version: "2.0.0"
+
+description: >
+  Fictional horror, mutation, undead, battle-damage and creature-effects workflows.
+  This pack contains content warnings for some workflows.
+
+workflows:
+  - horror.battle-damage
+  - horror.zombie-progression
+  - horror.blood-overlay
+  - horror.creature-mutation
+  - horror.eldritch-corruption
+  - horror.decay-progression
+  - horror.fictional-autopsy
+  - horror.monster-dissection
+  - horror.horror-poster-generator
+
+default_enabled: true
+content_warning: true

@@ -1,0 +1,181 @@
+{
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "38",
+        0
+      ],
+      "text": "The subject begins still, then eases into natural motion with subtle camera movement, smooth lighting changes, and coherent detail across the whole shot."
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "38",
+        0
+      ],
+      "text": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly"
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "72",
+        0
+      ],
+      "vae": [
+        "44",
+        2
+      ]
+    }
+  },
+  "38": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "t5xxl_fp16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    }
+  },
+  "44": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-video-2b-v0.9.5.safetensors"
+    }
+  },
+  "69": {
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "positive": [
+        "95",
+        0
+      ],
+      "negative": [
+        "95",
+        1
+      ],
+      "frame_rate": 25.0
+    }
+  },
+  "71": {
+    "class_type": "LTXVScheduler",
+    "inputs": {
+      "latent": [
+        "95",
+        2
+      ],
+      "steps": 30,
+      "max_shift": 2.05,
+      "base_shift": 0.95,
+      "stretch": true,
+      "terminal": 0.1
+    }
+  },
+  "72": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "model": [
+        "44",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": 1092847494041144,
+      "cfg": 3.0,
+      "positive": [
+        "69",
+        0
+      ],
+      "negative": [
+        "69",
+        1
+      ],
+      "sampler": [
+        "73",
+        0
+      ],
+      "sigmas": [
+        "71",
+        0
+      ],
+      "latent_image": [
+        "95",
+        2
+      ]
+    }
+  },
+  "73": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "78": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png",
+      "upload": "image"
+    }
+  },
+  "82": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {
+      "image": [
+        "78",
+        0
+      ],
+      "img_compression": 40
+    }
+  },
+  "95": {
+    "class_type": "LTXVImgToVideo",
+    "inputs": {
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "vae": [
+        "44",
+        2
+      ],
+      "image": [
+        "82",
+        0
+      ],
+      "width": 768,
+      "height": 512,
+      "length": 97,
+      "batch_size": 1,
+      "strength": 1.0
+    }
+  },
+  "101": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ],
+      "fps": 24.0,
+      "bit_depth": 8
+    }
+  },
+  "102": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "101",
+        0
+      ],
+      "filename_prefix": "video/ltxv-image-to-video",
+      "format": "auto",
+      "codec": "h264"
+    }
+  }
+}

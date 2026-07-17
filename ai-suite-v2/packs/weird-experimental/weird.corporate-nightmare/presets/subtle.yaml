@@ -1,0 +1,26 @@
+# Subtle Preset for Corporate Nightmare
+
+name: Subtle
+description: Light corporate branding with minimal overlays
+
+branding:
+  intensity: 0.6
+  logo_count: 3
+  font_style: corporate-sans
+  color_scheme: corporate-blue
+
+colors:
+  vibrancy: 1.2
+  contrast: 1.1
+  highlight: 1.0
+
+quality:
+  preserve_details: true
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false

@@ -1,0 +1,16 @@
+{
+  "workflow_id": "llm.image-critic",
+  "preset": "detailed",
+  "inputs": {
+    "image": "test_image.png",
+    "original_prompt": "a futuristic city with flying cars at sunset",
+    "critique_depth": 2,
+    "focus_areas": "all",
+    "llm_model": "gpt-4o"
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "text"
+  }
+}

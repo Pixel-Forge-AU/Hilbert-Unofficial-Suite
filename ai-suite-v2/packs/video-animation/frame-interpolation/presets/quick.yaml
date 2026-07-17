@@ -1,0 +1,22 @@
+# Quick Preset for Frame Interpolation
+
+name: Quick
+description: Fast frame interpolation for rapid preview
+
+interpolation:
+  fps_multiplier: 2.0
+  interpolation_quality: 0.6
+  motion_preservation: 0.8
+  smoothing: 0.2
+  output_fps: 48
+
+quality:
+  enable_upscale: false
+  enable_denoise: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: true
+  enable_cpu_offload: true

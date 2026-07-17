@@ -1,0 +1,172 @@
+id: three-d.gaussian-splats
+name: Gaussian Splatting
+version: 2.0.0
+category: three-d
+description: Generate a true local 3D Gaussian splat from an input image using TripoSplat,
+  with SPZ export and orbit preview branches.
+status: stable
+media_type: model
+source:
+  suite: v1
+  path: official ComfyUI TripoSplat workflow template
+  promoted_from: VAST-AI/TripoSplat
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: image
+  label: Input image
+  type: file
+  required: true
+  default: example.png
+  node_id: '99'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Source image to convert into a Gaussian splat
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  minimum: 1
+  maximum: 60
+  step: 1
+  node_id: 88_sg_6
+  node_type: KSampler
+  input: steps
+  description: TripoSplat sampling steps
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 3.0
+  minimum: 1.0
+  maximum: 10.0
+  step: 0.5
+  node_id: 88_sg_6
+  node_type: KSampler
+  input: cfg
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  minimum: -1
+  maximum: 1152921504606846975
+  node_id: 88_sg_6
+  node_type: KSampler
+  input: seed
+- id: num_gaussians
+  label: Gaussian count
+  type: int
+  required: false
+  default: 262144
+  minimum: 32768
+  maximum: 1048576
+  step: 32
+  node_id: 88_sg_55
+  node_type: VAEDecodeTripoSplat
+  input: num_gaussians
+  description: Final Gaussian count; lower values are faster and lighter
+- id: preview_gaussians
+  label: Preview Gaussian count
+  type: int
+  required: false
+  default: 16384
+  minimum: 1024
+  maximum: 262144
+  step: 32
+  node_id: 88_sg_97
+  node_type: TripoSplatSamplingPreview
+  input: num_gaussians
+  description: Live preview Gaussian count during sampling
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: 3d/ai-suite-gaussian-splat
+  node_id: '51'
+  node_type: SaveGLB
+  input: filename_prefix
+  description: Output prefix for the exported splat file
+- id: preview_video_prefix
+  label: Preview video prefix
+  type: text
+  required: false
+  default: video/ai-suite-gaussian-splat
+  node_id: '42'
+  node_type: SaveVideo
+  input: filename_prefix
+  description: Output prefix for the turntable preview video
+- id: splat_format
+  label: Splat format
+  type: text
+  required: false
+  default: spz
+  node_id: '92'
+  node_type: SplatToFile3D
+  input: format
+  description: 'Splat export format: spz, ply, or ksplat'
+- id: preview_fps
+  label: Preview FPS
+  type: float
+  required: false
+  default: 25.0
+  minimum: 1.0
+  maximum: 60.0
+  step: 1.0
+  node_id: '41'
+  node_type: CreateVideo
+  input: fps
+- id: render_frames
+  label: Preview frames
+  type: int
+  required: false
+  default: 75
+  minimum: 1
+  maximum: 240
+  step: 1
+  node_id: '75'
+  node_type: RenderSplat
+  input: frames
+outputs:
+- id: splat
+  type: model
+  description: Exported Gaussian splat file, plus optional preview video and GLB mesh
+    branch
+models:
+  required:
+  - type: diffusion_models
+    name: triposplat_fp16.safetensors
+    url: https://huggingface.co/VAST-AI/TripoSplat/resolve/main/diffusion_models/triposplat_fp16.safetensors
+  - type: clip_vision
+    name: dino_v3_vit_h.safetensors
+    url: https://huggingface.co/VAST-AI/TripoSplat/resolve/main/clip_vision/dino_v3_vit_h.safetensors
+  - type: vae
+    name: flux2-vae.safetensors
+    url: https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors
+  - type: vae
+    name: triposplat_vae_decoder_fp16.safetensors
+    url: https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/triposplat_vae_decoder_fp16.safetensors
+  - type: background_removal
+    name: birefnet.safetensors
+    url: https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+tags:
+- 3d
+- gaussian-splat
+- glb
+- hunyuan3d
+- mesh
+- ply
+- spz
+- triposplat

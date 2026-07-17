@@ -1,0 +1,27 @@
+# Balanced Preset for Text-to-Image Batch
+
+name: Balanced
+description: Balanced batch generation for general use
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 25
+  cfg: 8.0
+  batch_size: 4
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: karras
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

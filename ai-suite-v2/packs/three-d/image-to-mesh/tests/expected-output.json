@@ -1,0 +1,41 @@
+{
+  "workflow_id": "three-d.image-to-mesh",
+  "inputs": {
+    "image": "base64_encoded_test_image",
+    "prompt": "detailed 3D model of a futuristic robot",
+    "mesh_resolution": 1024,
+    "smooth_iterations": 3,
+    "texture_quality": 2048
+  },
+  "expected_output": {
+    "type": "mesh",
+    "formats": ["obj", "gltf"],
+    "properties": {
+      "has_valid_geometry": true,
+      "is_watertight": false,
+      "has_uv_coordinates": true,
+      "has_texture": true,
+      "texture_resolution": [2048, 2048],
+      "vertex_count_range": [10000, 1000000],
+      "face_count_range": [10000, 2000000]
+    },
+    "preview": {
+      "type": "image",
+      "format": "webp",
+      "dimensions": [1024, 1024]
+    }
+  },
+  "validation": {
+    "min_polycount": 1000,
+    "max_polycount": 5000000,
+    "required_features": [
+      "valid-geometry",
+      "uv-mapping",
+      "texture-mapping"
+    ],
+    "optional_features": [
+      "watertight",
+      "normals-correct"
+    ]
+  }
+}

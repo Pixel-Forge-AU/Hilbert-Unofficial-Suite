@@ -1,0 +1,32 @@
+{
+  "workflow_id": "video.frame-interpolation",
+  "inputs": {
+    "fps_multiplier": 2.0,
+    "interpolation_quality": 0.8,
+    "motion_preservation": 0.9,
+    "smoothing": 0.3,
+    "seed": 42
+  },
+  "expected_output": {
+    "type": "video",
+    "format": "webp",
+    "fps": 48,
+    "properties": {
+      "smooth_motion": true,
+      "natural_interpolation": true,
+      "no_artifacts": true,
+      "consistent_motion": true
+    }
+  },
+  "validation": {
+    "min_duration": 1.0,
+    "max_duration": 120.0,
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 200,
+    "required_features": [
+      "smooth",
+      "natural",
+      "fluid"
+    ]
+  }
+}

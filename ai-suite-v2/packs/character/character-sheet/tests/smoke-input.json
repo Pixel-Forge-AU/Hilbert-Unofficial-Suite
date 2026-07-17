@@ -1,0 +1,18 @@
+{
+  "workflow_id": "character.character-sheet",
+  "preset": "detailed",
+  "inputs": {
+    "prompt": "character design sheet with 3-view: front, side, back views of a young warrior with silver armor",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1536,
+    "height": 768,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 30
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

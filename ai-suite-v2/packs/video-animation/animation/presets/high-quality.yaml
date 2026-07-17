@@ -1,0 +1,21 @@
+# High Quality Preset for Animation
+
+name: High Quality
+description: Maximum quality animation with natural movement
+
+animation:
+  animation_strength: 0.85
+  frame_count: 90
+  fps: 30
+
+quality:
+  enable_upscale: true
+  upscale_factor: 2
+  enable_motion_refine: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

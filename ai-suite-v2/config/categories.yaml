@@ -1,0 +1,103 @@
+# Categories Configuration
+# Define all available categories and their organization
+
+categories:
+  core-generation:
+    name: "Core Generation"
+    description: "Fundamental image generation workflows"
+    icon: "sparkles"
+    order: 1
+    
+  image-editing:
+    name: "Image Editing"
+    description: "Photo editing and enhancement workflows"
+    icon: "brush"
+    order: 2
+    
+  character:
+    name: "Character"
+    description: "Character creation and consistency workflows"
+    icon: "user"
+    order: 3
+    
+  horror-gore:
+    name: "Horror & Gore"
+    description: "Creepy, horror, and fictional gore effects"
+    icon: "skull"
+    order: 4
+    content_warning: true
+    
+  biology-anatomy:
+    name: "Biology & Anatomy"
+    description: "Biological reference and anatomical workflows"
+    icon: "dna"
+    order: 5
+    
+  weird-experimental:
+    name: "Weird & Experimental"
+    description: "Unusual, experimental, and artistic pipelines"
+    icon: "ghost"
+    order: 6
+    
+  video-animation:
+    name: "Video & Animation"
+    description: "Video generation and animation workflows"
+    icon: "video"
+    order: 7
+    
+  three-d:
+    name: "3D"
+    description: "3D model and scene generation workflows"
+    icon: "cube"
+    order: 8
+    
+  materials:
+    name: "Materials"
+    description: "Material and texture generation workflows"
+    icon: "texture"
+    order: 9
+    
+  product-photography:
+    name: "Product Photography"
+    description: "Product showcase and marketing workflows"
+    icon: "camera"
+    order: 10
+    
+  game-assets:
+    name: "Game Assets"
+    description: "Game development asset generation workflows"
+    icon: "gamepad"
+    order: 11
+    
+  architecture:
+    name: "Architecture"
+    description: "Architectural visualization workflows"
+    icon: "building"
+    order: 12
+    
+  restoration:
+    name: "Restoration"
+    description: "Photo and image restoration workflows"
+    icon: "wrench"
+    order: 13
+    
+  automation:
+    name: "Automation"
+    description: "Batch processing and automation workflows"
+    icon: "robot"
+    order: 14
+    
+  llm-orchestration:
+    name: "LLM Orchestration"
+    description: "LLM-assisted generation workflows"
+    icon: "brain"
+    order: 15
+
+# Default category for workflows without one
+default_category: "core-generation"
+
+# Content policy
+content_policy:
+  adult_content_enabled: false
+  sensitive_content_warning: true
+  require_approval_for: ["horror-gore", "weird-experimental"]

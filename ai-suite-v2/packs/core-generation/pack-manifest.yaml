@@ -1,0 +1,28 @@
+# Core Generation Pack Manifest
+
+id: core-generation
+name: Core Generation
+version: "2.0.0"
+
+description: >
+  Fundamental image generation workflows including text-to-image, image-to-image,
+  inpainting, and upscaling capabilities.
+
+workflows:
+  - core.text-to-image-fast
+  - core.text-to-image-quality
+  - core.text-to-image-extreme
+  - core.text-to-image-low-vram
+  - core.text-to-image-batch
+  - core.image-to-image
+  - core.inpainting
+  - core.outpainting-square-to-landscape
+  - core.outpainting-square-to-portrait
+  - core.outpainting-cinematic
+  - core.outpainting-wallpaper
+  - core.outpainting-panorama
+  - core.upscale-simple
+  - core.upscale-high-quality
+  - core.multi-model-comparison
+
+default_enabled: true

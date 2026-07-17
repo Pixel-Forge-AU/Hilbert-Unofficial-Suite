@@ -1,0 +1,21 @@
+# Precise Preset for LLM Best of N
+
+name: Precise
+description: Focus on quality over quantity
+
+generation:
+  num_variants: 3
+  temperature: 0.5
+  creativity_boost: false
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.5
+  top_p: 0.8
+  max_tokens: 2048
+
+evaluation:
+  criteria: "quality, accuracy, precision"
+  scoring_range: 0-10
+  include_detailed_reasoning: true
+  strict_selection: true

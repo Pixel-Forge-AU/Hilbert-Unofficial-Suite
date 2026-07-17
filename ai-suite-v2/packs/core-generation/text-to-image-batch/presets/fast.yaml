@@ -1,0 +1,27 @@
+# Fast Preset for Text-to-Image Batch
+
+name: Fast
+description: Fast batch generation for quick results
+
+generation:
+  width: 768
+  height: 768
+  steps: 20
+  cfg: 6.0
+  batch_size: 8
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: karras
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false
+  enable_cpu_offload: false

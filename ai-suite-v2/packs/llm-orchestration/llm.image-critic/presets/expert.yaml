@@ -1,0 +1,24 @@
+# Expert Preset for LLM Image Critic
+
+name: Expert
+description: Expert-level comprehensive analysis
+
+critique:
+  depth: 3
+  comprehensive: true
+  areas: "all"
+  max_length: 3000
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.8
+  top_p: 0.95
+  max_tokens: 8192
+
+output:
+  include_strengths: true
+  include_weaknesses: true
+  include_score: true
+  format: "comprehensive"
+  include_recommendations: true
+  include_technical_details: true

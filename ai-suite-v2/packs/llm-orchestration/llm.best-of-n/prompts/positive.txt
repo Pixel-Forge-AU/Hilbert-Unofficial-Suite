@@ -1,0 +1,1 @@
+Generate {num_variants} creative variations of: {input_prompt}\n\nRespond with JSON: {"variants": ["variant1", "variant2", ...]}

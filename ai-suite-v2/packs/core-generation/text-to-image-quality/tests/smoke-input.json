@@ -1,0 +1,17 @@
+{
+  "workflow_id": "core.text-to-image-quality",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "A majestic castle on a cliff overlooking the ocean at sunset",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 1024,
+    "seed": 12345,
+    "cfg": 7.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "workflow_id": "character.full-body",
+  "inputs": {
+    "prompt": "full body portrait of a young warrior with silver armor, standing pose, dynamic lighting",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 512,
+    "height": 768,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [512, 768],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "show_full_body": true,
+      "proper_proportions": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 10,
+    "required_features": [
+      "full-body",
+      "character",
+      "standing"
+    ]
+  }
+}

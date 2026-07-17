@@ -1,0 +1,28 @@
+# Quick Preset for Character Portrait
+
+name: Quick
+description: Fast generation for quick character portraits
+
+generation:
+  width: 768
+  height: 1024
+  steps: 15
+  cfg: 5.0
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: false
+  face_detailer_enabled: true
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

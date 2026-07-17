@@ -1,0 +1,21 @@
+{
+  "workflow_id": "character.identity-consistency",
+  "preset": "detailed",
+  "inputs": {
+    "prompt": "make a polished studio portrait with softer lighting while keeping the same person",
+    "identity_image": "example.png",
+    "identity_mode": "strict",
+    "edit_strength": 0.16,
+    "width": 768,
+    "height": 768,
+    "seed": 42,
+    "cfg": 5.0,
+    "steps": 24
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image",
+    "identity_reference": "face_reference.webp"
+  }
+}

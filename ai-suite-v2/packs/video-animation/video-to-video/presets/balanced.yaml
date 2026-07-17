@@ -1,0 +1,23 @@
+# Balanced Preset for Video to Video
+
+name: Balanced
+description: Good quality enhancement with reasonable speed
+
+enhancement:
+  factor: 2.0
+  steps: 20
+  denoise: 0.5
+  stabilization: true
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: subtle
+  output_fps: 24
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true
+  batch_size: 2

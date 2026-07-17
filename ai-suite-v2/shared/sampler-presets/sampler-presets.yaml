@@ -1,0 +1,126 @@
+# AI Suite V2 Sampler Presets
+# Pre-configured sampler settings for different use cases
+
+samplers:
+  # Fast draft sampler
+  fast_draft:
+    name: "Fast Draft"
+    sampler: "euler"
+    scheduler: "simple"
+    steps: 12
+    cfg: 2.0
+    description: "Quick generation for concept art and thumbnails"
+    best_for: ["drafting", "thumbnailing", "quick iterations"]
+    
+  # Balanced sampler
+  balanced:
+    name: "Balanced"
+    sampler: "dpmpp_2m"
+    scheduler: "karras"
+    steps: 25
+    cfg: 7.0
+    description: "Good quality with reasonable speed"
+    best_for: ["general use", "web images", "social media"]
+    
+  # High quality sampler
+  high_quality:
+    name: "High Quality"
+    sampler: "dpmpp_2m"
+    scheduler: "karras"
+    steps: 35
+    cfg: 7.5
+    description: "Excellent quality for detailed work"
+    best_for: ["printing", "detailed work", "professional use"]
+    
+  # Extreme quality sampler
+  extreme_quality:
+    name: "Extreme Quality"
+    sampler: "dpmpp_2m"
+    scheduler: "karras"
+    steps: 50
+    cfg: 8.0
+    description: "Maximum quality with extensive sampling"
+    best_for: ["printing", "professional", "exhibition"]
+    
+  # LCM fast sampler
+  lcm_fast:
+    name: "LCM Fast"
+    sampler: "lcm"
+    scheduler: "sgm_uniform"
+    steps: 6
+    cfg: 1.5
+    description: "Extremely fast generation with LCM models"
+    best_for: ["LCM models", "quick previews", "fast iterations"]
+    
+  # Euler A sampler
+  euler_ancestral:
+    name: "Euler A"
+    sampler: "euler_ancestral"
+    scheduler: "karras"
+    steps: 25
+    cfg: 7.0
+    description: "Classic sampler with good results"
+    best_for: ["general purpose", "artistic style"]
+    
+  # DDIM sampler
+  ddim:
+    name: "DDIM"
+    sampler: "ddim"
+    scheduler: "uniform"
+    steps: 30
+    cfg: 7.0
+    description: "Deterministic sampling for reproducibility"
+    best_for: ["video sequences", "reproducible results"]
+    
+  # Karras heavy sampler
+  karras_heavy:
+    name: "Karras Heavy"
+    sampler: "dpmpp_sde"
+    scheduler: "karras"
+    steps: 40
+    cfg: 8.0
+    description: "Aggressive sampling for complex details"
+    best_for: ["complex scenes", "detailed textures"]
+    
+  # CFG low sampler
+  cfg_low:
+    name: "CFG Low"
+    sampler: "dpmpp_2m"
+    scheduler: "karras"
+    steps: 25
+    cfg: 4.0
+    description: "Lower CFG for more creative freedom"
+    best_for: ["creative exploration", "artistic style"]
+    
+  # High CFG sampler
+  cfg_high:
+    name: "High CFG"
+    sampler: "dpmpp_2m"
+    scheduler: "karras"
+    steps: 30
+    cfg: 10.0
+    description: "High CFG for strict prompt adherence"
+    best_for: ["prompt fidelity", "exact details"]
+
+# Preset packs
+presets:
+  quick:
+    - fast_draft
+    - lcm_fast
+    
+  standard:
+    - balanced
+    - euler_ancestral
+    
+  professional:
+    - high_quality
+    - extreme_quality
+    - karras_heavy
+    
+  creative:
+    - cfg_low
+    - ddim
+    
+  specialized:
+    - lcm_fast
+    - cfg_high

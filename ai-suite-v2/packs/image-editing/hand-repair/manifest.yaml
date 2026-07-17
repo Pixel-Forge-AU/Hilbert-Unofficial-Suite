@@ -1,0 +1,147 @@
+id: editing.hand-repair
+name: Hand Repair
+version: 2.0.0
+category: image-editing
+media_type: image
+description: Reference-guided hand repair using a real ComfyUI img2img graph. Keeps
+  the source composition while improving hand anatomy and detail.
+status: stable
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: image
+  label: Image with hands
+  type: file
+  required: true
+  default: example.png
+  node_id: '8'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Source image
+- id: prompt
+  label: Repair instruction
+  type: textarea
+  required: false
+  default: repair hands, natural hand anatomy, five fingers, realistic fingers, clean
+    details, preserve original composition, photorealistic, high quality
+  node_id: '2'
+  node_type: CLIPTextEncode
+  input: text
+  description: Edit instruction
+- id: negative_prompt
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: extra fingers, missing fingers, fused fingers, malformed hands, distorted
+    anatomy, low quality, blurry, text, watermark
+  node_id: '4'
+  node_type: CLIPTextEncode
+  input: text
+  description: Things to avoid
+- id: enhancement_strength
+  label: Enhancement strength
+  type: float
+  required: false
+  default: 0.38
+  minimum: 0.05
+  maximum: 1.0
+  step: 0.01
+  node_id: '5'
+  node_type: KSampler
+  input: denoise
+  description: How strongly to alter the source image
+- id: width
+  label: Width
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '9'
+  node_type: ImageScale
+  input: width
+- id: height
+  label: Height
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '9'
+  node_type: ImageScale
+  input: height
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 18
+  minimum: 1
+  maximum: 100
+  step: 1
+  node_id: '5'
+  node_type: KSampler
+  input: steps
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 5.0
+  minimum: 1.0
+  maximum: 20.0
+  step: 0.5
+  node_id: '5'
+  node_type: KSampler
+  input: cfg
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  minimum: -1
+  maximum: 1152921504606846975
+  node_id: '5'
+  node_type: KSampler
+  input: seed
+- id: checkpoint
+  label: Checkpoint
+  type: model
+  required: false
+  default: juggernaut-xl-v9.safetensors
+  description: Checkpoint model to use
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: ai-suite/hand-repair
+  node_id: '7'
+  node_type: SaveImage
+  input: filename_prefix
+outputs:
+- id: image
+  type: image
+  description: Edited image output
+models:
+  required:
+  - type: checkpoints
+    name: juggernaut-xl-v9.safetensors
+    url: ''
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: medium
+  batch_supported: false
+tags:
+- hand-repair
+- img2img
+- anatomy

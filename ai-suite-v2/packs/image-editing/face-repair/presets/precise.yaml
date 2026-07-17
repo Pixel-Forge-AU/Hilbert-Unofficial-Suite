@@ -1,0 +1,21 @@
+# Precise Preset for Face Repair
+
+name: Precise
+description: High-quality repair with detailed enhancement
+
+generation:
+  restoration_model: codeformer
+  enhancement_strength: 0.8
+  detail_preservation: 0.9
+  batch_size: 1
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: true
+  enable_cpu_offload: false

@@ -1,0 +1,20 @@
+{
+  "workflow_id": "horror.blood-overlay",
+  "preset": "medium",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "blood splatter, gore, violent damage",
+    "negative_prompt": "clean, no blood, no gore",
+    "blood_amount": 0.5,
+    "intensity": 0.6,
+    "opacity": 0.7,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

@@ -1,0 +1,33 @@
+# Subtle Preset for Battle Damage
+
+name: Subtle
+description: Minimal battle damage for realistic wear and tear
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 20
+  cfg: 6.0
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+damage:
+  intensity: 0.35
+  blood_amount: 0.25
+  dirt_amount: 0.45
+  tear_amount: 0.25
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

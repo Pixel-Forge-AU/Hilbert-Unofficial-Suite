@@ -1,0 +1,22 @@
+# Precise Preset for LLM Workflow Router
+
+name: Precise
+description: High confidence threshold for strict routing
+
+routing:
+  confidence_threshold: 0.7
+  fallback_workflow: "error"
+  max_candidates: 1
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.3
+  top_p: 0.7
+  max_tokens: 2048
+
+output:
+  include_confidence: true
+  include_reasoning: true
+  include_parameters: true
+  format: "precise"
+  strict_routing: true

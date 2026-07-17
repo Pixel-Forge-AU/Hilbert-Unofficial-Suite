@@ -1,0 +1,64 @@
+# AI Suite V2 Configuration
+# Main suite configuration file
+
+suite:
+  name: "AI Suite V2"
+  version: "2.0.0"
+  description: "Modular ComfyUI workflow platform"
+
+paths:
+  workflows: "./workflows"
+  packs: "./packs"
+  shared: "./shared"
+  presets: "./presets"
+  legacy_workflows: "./legacy-workflows"
+  registry: "./registry"
+  config: "./config"
+  docs: "./docs"
+  tests: "./tests"
+  tools: "./tools"
+
+settings:
+  # Default generation settings
+  default_width: 1024
+  default_height: 1024
+  default_steps: 20
+  default_guidance: 7.5
+  default_sampler: "euler"
+  default_scheduler: "normal"
+  default_batch_size: 1
+  
+  # ComfyUI connection
+  comfyui_host: "127.0.0.1"
+  comfyui_port: 8188
+  comfyui_timeout: 300
+  
+  # Launcher settings
+  launcher_host: "127.0.0.1"
+  launcher_port: 8000
+  
+  # Feature flags
+  enable_batch_processing: true
+  enable_dependency_check: true
+  enable_quality_control: true
+  enable_workflow_registry: true
+  enable_preset_system: true
+  
+  # Storage
+  max_queue_size: 50
+  max_history_size: 100
+  output_format: "webp"
+  output_quality: 90
+
+logging:
+  level: "info"
+  format: "json"
+  file: "./logs/suite.log"
+
+dependencies:
+  # Check for required custom nodes at startup
+  check_nodes: true
+  # Auto-install optional nodes when possible
+  auto_install_optional: false
+  # Show warnings for missing optional dependencies
+  show_optional_warnings: true

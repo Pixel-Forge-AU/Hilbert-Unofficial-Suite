@@ -1,0 +1,137 @@
+id: three-d.scan-completion
+name: Scan/View Completion Mesh
+version: 2.1.0
+category: three-d
+description: >
+  Complete a sparse object scan or limited photo set into a reconstructed GLB mesh
+  using the local Hunyuan3D multi-view workflow. Provide a front/reference view and
+  optionally a back/secondary view; the workflow synthesizes a complete object mesh
+  from those views. This is image/view-based reconstruction, not direct OBJ/STL
+  mesh inpainting.
+status: stable
+media_type: model
+source:
+  suite: v1
+  path: packs/studio-migrated/multi-image-to-3d-hunyuan3d/workflow.json
+  promoted_from: studio.multi-image-to-3d-hunyuan3d
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: front_image
+  label: Front/reference scan view
+  type: file
+  required: true
+  default: scan_completion_smoke.png
+  legacy_kind: file
+  node_id: '56'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Primary scan/photo view used to reconstruct the completed object mesh
+- id: back_image
+  label: Back/secondary scan view
+  type: file
+  required: false
+  default: scan_completion_smoke.png
+  legacy_kind: file
+  node_id: '80'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Optional opposite or secondary view to improve completion of hidden geometry
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  minimum: 1
+  maximum: 100
+  step: 1
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: steps
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 7.5
+  minimum: 1.0
+  maximum: 20.0
+  step: 0.5
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: cfg
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  minimum: -1
+  maximum: 1152921504606846975
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: seed
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: mesh/scan-completion
+  legacy_kind: text
+  node_id: '83'
+  node_type: SaveGLB
+  input: filename_prefix
+- id: mesh_threshold
+  label: Mesh threshold
+  type: float
+  required: false
+  default: 0.2
+  minimum: -1.0
+  maximum: 1.0
+  step: 0.01
+  legacy_kind: number
+  node_id: '82'
+  node_type: VoxelToMesh
+  input: threshold
+- id: mesh_resolution
+  label: Mesh resolution
+  type: int
+  required: false
+  default: 3072
+  minimum: 1024
+  maximum: 8192
+  step: 256
+  legacy_kind: number
+  node_id: '66'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: resolution
+outputs:
+- id: model
+  type: model
+  description: Reconstructed completed GLB mesh from the supplied scan/photo views
+models:
+  required:
+  - node_id: '54'
+    node_type: ImageOnlyCheckpointLoader
+    name: hunyuan3d-dit-v2-mv_fp16.safetensors
+    directory: checkpoints
+    url: https://huggingface.co/Comfy-Org/hunyuan3D_2.0_repackaged/resolve/main/split_files/hunyuan3d-dit-v2-mv_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+tags:
+- 3d
+- glb
+- hunyuan3d
+- mesh
+- scan-view-completion
+- multiview

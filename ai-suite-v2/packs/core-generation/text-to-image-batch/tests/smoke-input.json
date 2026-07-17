@@ -1,0 +1,19 @@
+{
+  "workflow_id": "core.text-to-image-batch",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "A peaceful forest path with sunlight filtering through trees",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 1024,
+    "batch_size": 4,
+    "seed": 42,
+    "cfg": 8.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "array[image]",
+    "batch_count": 4
+  }
+}

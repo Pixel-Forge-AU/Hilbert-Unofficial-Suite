@@ -1,0 +1,26 @@
+# Subtle Preset for Everything Muppet
+
+name: Subtle
+description: Light Muppet effect with minimal transformation
+
+muppet:
+  intensity: 0.5
+  texture_detail: 5
+  color_saturation: 1.1
+  edge_style: hand-stitched
+
+colors:
+  vibrancy: 1.1
+  contrast: 1.0
+  highlight: 1.0
+
+quality:
+  preserve_details: true
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false

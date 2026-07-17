@@ -1,0 +1,53 @@
+{
+  "workflow_id": "llm.best-of-n",
+  "inputs": {
+    "input_prompt": "a beautiful landscape photo",
+    "num_variants": 3,
+    "llm_model": "gpt-4o",
+    "evaluation_criteria": "visual appeal, composition, creativity"
+  },
+  "expected_output": {
+    "selected_variant": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "is_not_empty": true,
+        "is_from_variants": true
+      }
+    },
+    "variant_scores": {
+      "type": "object",
+      "format": "json",
+      "properties": {
+        "has_scores_for_all_variants": true,
+        "is_numeric": true
+      }
+    },
+    "evaluation_reasoning": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "contains_explanation": true,
+        "references_selected": true
+      }
+    },
+    "all_variants": {
+      "type": "array",
+      "format": "json",
+      "properties": {
+        "has_correct_count": true,
+        "all_items_strings": true
+      }
+    }
+  },
+  "validation": {
+    "min_num_variants": 1,
+    "max_num_variants": 10,
+    "required_fields": [
+      "selected_variant",
+      "variant_scores",
+      "evaluation_reasoning",
+      "all_variants"
+    ]
+  }
+}

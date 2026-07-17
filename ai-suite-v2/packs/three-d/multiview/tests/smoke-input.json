@@ -1,0 +1,17 @@
+{
+  "workflow_id": "three-d.multiview",
+  "preset": "balanced",
+  "inputs": {
+    "prompt": "3D model of a cute robot character",
+    "negative_prompt": "blurry, low quality, artifacts",
+    "views": "4-view",
+    "width": 1024,
+    "height": 1024,
+    "consistency_strength": 0.7
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "multi-view"
+  }
+}

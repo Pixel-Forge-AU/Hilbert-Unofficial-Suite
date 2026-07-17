@@ -1,0 +1,2707 @@
+{% autoescape false %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Suite V2 Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .logo span {
+            color: #00bcd4;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: #eee;
+            font-size: 1rem;
+            width: 300px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 0.375rem 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .category-btn.active {
+            background: #4fc3f7;
+            color: #1a1a2e;
+            border-color: #4fc3f7;
+        }
+
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .tab-btn {
+            flex: 0 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.78);
+            padding: 0.7rem 1rem;
+            cursor: pointer;
+            font-weight: 650;
+        }
+
+        .tab-btn.active {
+            background: #4fc3f7;
+            border-color: #4fc3f7;
+            color: #102032;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .workflow-area {
+            min-width: 0;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .workbench {
+            display: grid;
+            grid-template-columns: 240px minmax(360px, 0.9fr) minmax(380px, 1.1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .workbench-nav,
+        .workbench-composer,
+        .workbench-preview {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            min-width: 0;
+        }
+
+        .workbench-nav h3,
+        .workbench-composer h3,
+        .workbench-preview h3 {
+            margin-bottom: 0.875rem;
+            color: #4fc3f7;
+        }
+
+        .workbench-nav-list {
+            display: grid;
+            gap: 0.5rem;
+            max-height: 620px;
+            overflow: auto;
+        }
+
+        .studio-side-section {
+            display: grid;
+            gap: 0.55rem;
+            margin-top: 1rem;
+        }
+
+        .studio-side-section:first-of-type {
+            margin-top: 0;
+        }
+
+        .studio-side-section h4 {
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .workbench-nav-item {
+            width: 100%;
+            text-align: left;
+            display: grid;
+            gap: 0.15rem;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 7px;
+            background: rgba(0, 0, 0, 0.16);
+            color: #eee;
+            cursor: pointer;
+        }
+
+        .workbench-nav-item.active {
+            background: rgba(79, 195, 247, 0.16);
+            border-color: #4fc3f7;
+        }
+
+        .workbench-nav-item small {
+            color: rgba(255, 255, 255, 0.58);
+        }
+
+        .sidebar-action {
+            width: 100%;
+            display: grid;
+            gap: 0.25rem;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 7px;
+            padding: 0.65rem 0.75rem;
+            background: rgba(0, 0, 0, 0.16);
+            color: #eee;
+            cursor: pointer;
+        }
+
+        .sidebar-action:hover {
+            border-color: rgba(79, 195, 247, 0.55);
+            background: rgba(79, 195, 247, 0.1);
+        }
+
+        .sidebar-action small {
+            color: rgba(255, 255, 255, 0.58);
+            line-height: 1.35;
+        }
+
+        .pinned-input-list {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .workbench-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .workbench-heading p {
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.45;
+            margin-top: 0.35rem;
+        }
+
+        .media-badge {
+            flex: 0 0 auto;
+            padding: 0.25rem 0.55rem;
+            border-radius: 5px;
+            background: rgba(79, 195, 247, 0.18);
+            color: #4fc3f7;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .inline-form-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .workbench-status {
+            margin-top: 0.875rem;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.875rem;
+        }
+
+        .editor-progress {
+            display: grid;
+            gap: 0.55rem;
+            margin-bottom: 0.875rem;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .editor-progress-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.86rem;
+        }
+
+        .editor-progress-bar {
+            height: 6px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .editor-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #4fc3f7 0%, #00bcd4 100%);
+            transition: width 0.25s ease;
+        }
+
+        .workbench-media {
+            min-height: 420px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            background: #05070d;
+        }
+
+        .workbench-media img,
+        .workbench-media video {
+            width: 100%;
+            max-height: 68vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        .model-stage {
+            position: relative;
+            width: 100%;
+            min-height: 420px;
+            display: grid;
+            place-items: center;
+            gap: 1rem;
+            background:
+                linear-gradient(90deg, rgba(79, 195, 247, 0.08) 1px, transparent 1px),
+                linear-gradient(rgba(79, 195, 247, 0.08) 1px, transparent 1px),
+                #05070d;
+            background-size: 22px 22px;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .model-viewer {
+            position: relative;
+            width: 100%;
+            min-height: 420px;
+            height: min(68vh, 620px);
+            background: #05070d;
+        }
+
+        .model-viewer canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .model-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .model-actions a,
+        .model-actions span {
+            padding: 0.45rem 0.65rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 6px;
+            background: rgba(5, 7, 13, 0.78);
+            color: #4fc3f7;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .model-stage strong {
+            display: grid;
+            place-items: center;
+            width: 76px;
+            height: 76px;
+            border: 1px solid #4fc3f7;
+            border-radius: 8px;
+            color: #4fc3f7;
+            font-size: 1.35rem;
+            margin: 0 auto 1rem;
+        }
+
+        .workbench-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            gap: 0.6rem;
+            margin-top: 0.875rem;
+            max-height: 190px;
+            overflow: auto;
+        }
+
+        .media-tile {
+            min-height: 92px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 7px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+        }
+
+        .media-tile img,
+        .media-tile video {
+            width: 100%;
+            height: 100%;
+            min-height: 92px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .workflow-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(79, 195, 247, 0.5);
+        }
+
+        .workflow-header {
+            background: linear-gradient(135deg, #4fc3f7 0%, #00bcd4 100%);
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .workflow-category {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: #1a1a2e;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .workflow-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1a1a2e;
+            margin-bottom: 0.5rem;
+        }
+
+        .workflow-description {
+            font-size: 0.875rem;
+            color: #1a1a2e;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .workflow-body {
+            padding: 1rem;
+        }
+
+        .workflow-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .workflow-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .workflow-meta-item .icon {
+            font-size: 0.75rem;
+        }
+
+        .workflow-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #4fc3f7;
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            background: #29b6f6;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-stable {
+            background: #2e7d32;
+            color: #fff;
+        }
+
+        .status-beta {
+            background: #f9a825;
+            color: #1a1a2e;
+        }
+
+        .status-experimental {
+            background: #c62828;
+            color: #fff;
+        }
+
+        .status-legacy {
+            background: #546e7a;
+            color: #fff;
+        }
+
+        .generation-panel {
+            display: none;
+            gap: 1rem;
+        }
+
+        .preview-panel,
+        .job-panel {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .preview-panel h3,
+        .job-panel h3 {
+            margin-bottom: 1rem;
+            color: #4fc3f7;
+        }
+
+        .latest-preview {
+            min-height: 280px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+        }
+
+        .latest-preview img,
+        .latest-preview video {
+            width: 100%;
+            max-height: min(56vh, 620px);
+            object-fit: contain;
+            display: block;
+            background: #05070d;
+        }
+
+        .preview-empty {
+            padding: 2rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.5;
+        }
+
+        .latest-meta {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.875rem;
+        }
+
+        .latest-meta a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        .service-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .library-toolbar {
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) auto auto;
+            gap: 0.75rem;
+            align-items: end;
+            margin-bottom: 1rem;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .library-card {
+            min-width: 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .library-card-preview {
+            height: 150px;
+            display: grid;
+            place-items: center;
+            background: #05070d;
+            overflow: hidden;
+        }
+
+        .library-card-preview img,
+        .library-card-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .library-card-body {
+            padding: 0.75rem;
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .library-card-title {
+            overflow-wrap: anywhere;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .library-card-meta {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.75rem;
+        }
+
+        .library-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .library-card-actions a,
+        .library-card-actions button {
+            flex: 1;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 6px;
+            padding: 0.45rem 0.55rem;
+            background: rgba(255, 255, 255, 0.08);
+            color: #4fc3f7;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .stored-input-row {
+            display: grid;
+            gap: 0.45rem;
+            margin-top: 0.5rem;
+        }
+
+        .stored-input-row small {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .service-panel h3 {
+            color: #4fc3f7;
+            margin-bottom: 1rem;
+        }
+
+        .service-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .service-output {
+            min-height: 96px;
+            white-space: pre-wrap;
+            overflow: auto;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+            font: 0.875rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+
+        .job-list {
+            display: grid;
+            gap: 0.75rem;
+            max-height: calc(100vh - 520px);
+            min-height: 170px;
+            overflow: auto;
+        }
+
+        .job-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.875rem;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .job-info {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            min-width: 0;
+        }
+
+        .job-title {
+            overflow-wrap: anywhere;
+        }
+
+        .job-time {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .job-thumb-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .job-thumb {
+            width: 96px;
+            height: 112px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .job-progress {
+            width: 140px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .job-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7 0%, #00bcd4 100%);
+            transition: width 0.3s;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            color: #4fc3f7;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4fc3f7;
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.625rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #eee;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4fc3f7;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast-region {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            z-index: 2000;
+            display: grid;
+            gap: 0.75rem;
+            width: min(380px, calc(100vw - 2.5rem));
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            padding: 0.875rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-left: 4px solid #4fc3f7;
+            border-radius: 8px;
+            background: rgba(24, 28, 44, 0.96);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.36);
+            color: #eee;
+            line-height: 1.35;
+        }
+
+        .toast strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: #fff;
+        }
+
+        .toast-success {
+            border-left-color: #2e7d32;
+        }
+
+        .toast-error {
+            border-left-color: #c62828;
+        }
+
+        .toast-info {
+            border-left-color: #4fc3f7;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 1100px) {
+            .studio-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .workbench {
+                grid-template-columns: 1fr;
+            }
+
+            .workbench-nav-list {
+                max-height: 260px;
+            }
+
+            .generation-panel {
+                position: static;
+                order: -1;
+            }
+
+            .job-list {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .header-content,
+            .search-form {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .main {
+                padding: 1rem;
+            }
+
+            .library-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .job-item {
+                grid-template-columns: 1fr;
+            }
+
+            .job-time {
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">AI Suite <span>V2</span></div>
+            <div class="search-form">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search workflows..."
+                >
+                <div class="category-filter" id="categoryFilter">
+                    <button class="category-btn active" data-category="all">All</button>
+                    {% for category in categories %}
+                    <button class="category-btn" data-category="{{ category }}">{{ category }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <nav class="tab-bar" aria-label="Main sections">
+            <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
+            <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
+            <button class="tab-btn" type="button" data-tab="studio">Studio</button>
+            <button class="tab-btn" type="button" data-tab="library">Library</button>
+        </nav>
+
+        <section class="tab-panel active" id="tab-runtime">
+        <section class="service-panel">
+            <h3>Runtime Services</h3>
+            <div class="service-actions">
+                <button class="btn btn-primary" onclick="runServiceCommand('llama')">Coding LLM</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic')">Heretic LLM</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('comfy')">ComfyUI</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('studio')">Studio</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('chat')">Chat</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('playwright')">Browser API</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('display-safe-toggle')">Display Safety</button>
+                <button class="btn btn-secondary" onclick="refreshServiceStatus()">Status</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('stop')">Stop All</button>
+            </div>
+            <pre class="service-output" id="serviceOutput">Loading service status...</pre>
+        </section>
+        </section>
+
+        <section class="tab-panel" id="tab-catalogue">
+            <div class="workflow-grid" id="workflowGrid">
+                {% if workflows %}
+                {% for workflow in workflows %}
+                <div class="workflow-card" onclick="showWorkflowDetails('{{ workflow.id }}')">
+                    <div class="workflow-header">
+                        <span class="workflow-category">{{ workflow.category }}</span>
+                        <h3 class="workflow-title">{{ workflow.name }}</h3>
+                        <p class="workflow-description">{{ workflow.description }}</p>
+                    </div>
+                    <div class="workflow-body">
+                        <div class="workflow-meta">
+                            <div class="workflow-meta-item">
+                                <span class="icon">●</span>
+                                <span>v{{ workflow.version }}</span>
+                            </div>
+                            <div class="workflow-meta-item">
+                                <span class="icon">◆</span>
+                                <span>{{ workflow.hardware.minimum_vram_gb or '8' }}GB VRAM</span>
+                            </div>
+                            <div class="workflow-meta-item">
+                                <span class="icon">●</span>
+                                <span>{{ 'Not wired' if workflow.runnable == false else 'Ready' }}</span>
+                            </div>
+                        </div>
+                        <div class="workflow-actions">
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); focusWorkbench('{{ workflow.id }}')">Use</button>
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); showWorkflowDetails('{{ workflow.id }}')">Details</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <h3>No workflows found</h3>
+                    <p>Try adjusting your search or category filter</p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="tab-panel" id="tab-studio">
+            <section class="workbench" aria-label="Studio workbench">
+                <aside class="workbench-nav">
+                    <h3>Session</h3>
+                    <div class="studio-side-section">
+                        <h4>Run History</h4>
+                        <div class="workbench-nav-list" id="workbenchHistory"></div>
+                    </div>
+                    <div class="studio-side-section">
+                        <h4>Presets</h4>
+                        <div class="workbench-nav-list" id="workbenchPresets"></div>
+                    </div>
+                    <div class="studio-side-section">
+                        <h4>Pinned Inputs</h4>
+                        <div class="pinned-input-list" id="workbenchPinnedInputs"></div>
+                    </div>
+                </aside>
+
+                <section class="workbench-composer">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3 id="workbenchTitle">Select a workflow</h3>
+                            <p id="workbenchDescription">Choose from the catalogue or the Studio list.</p>
+                        </div>
+                        <span class="media-badge" id="workbenchMedia">Image</span>
+                    </div>
+                    <div id="workbenchFields"></div>
+                    <div class="inline-form-actions">
+                        <button class="btn btn-primary" type="button" id="workbenchRun">Generate</button>
+                        <button class="btn btn-secondary" type="button" id="workbenchDetails">Details</button>
+                    </div>
+                    <div class="workbench-status" id="workbenchStatus">Ready.</div>
+                </section>
+
+                <section class="workbench-preview">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3 id="workbenchPreviewTitle">Latest Output</h3>
+                            <p id="workbenchPreviewMeta">Media-specific preview</p>
+                        </div>
+                        <button class="btn btn-secondary" type="button" id="workbenchRefresh">Refresh</button>
+                    </div>
+                    <div class="editor-progress" id="editorProgress">
+                        <div class="editor-progress-top">
+                            <span id="editorProgressLabel">No active generation</span>
+                            <span id="editorProgressPercent">0%</span>
+                        </div>
+                        <div class="editor-progress-bar">
+                            <div class="editor-progress-fill" id="editorProgressFill"></div>
+                        </div>
+                    </div>
+                    <div class="workbench-media" id="workbenchMediaStage">
+                        <div class="preview-empty">No matching outputs yet.</div>
+                    </div>
+                    <div class="workbench-gallery" id="workbenchGallery"></div>
+                </section>
+            </section>
+        </section>
+
+        <section class="tab-panel" id="tab-library">
+            <section class="preview-panel">
+                <h3>Latest Output</h3>
+                <div class="latest-preview" id="latestPreview">
+                    <div class="preview-empty">No generations yet.</div>
+                </div>
+                <div class="latest-meta" id="latestMeta">
+                    <span>Waiting for a completed job</span>
+                </div>
+            </section>
+
+            <section class="job-panel" style="margin-top: 1rem;">
+                <h3>Progress & Generations</h3>
+                <div class="job-list" id="jobList">
+                    <p style="color: rgba(255,255,255,0.5)">No jobs yet</p>
+                </div>
+            </section>
+
+            <section class="service-panel">
+                <h3>Stored Inputs</h3>
+                <div class="library-toolbar">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="libraryUpload">Add reusable input</label>
+                        <input id="libraryUpload" type="file" multiple accept="image/*,video/*,audio/*">
+                    </div>
+                    <button class="btn btn-primary" type="button" id="libraryUploadBtn">Save Files</button>
+                    <button class="btn btn-secondary" type="button" id="libraryRefreshBtn">Refresh</button>
+                </div>
+                <div class="library-grid" id="inputLibraryGrid">
+                    <div class="preview-empty">Loading stored inputs...</div>
+                </div>
+            </section>
+
+            <section class="service-panel">
+                <h3>Output Browser</h3>
+                <div class="library-grid" id="outputLibraryGrid">
+                    <div class="preview-empty">Loading outputs...</div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <!-- Workflow Details Modal -->
+    <div class="modal" id="workflowModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Workflow Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Workflow details will be loaded here -->
+                <p>Loading...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-primary" onclick="launchSelectedWorkflow()">Launch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Launch Modal -->
+    <div class="modal" id="launchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="launchModalTitle">Launch Workflow</h2>
+                <button class="close-btn" onclick="closeLaunchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Workflow</label>
+                    <input type="text" id="launchWorkflowId" readonly>
+                </div>
+                <div id="launchInputs">
+                    <!-- Dynamic input fields will be added here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLaunchModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitLaunchForm()">
+                    <span class="btn-text">Launch</span>
+                    <span class="loading" style="display: none"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="false"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "/vendor/three/three.module.js"
+            }
+        }
+    </script>
+    <script>
+        // Global variables
+        let currentWorkflowId = null;
+        let workbenchWorkflowId = null;
+        let workbenchWorkflowDetails = null;
+        let modelViewer = null;
+        let threeModules = null;
+        let workflowsData = {{ workflows | tojson | safe }};
+        let storedInputs = [];
+        let pinnedInputNames = loadPinnedInputNames();
+        let latestJobsData = { queued: [], running: [], completed: [] };
+
+        const threeReady = Promise.all([
+            import('/vendor/three/three.module.js'),
+            import('/vendor/three/GLTFLoader.js'),
+            import('/vendor/three/OrbitControls.js')
+        ]).then(function(modules) {
+            threeModules = {
+                THREE: modules[0],
+                GLTFLoader: modules[1].GLTFLoader,
+                OrbitControls: modules[2].OrbitControls
+            };
+            return threeModules;
+        }).catch(function(error) {
+            console.error('Failed to load 3D viewer modules:', error);
+            return null;
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            initTabs();
+            initSearch();
+            initCategoryFilter();
+            initLibrary();
+            await refreshStoredInputs();
+            initWorkbench();
+            initJobMonitor();
+            refreshServiceStatus();
+            refreshOutputLibrary();
+        });
+
+        function initTabs() {
+            document.querySelectorAll('[data-tab]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    activateTab(this.dataset.tab);
+                });
+            });
+        }
+
+        function activateTab(tabName) {
+            document.querySelectorAll('[data-tab]').forEach(function(button) {
+                button.classList.toggle('active', button.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-panel').forEach(function(panel) {
+                panel.classList.toggle('active', panel.id === `tab-${tabName}`);
+            });
+            if (tabName === 'library') {
+                refreshLibrary();
+            }
+        }
+
+        function initWorkbench() {
+            const requestedWorkflow = requestedWorkbenchWorkflow();
+            const firstReady = workflowsData.find(function(workflow) {
+                return workflow.id === requestedWorkflow;
+            }) || workflowsData.find(function(workflow) {
+                return ['image', 'video', 'model'].includes(mediaTypeForWorkflow(workflow));
+            }) || workflowsData[0];
+            if (firstReady) {
+                selectWorkbenchWorkflow(firstReady.id);
+            }
+
+            document.getElementById('workbenchRun').addEventListener('click', submitWorkbenchForm);
+            document.getElementById('workbenchDetails').addEventListener('click', function() {
+                if (workbenchWorkflowId) showWorkflowDetails(workbenchWorkflowId);
+            });
+            document.getElementById('workbenchRefresh').addEventListener('click', refreshWorkbenchOutputs);
+        }
+
+        function requestedWorkbenchWorkflow() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('workflow') || params.get('workflow_id') || window.location.hash.replace(/^#/, '');
+        }
+
+        function mediaTypeForWorkflow(workflow) {
+            const explicit = (workflow?.media_type || '').toLowerCase();
+            if (explicit === 'video' || explicit === 'model' || explicit === 'image') return explicit;
+            const text = [
+                workflow?.id || '',
+                workflow?.category || '',
+                workflow?.name || '',
+                workflow?.description || ''
+            ].join(' ').toLowerCase();
+            if (/(video|animation|lip sync|talking head)/.test(text)) return 'video';
+            if (/(three-d|3d|mesh|gltf|glb|gaussian|point cloud)/.test(text)) return 'model';
+            return 'image';
+        }
+
+        function mediaLabelForWorkflow(workflow) {
+            const type = mediaTypeForWorkflow(workflow);
+            if (type === 'model') return '3D';
+            return type.charAt(0).toUpperCase() + type.slice(1);
+        }
+
+        async function selectWorkbenchWorkflow(workflowId) {
+            workbenchWorkflowId = workflowId;
+            const summary = workflowsData.find(function(workflow) { return workflow.id === workflowId; });
+            document.getElementById('workbenchTitle').textContent = summary?.name || workflowId;
+            document.getElementById('workbenchDescription').textContent = summary?.description || 'Loading workflow controls...';
+            document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(summary);
+            document.getElementById('workbenchFields').innerHTML = '<div class="preview-empty">Loading controls...</div>';
+
+            try {
+                const response = await fetch(`/api/workflows/${workflowId}`);
+                const details = await response.json();
+                if (!response.ok) throw new Error(details.error || 'Failed to load workflow');
+                workbenchWorkflowDetails = details;
+                document.getElementById('workbenchTitle').textContent = details.name;
+                document.getElementById('workbenchDescription').textContent = details.description || '';
+                document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(details);
+                document.getElementById('workbenchRun').disabled = details.runnable === false;
+                const missingNodes = details.missing_nodes || [];
+                document.getElementById('workbenchStatus').textContent = details.runnable === false
+                    ? (missingNodes.length
+                        ? `Missing ComfyUI nodes: ${missingNodes.slice(0, 6).join(', ')}${missingNodes.length > 6 ? '...' : ''}`
+                        : 'This pipeline is present in the catalogue but is not wired to an executable ComfyUI graph yet.')
+                    : 'Ready.';
+                renderWorkbenchFields(details.inputs || []);
+                renderWorkbenchPresets(details.presets || []);
+                renderWorkbenchHistory();
+                renderWorkbenchPinnedInputs();
+                renderEditorProgress();
+                await refreshWorkbenchOutputs();
+            } catch (error) {
+                document.getElementById('workbenchFields').innerHTML = `<div class="preview-empty">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function focusWorkbench(workflowId) {
+            selectWorkbenchWorkflow(workflowId);
+            activateTab('studio');
+        }
+
+        function renderWorkbenchHistory() {
+            const target = document.getElementById('workbenchHistory');
+            if (!target) return;
+            const jobs = [
+                ...(latestJobsData.running || []),
+                ...(latestJobsData.queued || []),
+                ...(latestJobsData.completed || [])
+            ].filter(function(job) {
+                return job.workflow_id === workbenchWorkflowId;
+            }).slice(0, 8);
+
+            if (!jobs.length) {
+                target.innerHTML = '<div class="preview-empty" style="padding: 0.75rem;">No runs for this workflow yet.</div>';
+                return;
+            }
+
+            target.innerHTML = jobs.map(function(job, index) {
+                const when = job.completed_at || job.started_at || job.created_at;
+                const outputCount = ((job.result || {}).outputs || []).length;
+                return `
+                    <button class="sidebar-action" type="button" data-history-index="${index}">
+                        <span>${escapeHtml(job.status || 'job')} ${escapeHtml(job.job_id || '')}</span>
+                        <small>${when ? escapeHtml(new Date(when).toLocaleString()) : ''}${outputCount ? ` · ${outputCount} output${outputCount === 1 ? '' : 's'}` : ''}</small>
+                    </button>
+                `;
+            }).join('');
+
+            target.querySelectorAll('[data-history-index]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const job = jobs[Number(this.dataset.historyIndex)];
+                    applyWorkbenchValues(job.inputs || {});
+                    const firstOutput = ((job.result || {}).outputs || [])[0];
+                    if (firstOutput) {
+                        renderWorkbenchMedia(firstOutput, outputMediaType(firstOutput));
+                    }
+                    showToast('Run restored', job.job_id || workbenchWorkflowId, 'success', 2600);
+                });
+            });
+        }
+
+        function renderEditorProgress() {
+            const label = document.getElementById('editorProgressLabel');
+            const percent = document.getElementById('editorProgressPercent');
+            const fill = document.getElementById('editorProgressFill');
+            if (!label || !percent || !fill) return;
+
+            const jobs = [
+                ...(latestJobsData.running || []),
+                ...(latestJobsData.queued || []),
+                ...(latestJobsData.completed || [])
+            ].filter(function(job) {
+                return job.workflow_id === workbenchWorkflowId;
+            }).sort(function(a, b) {
+                return new Date(b.completed_at || b.started_at || b.created_at || 0) - new Date(a.completed_at || a.started_at || a.created_at || 0);
+            });
+
+            const active = jobs.find(function(job) {
+                return job.status === 'running' || job.status === 'queued';
+            });
+            const job = active || jobs[0];
+            if (!job) {
+                label.textContent = 'No active generation';
+                percent.textContent = '0%';
+                fill.style.width = '0%';
+                return;
+            }
+
+            const progress = job.status === 'completed'
+                ? 100
+                : (job.status === 'failed' ? 100 : Math.max(0, Math.min(100, Number(job.progress || 0))));
+            const status = job.status || 'job';
+            const suffix = job.error ? ` · ${job.error}` : (job.job_id ? ` · ${job.job_id}` : '');
+            label.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)}${suffix}`;
+            percent.textContent = `${progress}%`;
+            fill.style.width = `${progress}%`;
+        }
+
+        function renderWorkbenchPresets(presets) {
+            const target = document.getElementById('workbenchPresets');
+            if (!target) return;
+            if (!presets.length) {
+                target.innerHTML = '<div class="preview-empty" style="padding: 0.75rem;">No presets for this workflow.</div>';
+                return;
+            }
+            target.innerHTML = presets.map(function(preset, index) {
+                return `
+                    <button class="sidebar-action" type="button" data-preset-index="${index}">
+                        <span>${escapeHtml(preset.name || preset.id)}</span>
+                        <small>${escapeHtml(preset.description || 'Apply saved settings')}</small>
+                    </button>
+                `;
+            }).join('');
+            target.querySelectorAll('[data-preset-index]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const preset = presets[Number(this.dataset.presetIndex)];
+                    applyWorkbenchValues(preset.values || {});
+                    showToast('Preset applied', preset.name || preset.id, 'success', 2600);
+                });
+            });
+        }
+
+        function loadPinnedInputNames() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('ai-suite:pinned-inputs') || '[]');
+                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function savePinnedInputNames() {
+            localStorage.setItem('ai-suite:pinned-inputs', JSON.stringify(pinnedInputNames));
+        }
+
+        function togglePinnedInput(name) {
+            if (!name) return;
+            if (pinnedInputNames.includes(name)) {
+                pinnedInputNames = pinnedInputNames.filter(function(item) { return item !== name; });
+            } else {
+                pinnedInputNames = [name, ...pinnedInputNames].slice(0, 24);
+            }
+            savePinnedInputNames();
+            renderWorkbenchPinnedInputs();
+            renderInputLibrary(storedInputs);
+        }
+
+        function renderWorkbenchPinnedInputs() {
+            const target = document.getElementById('workbenchPinnedInputs');
+            if (!target) return;
+            const pinned = pinnedInputNames
+                .map(function(name) { return storedInputs.find(function(item) { return item.name === name; }); })
+                .filter(Boolean);
+
+            if (!pinned.length) {
+                target.innerHTML = '<div class="preview-empty" style="padding: 0.75rem;">Pin reusable inputs from the Library.</div>';
+                return;
+            }
+
+            target.innerHTML = pinned.map(function(item, index) {
+                return `
+                    <button class="sidebar-action" type="button" data-pinned-index="${index}">
+                        <span>${escapeHtml(item.filename || item.name)}</span>
+                        <small>${escapeHtml(item.media_type || 'file')} · ${escapeHtml(item.name)}</small>
+                    </button>
+                `;
+            }).join('');
+            target.querySelectorAll('[data-pinned-index]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const item = pinned[Number(this.dataset.pinnedIndex)];
+                    if (applyPinnedInputToCurrentWorkflow(item)) {
+                        showToast('Input selected', item.name, 'success', 2600);
+                    } else {
+                        showToast('No compatible file field', 'This workflow does not have a matching file input.', 'info', 3200);
+                    }
+                });
+            });
+        }
+
+        function applyPinnedInputToCurrentWorkflow(item) {
+            if (!item) return false;
+            const selects = Array.from(document.querySelectorAll('[data-stored-input-for]'));
+            const compatible = selects.find(function(select) {
+                const fieldName = select.dataset.storedInputFor || '';
+                const field = document.querySelector(`#workbenchFields [name="${CSS.escape(fieldName)}"]`);
+                const accept = (field?.accept || '').toLowerCase();
+                if (!accept) return true;
+                if (accept.includes('image/') && item.media_type === 'image') return true;
+                if (accept.includes('video/') && item.media_type === 'video') return true;
+                if (accept.includes('audio/') && item.media_type === 'audio') return true;
+                return accept.split(',').some(function(part) {
+                    const suffix = part.trim().replace(/^\*/, '');
+                    return suffix && item.filename.toLowerCase().endsWith(suffix);
+                });
+            });
+            if (!compatible) return false;
+            if (!Array.from(compatible.options).some(function(option) { return option.value === item.name; })) {
+                compatible.append(new Option(item.name, item.name));
+            }
+            compatible.value = item.name;
+            return true;
+        }
+
+        function applyWorkbenchValues(values) {
+            Object.entries(values || {}).forEach(function([key, value]) {
+                const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+                const field = fields.find(function(item) {
+                    return item.name === key || item.name.endsWith(`.${key}`);
+                });
+                if (!field || field.type === 'file') {
+                    const select = Array.from(document.querySelectorAll('[data-stored-input-for]')).find(function(item) {
+                        const targetName = item.dataset.storedInputFor || '';
+                        return targetName === key || targetName.endsWith(`.${key}`);
+                    });
+                    if (select && typeof value === 'string') {
+                        select.value = value;
+                    }
+                    return;
+                }
+                if (field.type === 'checkbox') {
+                    field.checked = Boolean(value);
+                } else {
+                    field.value = value;
+                }
+            });
+        }
+
+        function renderWorkbenchFields(inputs) {
+            const fields = document.getElementById('workbenchFields');
+            if (!inputs.length) {
+                fields.innerHTML = '<div class="preview-empty">This workflow has no editable inputs.</div>';
+                return;
+            }
+            fields.innerHTML = inputs.map(function(input) {
+                const required = input.required ? ' *' : '';
+                const defaultValue = input.default !== undefined ? input.default : '';
+                const label = input.label || input.id;
+                const common = `name="${escapeHtml(input.id)}"`;
+                if (input.legacy_kind === 'textarea' || input.id === 'prompt' || input.type === 'textarea') {
+                    return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><textarea ${common} rows="5">${escapeHtml(defaultValue)}</textarea></div>`;
+                }
+                if (input.type === 'file') {
+                    return `
+                        <div class="form-group">
+                            <label>${escapeHtml(label)}${required}</label>
+                            <input ${common} type="file" accept="${escapeHtml(input.accept || '')}">
+                            <div class="stored-input-row">
+                                <small>Or reuse a stored input</small>
+                                <select data-stored-input-for="${escapeHtml(input.id)}">
+                                    ${storedInputOptions(input.accept || '', defaultValue)}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }
+                if (input.type === 'int' || input.type === 'float') {
+                    return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="number" value="${escapeHtml(defaultValue)}" min="${input.minimum ?? ''}" max="${input.maximum ?? ''}" step="${input.step || 1}"></div>`;
+                }
+                if (input.type === 'boolean') {
+                    return `<div class="form-group"><label><input ${common} type="checkbox" ${defaultValue ? 'checked' : ''}> ${escapeHtml(label)}${required}</label></div>`;
+                }
+                return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="text" value="${escapeHtml(defaultValue)}"></div>`;
+            }).join('');
+        }
+
+        async function submitWorkbenchForm() {
+            if (!workbenchWorkflowId) return;
+            const button = document.getElementById('workbenchRun');
+            const status = document.getElementById('workbenchStatus');
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            status.textContent = `Starting ${workbenchWorkflowDetails?.name || workbenchWorkflowId}...`;
+            setEditorProgress('Starting generation...', 5);
+            const inputs = {};
+            try {
+                const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+                for (const field of fields) {
+                    if (field.type === 'file') {
+                        if (field.files && field.files[0]) {
+                            inputs[field.name] = await uploadWorkbenchFile(field.files[0]);
+                        } else {
+                            const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
+                            if (stored && stored.value) {
+                                inputs[field.name] = stored.value;
+                            }
+                        }
+                    } else {
+                        inputs[field.name] = field.type === 'checkbox' ? field.checked : field.value;
+                    }
+                }
+                const response = await fetch(`/api/workflows/${workbenchWorkflowId}/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputs: inputs })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to launch workflow');
+                status.textContent = `Queued job ${data.job_id || ''}. Waiting for output...`;
+                setEditorProgress(`Queued ${data.job_id || 'job'}`, data.status === 'completed' ? 100 : 15);
+                updateJobList();
+                setTimeout(refreshWorkbenchOutputs, 2500);
+            } catch (error) {
+                status.textContent = error.message;
+                setEditorProgress(error.message, 0);
+                showToast('Generation failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate';
+            }
+        }
+
+        function setEditorProgress(message, progress) {
+            const label = document.getElementById('editorProgressLabel');
+            const percent = document.getElementById('editorProgressPercent');
+            const fill = document.getElementById('editorProgressFill');
+            const value = Math.max(0, Math.min(100, Number(progress || 0)));
+            if (label) label.textContent = message;
+            if (percent) percent.textContent = `${value}%`;
+            if (fill) fill.style.width = `${value}%`;
+        }
+
+        async function uploadWorkbenchFile(file) {
+            const form = new FormData();
+            form.append('file', file);
+            const response = await fetch('/api/uploads', {
+                method: 'POST',
+                body: form
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Upload failed');
+            }
+            await refreshStoredInputs();
+            return data.name;
+        }
+
+        function storedInputOptions(accept, defaultValue) {
+            const accepted = String(accept || '').toLowerCase();
+            const filtered = storedInputs.filter(function(item) {
+                if (!accepted) return true;
+                if (accepted.includes('image/') && item.media_type === 'image') return true;
+                if (accepted.includes('video/') && item.media_type === 'video') return true;
+                if (accepted.includes('audio/') && item.media_type === 'audio') return true;
+                return accepted.split(',').some(function(part) {
+                    const suffix = part.trim().replace(/^\*/, '');
+                    return suffix && item.filename.toLowerCase().endsWith(suffix);
+                });
+            });
+            const current = defaultValue || '';
+            const options = [`<option value="">Use workflow default${current ? ` (${escapeHtml(current)})` : ''}</option>`];
+            filtered.forEach(function(item) {
+                options.push(`<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}</option>`);
+            });
+            return options.join('');
+        }
+
+        async function refreshWorkbenchOutputs() {
+            const type = mediaTypeForWorkflow(workbenchWorkflowDetails || workflowsData.find(function(workflow) {
+                return workflow.id === workbenchWorkflowId;
+            }));
+            const outputs = await fetchRecentOutputs(24);
+            const matching = outputs.filter(function(output) {
+                return outputMediaType(output) === type;
+            });
+            renderWorkbenchGallery(matching, type);
+        }
+
+        function outputMediaType(output) {
+            const media = (output.media_type || '').toLowerCase();
+            if (media === 'video' || media === 'image') return media;
+            const filename = (output.filename || '').toLowerCase();
+            if (/\.(mp4|webm|mov)$/i.test(filename)) return 'video';
+            if (/\.(glb|gltf|obj|fbx|ply|stl)$/i.test(filename)) return 'model';
+            return 'image';
+        }
+
+        function renderWorkbenchGallery(outputs, type) {
+            const gallery = document.getElementById('workbenchGallery');
+            if (!outputs.length) {
+                renderWorkbenchMedia(null, type);
+                gallery.innerHTML = '';
+                return;
+            }
+            renderWorkbenchMedia(outputs[0], type);
+            gallery.innerHTML = outputs.map(function(output, index) {
+                return `<button class="media-tile" type="button" data-output-index="${index}">${mediaMarkup(output, true)}</button>`;
+            }).join('');
+            gallery.querySelectorAll('[data-output-index]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    renderWorkbenchMedia(outputs[Number(this.dataset.outputIndex)], type);
+                });
+            });
+        }
+
+        function renderWorkbenchMedia(output, type) {
+            disposeModelViewer();
+            const stage = document.getElementById('workbenchMediaStage');
+            const title = document.getElementById('workbenchPreviewTitle');
+            const meta = document.getElementById('workbenchPreviewMeta');
+            if (!output) {
+                stage.innerHTML = `<div class="preview-empty">No ${type === 'model' ? '3D' : type} outputs yet.</div>`;
+                title.textContent = 'Latest Output';
+                meta.textContent = `${type === 'model' ? '3D' : type} interface`;
+                return;
+            }
+            title.textContent = output.filename || 'Latest Output';
+            meta.textContent = `${type === 'model' ? '3D' : type} output`;
+            if (outputMediaType(output) === 'model') {
+                renderModelViewer(output);
+                return;
+            }
+            stage.innerHTML = mediaMarkup(output, false);
+        }
+
+        function mediaMarkup(output, thumb) {
+            const escapedUrl = escapeHtml(output.url);
+            const escapedName = escapeHtml(output.filename || 'output');
+            const type = outputMediaType(output);
+            if (type === 'video') {
+                return `<video src="${escapedUrl}" ${thumb ? 'muted' : 'controls'}></video>`;
+            }
+            if (type === 'model') {
+                return `
+                    <div class="model-stage">
+                        <div>
+                            <strong>3D</strong>
+                            <div>${escapedName}</div>
+                            <a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">Open model file</a>
+                        </div>
+                    </div>
+                `;
+            }
+            return `<img src="${escapedUrl}" alt="${escapedName}" loading="${thumb ? 'lazy' : 'eager'}">`;
+        }
+
+        async function renderModelViewer(output) {
+            const stage = document.getElementById('workbenchMediaStage');
+            const escapedUrl = escapeHtml(output.url);
+            const escapedName = escapeHtml(output.filename || 'model');
+            stage.innerHTML = `
+                <div class="model-viewer">
+                    <canvas aria-label="${escapedName} 3D preview"></canvas>
+                    <div class="model-actions">
+                        <span>Drag to orbit</span>
+                        <a href="${escapedUrl}" target="_blank">Open</a>
+                        <a href="${escapedUrl}" download>Download</a>
+                    </div>
+                </div>
+            `;
+
+            const modules = await threeReady;
+            if (!modules) {
+                stage.innerHTML = `
+                    <div class="model-stage">
+                        <div>
+                            <strong>3D</strong>
+                            <div>Could not load the 3D viewer.</div>
+                            <a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">Open model file</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const { THREE, GLTFLoader, OrbitControls } = modules;
+            const container = stage.querySelector('.model-viewer');
+            const canvas = stage.querySelector('canvas');
+            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x05070d);
+
+            const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
+            camera.position.set(2.8, 1.8, 3.2);
+
+            const controls = new OrbitControls(camera, canvas);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+
+            scene.add(new THREE.HemisphereLight(0xffffff, 0x22313a, 2.0));
+            const key = new THREE.DirectionalLight(0xffffff, 2.4);
+            key.position.set(4, 6, 5);
+            scene.add(key);
+            const fill = new THREE.DirectionalLight(0x4fc3f7, 0.9);
+            fill.position.set(-3, 2, -4);
+            scene.add(fill);
+            const grid = new THREE.GridHelper(4, 16, 0x334455, 0x1b2230);
+            grid.position.y = -0.02;
+            scene.add(grid);
+
+            function resize() {
+                const width = Math.max(1, container.clientWidth);
+                const height = Math.max(1, container.clientHeight);
+                const pixelRatio = renderer.getPixelRatio();
+                if (canvas.width !== Math.floor(width * pixelRatio) || canvas.height !== Math.floor(height * pixelRatio)) {
+                    renderer.setSize(width, height, false);
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                }
+            }
+
+            let frameId = null;
+            function animate() {
+                resize();
+                controls.update();
+                renderer.render(scene, camera);
+                frameId = requestAnimationFrame(animate);
+            }
+
+            const resizeObserver = new ResizeObserver(resize);
+            resizeObserver.observe(container);
+
+            modelViewer = {
+                controls,
+                renderer,
+                resizeObserver,
+                scene,
+                stop: function() {
+                    if (frameId) cancelAnimationFrame(frameId);
+                }
+            };
+
+            new GLTFLoader().load(
+                output.url,
+                function(gltf) {
+                    const root = gltf.scene;
+                    scene.add(root);
+                    frameModel(root, camera, controls, THREE);
+                    animate();
+                },
+                undefined,
+                function(error) {
+                    console.error(error);
+                    disposeModelViewer();
+                    stage.innerHTML = `
+                        <div class="model-stage">
+                            <div>
+                                <strong>3D</strong>
+                                <div>Could not preview ${escapedName}.</div>
+                                <a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">Open model file</a>
+                            </div>
+                        </div>
+                    `;
+                }
+            );
+        }
+
+        function frameModel(root, camera, controls, THREE) {
+            const box = new THREE.Box3().setFromObject(root);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            root.position.sub(center);
+
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            const distance = maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360));
+            camera.position.set(distance * 0.9, distance * 0.65, distance * 1.15);
+            camera.near = Math.max(0.01, distance / 100);
+            camera.far = Math.max(100, distance * 100);
+            camera.updateProjectionMatrix();
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function disposeModelViewer() {
+            if (!modelViewer) return;
+            modelViewer.stop();
+            modelViewer.resizeObserver.disconnect();
+            modelViewer.controls.dispose();
+            modelViewer.scene.traverse(function(object) {
+                if (object.geometry) object.geometry.dispose();
+                const materials = Array.isArray(object.material) ? object.material : [object.material];
+                materials.forEach(function(material) {
+                    if (!material) return;
+                    Object.values(material).forEach(function(value) {
+                        if (value && value.isTexture) value.dispose();
+                    });
+                    material.dispose();
+                });
+            });
+            modelViewer.renderer.dispose();
+            modelViewer = null;
+        }
+
+        async function refreshServiceStatus() {
+            const output = document.getElementById('serviceOutput');
+            output.textContent = 'Checking services...';
+            try {
+                const response = await fetch('/api/services');
+                const data = await response.json();
+                output.textContent = data.output || '(no output)';
+            } catch (error) {
+                output.textContent = 'Failed to check services: ' + error.message;
+            }
+        }
+
+        async function runServiceCommand(command) {
+            const output = document.getElementById('serviceOutput');
+            output.textContent = 'Running: ' + command;
+            try {
+                const response = await fetch('/api/services/' + encodeURIComponent(command), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ timeout: 180 })
+                });
+                const data = await response.json();
+                output.textContent = data.output || '(no output)';
+                if (!response.ok) {
+                    output.textContent += '\nCommand failed with code ' + data.returncode;
+                }
+            } catch (error) {
+                output.textContent = 'Command failed: ' + error.message;
+            }
+        }
+
+        // Search functionality
+        function initSearch() {
+            const searchInput = document.getElementById('searchInput');
+            
+            searchInput.addEventListener('input', function() {
+                filterWorkflows(this.value);
+            });
+        }
+
+        // Category filter
+        function initCategoryFilter() {
+            const buttons = document.querySelectorAll('.category-btn');
+            
+            buttons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    buttons.forEach(function(btn) {
+                        btn.classList.remove('active');
+                    });
+                    
+                    this.classList.add('active');
+                    filterWorkflows(document.getElementById('searchInput').value, this.dataset.category);
+                });
+            });
+        }
+
+        // Filter workflows
+        function filterWorkflows(search = '', category = 'all') {
+            const grid = document.getElementById('workflowGrid');
+            const filteredWorkflows = workflowsData.filter(function(workflow) {
+                const matchesSearch = !search || 
+                    workflow.name.toLowerCase().includes(search.toLowerCase()) ||
+                    workflow.description.toLowerCase().includes(search.toLowerCase());
+                
+                const matchesCategory = category === 'all' || 
+                    workflow.category === category;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredWorkflows.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No workflows found</h3>
+                        <p>Try adjusting your search or category filter</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredWorkflows.map(function(workflow) {
+                return `
+                    <div class="workflow-card" onclick="showWorkflowDetails('${workflow.id}')">
+                        <div class="workflow-header">
+                            <span class="workflow-category">${workflow.category}</span>
+                            <h3 class="workflow-title">${workflow.name}</h3>
+                            <p class="workflow-description">${workflow.description}</p>
+                        </div>
+                        <div class="workflow-body">
+                            <div class="workflow-meta">
+                                <div class="workflow-meta-item">
+                                    <span class="icon">📦</span>
+                                    <span>v${workflow.version}</span>
+                                </div>
+                        <div class="workflow-meta-item">
+                            <span class="icon">💾</span>
+                            <span>${workflow.hardware?.minimum_vram_gb || '8'}GB VRAM</span>
+                        </div>
+                        <div class="workflow-meta-item">
+                            <span class="icon">●</span>
+                            <span>${workflow.runnable === false ? 'Not wired' : 'Ready'}</span>
+                        </div>
+                    </div>
+                            <div class="workflow-actions">
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); focusWorkbench('${workflow.id}')">
+                                    Use
+                                </button>
+                                <button class="btn btn-secondary" onclick="event.stopPropagation(); showWorkflowDetails('${workflow.id}')">
+                                    Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Show workflow details
+        async function showWorkflowDetails(workflowId) {
+            currentWorkflowId = workflowId;
+            
+            try {
+                const response = await fetch(`/api/workflows/${workflowId}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load workflow details');
+                }
+
+                const modalTitle = document.getElementById('modalTitle');
+                const modalBody = document.getElementById('modalBody');
+                
+                modalTitle.textContent = data.name;
+                
+                const models = data.models || {};
+                const hardware = data.hardware || {};
+                
+                const requiredModels = (models.required || []).map(m => m.name).join(', ') || 'None';
+                const optionalModels = (models.optional || []).map(m => m.name).join(', ') || 'None';
+                
+                modalBody.innerHTML = `
+                    <div style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">${data.description}</div>
+                    
+                    <h4 style="color: #4fc3f7; margin-bottom: 0.75rem;">Workflow Information</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Category</div>
+                            <div>${data.category}</div>
+                        </div>
+                        <div>
+                            <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Version</div>
+                            <div>v${data.version}</div>
+                        </div>
+                        <div>
+                            <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Status</div>
+                            <div><span class="status-badge status-${data.status}">${data.status}</span></div>
+                        </div>
+                        <div>
+                            <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Hardware</div>
+                            <div>${hardware.minimum_vram_gb || 'N/A'}-${hardware.recommended_vram_gb || 'N/A'} GB VRAM</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color: #4fc3f7; margin-bottom: 0.75rem;">Models</h4>
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem; margin-bottom: 0.25rem;">Required</div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px;">${requiredModels}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem; margin-bottom: 0.25rem;">Optional</div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px;">${optionalModels}</div>
+                    </div>
+
+                    <h4 style="color: #4fc3f7; margin-bottom: 0.75rem;">Dependencies</h4>
+                    <div id="dependenciesCheck" style="color: #f9a825;">Checking...</div>
+                `;
+
+                document.getElementById('workflowModal').classList.add('active');
+
+                // Check dependencies
+                checkDependencies(workflowId);
+
+            } catch (error) {
+                document.getElementById('modalBody').innerHTML = `<p style="color: #c62828;">Error loading workflow: ${error.message}</p>`;
+            }
+        }
+
+        // Check workflow dependencies
+        async function checkDependencies(workflowId) {
+            try {
+                const response = await fetch(`/api/workflows/${workflowId}/dependencies`);
+                const data = await response.json();
+
+                const dependenciesDiv = document.getElementById('dependenciesCheck');
+                
+                if (data.dependencies_satisfied) {
+                    dependenciesDiv.innerHTML = '<span style="color: #2e7d32;">✓ All dependencies satisfied</span>';
+                } else {
+                    let html = '<span style="color: #c62828;">✗ Dependencies missing:</span>';
+                    data.errors.forEach(error => {
+                        html += `<div style="color: rgba(255,255,255,0.7); margin-top: 0.5rem;">${error}</div>`;
+                    });
+                    data.warnings.forEach(warning => {
+                        html += `<div style="color: #f9a825; margin-top: 0.25rem;">${warning}</div>`;
+                    });
+                    dependenciesDiv.innerHTML = html;
+                }
+
+            } catch (error) {
+                document.getElementById('dependenciesCheck').innerHTML = '<span style="color: #c62828;">Failed to check dependencies</span>';
+            }
+        }
+
+        // Launch workflow
+        async function launchWorkflow(workflowId) {
+            currentWorkflowId = workflowId;
+
+            try {
+                const response = await fetch(`/api/workflows/${workflowId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load workflow');
+                }
+
+                document.getElementById('launchModalTitle').textContent = `Launch: ${data.name}`;
+                document.getElementById('launchWorkflowId').value = workflowId;
+
+                // Generate input fields from workflow manifest
+                let inputsHtml = '';
+                (data.inputs || []).forEach(function(input) {
+                    const required = input.required ? ' *' : '';
+                    const defaultValue = input.default !== undefined ? input.default : '';
+                    const label = input.label || input.id;
+                    
+                    if (input.legacy_kind === 'textarea' || input.type === 'textarea') {
+                        inputsHtml += `
+                            <div class="form-group">
+                                <label>${label}${required}</label>
+                                <textarea name="${input.id}" rows="4">${defaultValue}</textarea>
+                            </div>
+                        `;
+                    } else if (input.type === 'file') {
+                        inputsHtml += `
+                            <div class="form-group">
+                                <label>${label}${required}</label>
+                                <input type="file" name="${input.id}" accept="${input.accept || ''}">
+                                <div style="color: rgba(255,255,255,0.45); font-size: 0.75rem; margin-top: 0.35rem;">Default: ${defaultValue}</div>
+                            </div>
+                        `;
+                    } else if (input.type === 'text' || input.type === 'model') {
+                        inputsHtml += `
+                            <div class="form-group">
+                                <label>${label}${required}</label>
+                                <input type="text" name="${input.id}" value="${defaultValue}">
+                            </div>
+                        `;
+                    } else if (input.type === 'int' || input.type === 'float') {
+                        inputsHtml += `
+                            <div class="form-group">
+                                <label>${label}${required}</label>
+                                <input type="number" name="${input.id}" value="${defaultValue}" step="${input.step || 1}">
+                            </div>
+                        `;
+                    } else if (input.type === 'boolean') {
+                        inputsHtml += `
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="${input.id}" ${defaultValue ? 'checked' : ''}>
+                                    ${label}${required}
+                                </label>
+                            </div>
+                        `;
+                    }
+                });
+
+                document.getElementById('launchInputs').innerHTML = inputsHtml;
+                document.getElementById('launchModal').classList.add('active');
+
+            } catch (error) {
+                showToast('Workflow error', error.message, 'error');
+            }
+        }
+
+        // Submit launch form
+        async function submitLaunchForm() {
+            const launchBtn = document.querySelector('#launchModal .btn-primary .btn-text');
+            const loadingSpinner = document.querySelector('#launchModal .btn-primary .loading');
+
+            launchBtn.textContent = 'Launching...';
+            loadingSpinner.style.display = 'inline-block';
+
+            const inputs = {};
+            const inputFields = document.querySelectorAll('#launchModal [name]');
+
+            try {
+                for (const field of inputFields) {
+                    if (field.type === 'file') {
+                        if (field.files && field.files[0]) {
+                            inputs[field.name] = await uploadWorkbenchFile(field.files[0]);
+                        }
+                    } else {
+                        inputs[field.name] = field.type === 'checkbox' ? field.checked : field.value;
+                    }
+                }
+                const response = await fetch(`/api/workflows/${currentWorkflowId}/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputs: inputs })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to launch workflow');
+                }
+
+                showToast('Workflow launched', `Job ID: ${data.job_id}`, 'success');
+                closeModal();
+                closeLaunchModal();
+                updateJobList();
+                launchBtn.textContent = 'Launch';
+                loadingSpinner.style.display = 'none';
+
+            } catch (error) {
+                showToast('Launch failed', error.message, 'error');
+                launchBtn.textContent = 'Launch';
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        function showToast(title, message, type = 'info', timeout = 5200) {
+            const region = document.getElementById('toastRegion');
+            if (!region) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <strong>${escapeHtml(title)}</strong>
+                <div>${escapeHtml(message)}</div>
+            `;
+            region.append(toast);
+            window.setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                toast.style.transition = 'opacity 180ms ease, transform 180ms ease';
+                window.setTimeout(function() {
+                    toast.remove();
+                }, 220);
+            }, timeout);
+        }
+
+        function initLibrary() {
+            document.getElementById('libraryUploadBtn')?.addEventListener('click', uploadLibraryFiles);
+            document.getElementById('libraryRefreshBtn')?.addEventListener('click', refreshLibrary);
+        }
+
+        async function refreshLibrary() {
+            await Promise.all([refreshStoredInputs(), refreshOutputLibrary()]);
+        }
+
+        async function refreshStoredInputs() {
+            try {
+                const response = await fetch('/api/inputs?limit=200');
+                const data = await response.json();
+                storedInputs = response.ok ? (data.inputs || []) : [];
+                renderInputLibrary(storedInputs);
+                updateStoredInputSelects();
+                renderWorkbenchPinnedInputs();
+            } catch (error) {
+                storedInputs = [];
+                renderInputLibrary([]);
+                updateStoredInputSelects();
+                renderWorkbenchPinnedInputs();
+            }
+        }
+
+        function updateStoredInputSelects() {
+            document.querySelectorAll('[data-stored-input-for]').forEach(function(select) {
+                const fieldName = select.dataset.storedInputFor;
+                const field = document.querySelector(`#workbenchFields [name="${CSS.escape(fieldName)}"]`);
+                const previous = select.value;
+                select.innerHTML = storedInputOptions(field?.accept || '', '');
+                if (previous && Array.from(select.options).some(function(option) { return option.value === previous; })) {
+                    select.value = previous;
+                }
+            });
+        }
+
+        async function uploadLibraryFiles() {
+            const input = document.getElementById('libraryUpload');
+            const files = Array.from(input?.files || []);
+            if (!files.length) {
+                showToast('No files selected', 'Choose one or more files to save as reusable inputs.', 'info');
+                return;
+            }
+            try {
+                for (const file of files) {
+                    await uploadWorkbenchFile(file);
+                }
+                input.value = '';
+                await refreshStoredInputs();
+                showToast('Files saved', `${files.length} file${files.length === 1 ? '' : 's'} added to stored inputs.`, 'success');
+            } catch (error) {
+                showToast('Upload failed', error.message, 'error');
+            }
+        }
+
+        async function refreshOutputLibrary() {
+            const outputs = await fetchRecentOutputs(100);
+            renderOutputLibrary(outputs);
+        }
+
+        function renderInputLibrary(items) {
+            const grid = document.getElementById('inputLibraryGrid');
+            if (!grid) return;
+            if (!items.length) {
+                grid.innerHTML = '<div class="preview-empty">No stored inputs yet.</div>';
+                return;
+            }
+            grid.innerHTML = items.map(function(item) {
+                return renderLibraryCard(item, true);
+            }).join('');
+            bindLibraryCopyButtons(grid);
+        }
+
+        function renderOutputLibrary(items) {
+            const grid = document.getElementById('outputLibraryGrid');
+            if (!grid) return;
+            if (!items.length) {
+                grid.innerHTML = '<div class="preview-empty">No outputs yet.</div>';
+                return;
+            }
+            grid.innerHTML = items.map(function(item) {
+                return renderLibraryCard(item, false);
+            }).join('');
+            bindLibraryCopyButtons(grid);
+        }
+
+        function renderLibraryCard(item, storedInput) {
+            const escapedUrl = escapeHtml(item.url);
+            const escapedName = escapeHtml(item.filename || item.name || 'file');
+            const escapedValue = escapeHtml(storedInput ? item.name : item.url);
+            const modified = item.modified_at ? new Date(item.modified_at).toLocaleString() : '';
+            const pinned = storedInput && pinnedInputNames.includes(item.name);
+            return `
+                <article class="library-card">
+                    <div class="library-card-preview">${libraryPreviewMarkup(item)}</div>
+                    <div class="library-card-body">
+                        <div class="library-card-title">${escapedName}</div>
+                        <div class="library-card-meta">${escapeHtml(item.media_type || 'file')} ${modified ? `· ${escapeHtml(modified)}` : ''}</div>
+                        <div class="library-card-actions">
+                            <a href="${escapedUrl}" target="_blank">Open</a>
+                            ${storedInput ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
+                            <button type="button" data-copy-value="${escapedValue}">${storedInput ? 'Copy Name' : 'Copy Link'}</button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function libraryPreviewMarkup(item) {
+            const escapedUrl = escapeHtml(item.url);
+            const escapedName = escapeHtml(item.filename || item.name || 'file');
+            if (item.media_type === 'image') {
+                return `<img src="${escapedUrl}" alt="${escapedName}" loading="lazy">`;
+            }
+            if (item.media_type === 'video') {
+                return `<video src="${escapedUrl}" muted></video>`;
+            }
+            if (item.media_type === 'audio') {
+                return `<div class="preview-empty">Audio<br>${escapedName}</div>`;
+            }
+            if (item.media_type === 'model') {
+                return `<div class="preview-empty">3D<br>${escapedName}</div>`;
+            }
+            return `<div class="preview-empty">${escapedName}</div>`;
+        }
+
+        function bindLibraryCopyButtons(root) {
+            root.querySelectorAll('[data-pin-input]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    togglePinnedInput(this.dataset.pinInput || '');
+                });
+            });
+            root.querySelectorAll('[data-copy-value]').forEach(function(button) {
+                button.addEventListener('click', async function() {
+                    try {
+                        await navigator.clipboard.writeText(this.dataset.copyValue || '');
+                        showToast('Copied', this.dataset.copyValue || '', 'success', 2200);
+                    } catch (error) {
+                        showToast('Copy failed', this.dataset.copyValue || '', 'error');
+                    }
+                });
+            });
+        }
+
+        // Update job list
+        async function updateJobList() {
+            try {
+                const response = await fetch('/api/jobs?limit=50');
+                const data = await response.json();
+                latestJobsData = data;
+                renderWorkbenchHistory();
+                renderEditorProgress();
+
+                const jobList = document.getElementById('jobList');
+
+                if (data.running.length === 0 && data.queued.length === 0 && data.completed.length === 0) {
+                    const recentOutputs = await fetchRecentOutputs();
+                    if (recentOutputs.length) {
+                        jobList.innerHTML = recentOutputs.map(renderOutputFileJob).join('');
+                        renderLatestPreview({ job: { workflow_id: 'Latest output' }, output: recentOutputs[0] });
+                    } else {
+                        jobList.innerHTML = '<p style="color: rgba(255,255,255,0.5)">No jobs yet</p>';
+                        renderLatestPreview(null);
+                    }
+                    return;
+                }
+
+                let html = '';
+
+                data.queued.forEach(function(job) {
+                    html += `
+                        <div class="job-item">
+                            <div class="job-info">
+                                <span class="status-badge status-beta" style="background: #f9a825; color: #1a1a2e;">QUEUED</span>
+                                <span class="job-title">${escapeHtml(job.workflow_id)}</span>
+                            </div>
+                            <span class="job-time">${new Date(job.created_at).toLocaleString()}</span>
+                        </div>
+                    `;
+                });
+
+                data.running.forEach(function(job) {
+                    html += `
+                        <div class="job-item">
+                            <div class="job-info">
+                                <span class="status-badge status-stable" style="background: #4fc3f7; color: #1a1a2e;">RUNNING</span>
+                                <div class="job-title">
+                                    <div>${escapeHtml(job.workflow_id)}</div>
+                                    <div class="job-progress">
+                                        <div class="job-progress-bar" style="width: ${job.progress}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="job-time">${job.progress}%</span>
+                        </div>
+                    `;
+                });
+
+                data.completed.forEach(function(job) {
+                    const result = job.result || {};
+                    const outputs = result.outputs || [];
+                    const outputHtml = outputs.map(function(output) {
+                        const escapedUrl = escapeHtml(output.url);
+                        const escapedName = escapeHtml(output.filename || 'output');
+                        if (/\.(png|jpe?g|webp|gif)$/i.test(output.filename || '')) {
+                            return `
+                                <a href="${escapedUrl}" target="_blank">
+                                    <img class="job-thumb" src="${escapedUrl}" alt="${escapedName}" loading="lazy">
+                                </a>
+                            `;
+                        }
+                        return `<a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">${escapedName}</a>`;
+                    }).join('');
+                    html += `
+                        <div class="job-item">
+                            <div class="job-info" style="align-items: flex-start;">
+                                <span class="status-badge status-stable" style="background: #2e7d32; color: #fff;">DONE</span>
+                                <div class="job-title">
+                                    <div>${escapeHtml(job.workflow_id)}</div>
+                                    <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${escapeHtml(result.prompt_id || job.job_id)}</div>
+                                    <div class="job-thumb-row">${outputHtml || '<span style="color: rgba(255,255,255,0.5);">No output files yet</span>'}</div>
+                                </div>
+                            </div>
+                            <span class="job-time">${new Date(job.completed_at).toLocaleString()}</span>
+                        </div>
+                    `;
+                });
+
+                jobList.innerHTML = html;
+                const latest = findLatestOutput(data);
+                renderLatestPreview(latest || await fetchLatestOutput());
+
+            } catch (error) {
+                console.error('Error updating job list:', error);
+            }
+        }
+
+        async function fetchRecentOutputs(limit = 12) {
+            try {
+                const response = await fetch(`/api/outputs?limit=${limit}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    return [];
+                }
+                return data.outputs || [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        async function fetchLatestOutput() {
+            const outputs = await fetchRecentOutputs(1);
+            if (!outputs.length) {
+                return null;
+            }
+            return { job: { workflow_id: 'Latest output' }, output: outputs[0] };
+        }
+
+        function renderOutputFileJob(output) {
+            const escapedUrl = escapeHtml(output.url);
+            const escapedName = escapeHtml(output.filename || 'output');
+            const modified = output.modified_at ? new Date(output.modified_at).toLocaleString() : '';
+            const isImage = /\.(png|jpe?g|webp|gif)$/i.test(output.filename || '');
+            const previewHtml = isImage
+                ? `<a href="${escapedUrl}" target="_blank"><img class="job-thumb" src="${escapedUrl}" alt="${escapedName}" loading="lazy"></a>`
+                : `<a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">${escapedName}</a>`;
+
+            return `
+                <div class="job-item">
+                    <div class="job-info" style="align-items: flex-start;">
+                        <span class="status-badge status-stable" style="background: #546e7a; color: #fff;">FILE</span>
+                        <div class="job-title">
+                            <div>${escapedName}</div>
+                            <div class="job-thumb-row">${previewHtml}</div>
+                        </div>
+                    </div>
+                    <span class="job-time">${modified}</span>
+                </div>
+            `;
+        }
+
+        function findLatestOutput(data) {
+            const completed = (data.completed || []).slice().sort(function(a, b) {
+                return new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at);
+            });
+
+            for (const job of completed) {
+                const outputs = (job.result && job.result.outputs) || [];
+                const image = outputs.find(function(output) {
+                    return /\.(png|jpe?g|webp|gif)$/i.test(output.filename || '');
+                });
+                if (image) {
+                    return { job: job, output: image };
+                }
+            }
+
+            return null;
+        }
+
+        function renderLatestPreview(latest) {
+            const preview = document.getElementById('latestPreview');
+            const meta = document.getElementById('latestMeta');
+
+            if (!preview || !meta) {
+                return;
+            }
+
+            if (!latest || !latest.output) {
+                preview.innerHTML = '<div class="preview-empty">No generations yet.</div>';
+                meta.innerHTML = '<span>Waiting for a completed job</span>';
+                return;
+            }
+
+            const output = latest.output;
+            const job = latest.job;
+            const escapedUrl = escapeHtml(output.url);
+            const escapedName = escapeHtml(output.filename || 'output');
+            const escapedWorkflow = escapeHtml(job.workflow_id || 'Workflow');
+
+            preview.innerHTML = `
+                <a href="${escapedUrl}" target="_blank" title="Open ${escapedName}">
+                    <img src="${escapedUrl}" alt="${escapedWorkflow} output">
+                </a>
+            `;
+            meta.innerHTML = `
+                <span>${escapedWorkflow}</span>
+                <a href="${escapedUrl}" target="_blank">${escapedName}</a>
+            `;
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
+        // Job monitor
+        function initJobMonitor() {
+            updateJobList();
+            setInterval(updateJobList, 2000);
+        }
+
+        // Modal controls
+        function closeModal() {
+            document.getElementById('workflowModal').classList.remove('active');
+            currentWorkflowId = null;
+        }
+
+        function closeLaunchModal() {
+            document.getElementById('launchModal').classList.remove('active');
+        }
+
+        function launchSelectedWorkflow() {
+            closeModal();
+            launchWorkflow(currentWorkflowId);
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(function(modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                    closeLaunchModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+{% endautoescape %}

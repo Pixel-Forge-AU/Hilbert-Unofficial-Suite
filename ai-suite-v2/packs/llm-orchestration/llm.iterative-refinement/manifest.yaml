@@ -1,0 +1,88 @@
+id: llm.iterative-refinement
+name: LLM Iterative Refinement
+version: 2.0.0
+category: llm-orchestration
+subcategory: improvement
+description: 'Refine content through multiple iterations using LLM feedback. Perfect
+  for progressive improvement, quality optimization, and multi-stage refinement. Supports
+  text, images, and other content types with automated feedback loops.
+
+  Runs locally through the AI Suite llama.cpp service instead of ComfyUI custom nodes.
+
+  '
+status: stable
+entrypoints:
+  service: llama_cpp
+inputs:
+- id: initial_content
+  type: text
+  required: true
+  description: Initial content to refine
+- id: refinement_iterations
+  type: int
+  required: false
+  default: 3
+  description: Number of refinement iterations
+  minimum: 1
+  maximum: 10
+- id: llm_model
+  type: text
+  required: false
+  default: gpt-4o
+  description: LLM model for feedback
+- id: refinement_focus
+  type: text
+  required: false
+  default: overall quality
+  description: Primary focus area for refinement
+outputs:
+- id: final_content
+  type: text
+  description: The refined final content
+- id: iteration_history
+  type: array
+  description: History of all refinement steps
+- id: feedback_summary
+  type: text
+  description: Summary of all feedback provided
+- id: improvement_metrics
+  type: object
+  description: Metrics showing improvement over iterations
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required: []
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: medium
+  batch_supported: false
+  type: llm_service
+  service: llama_cpp
+  endpoint: http://127.0.0.1:8080/v1/chat/completions
+content:
+  themes:
+  - llm
+  - orchestration
+  - refinement
+  - improvement
+  adult_only: false
+tags:
+- feedback-loop
+- improvement
+- iterative-refinement
+- llama-cpp
+- llm
+- local-llm
+- multi-stage
+- optimization
+- service-workflow
+presets:
+- thorough
+- efficient
+media_type: text

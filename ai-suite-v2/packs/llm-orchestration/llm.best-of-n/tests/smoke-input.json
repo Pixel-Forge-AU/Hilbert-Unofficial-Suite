@@ -1,0 +1,15 @@
+{
+  "workflow_id": "llm.best-of-n",
+  "preset": "creative",
+  "inputs": {
+    "input_prompt": "a beautiful landscape photo",
+    "num_variants": 3,
+    "llm_model": "gpt-4o",
+    "evaluation_criteria": "visual appeal, composition, creativity"
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "text"
+  }
+}

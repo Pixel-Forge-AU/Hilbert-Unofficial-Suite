@@ -1,0 +1,22 @@
+{
+  "workflow_id": "three-d.scan-completion",
+  "inputs": {
+    "front_image": "scan_completion_smoke.png",
+    "back_image": "scan_completion_smoke.png"
+  },
+  "expected_output": {
+    "type": "model",
+    "formats": ["glb"],
+    "properties": {
+      "has_valid_geometry": true,
+      "reconstructed_from_views": true
+    }
+  },
+  "validation": {
+    "required_features": [
+      "glb-output",
+      "valid-geometry",
+      "view-based-reconstruction"
+    ]
+  }
+}

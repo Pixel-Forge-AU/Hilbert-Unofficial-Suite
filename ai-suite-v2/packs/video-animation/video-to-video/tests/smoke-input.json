@@ -1,0 +1,16 @@
+{
+  "workflow_id": "video.video-to-video",
+  "preset": "balanced",
+  "inputs": {
+    "enhancement_factor": 2.0,
+    "denoise_strength": 0.5,
+    "stabilization": true,
+    "fps_boost": false,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "video"
+  }
+}

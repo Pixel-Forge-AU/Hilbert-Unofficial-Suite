@@ -1,0 +1,33 @@
+{
+  "workflow_id": "character.portrait",
+  "inputs": {
+    "prompt": "portrait of a young woman with blue eyes, long brown hair, wearing a white dress, looking at viewer",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 768,
+    "height": 1024,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [768, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "focus_on_face": true,
+      "detailed_face": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 10,
+    "required_features": [
+      "portrait",
+      "face",
+      "detailed"
+    ]
+  }
+}

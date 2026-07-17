@@ -1,0 +1,22 @@
+# Balanced Preset for Frame Interpolation
+
+name: Balanced
+description: Natural frame interpolation with good quality
+
+interpolation:
+  fps_multiplier: 2.0
+  interpolation_quality: 0.8
+  motion_preservation: 0.9
+  smoothing: 0.3
+  output_fps: 48
+
+quality:
+  enable_upscale: false
+  enable_denoise: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

@@ -1,0 +1,19 @@
+{
+  "workflow_id": "weird.everything-muppet",
+  "preset": "subtle",
+  "inputs": {
+    "prompt": "A cyberpunk city at night",
+    "muppet_intensity": 0.6,
+    "texture_detail": 8,
+    "color_saturation": 1.2,
+    "edge_style": "hand-stitched",
+    "width": 1024,
+    "height": 1024,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

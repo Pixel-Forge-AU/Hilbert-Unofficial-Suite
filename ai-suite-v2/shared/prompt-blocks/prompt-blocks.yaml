@@ -1,0 +1,85 @@
+# AI Suite V2 Shared Prompt Blocks
+# Reusable prompt components for different styles
+
+blocks:
+  # Photography styles
+  photography:
+    realistic_photography: "realistic photography, 8k, highly detailed, sharp focus, professional lighting, studio quality"
+    cinematic_photography: "cinematic photography, dramatic lighting, volumetric lighting, shallow depth of field, 8k"
+    portrait_photography: "portrait photography, studio lighting, high detail, sharp focus, 8k"
+    fashion_photography: "fashion photography, high fashion, editorial style, professional lighting, 8k"
+    landscape_photography: "landscape photography, vast scenery, golden hour, dramatic clouds, 8k"
+    
+  # Art styles
+  art_styles:
+    digital_art: "digital art, concept art, highly detailed, digital painting, matte painting"
+    oil_painting: "oil painting, brush strokes, textured canvas, classical painting style"
+    watercolor: "watercolor painting, soft washes, transparent layers, artistic style"
+    anime: "anime style, cel shaded, high quality, studio ghibli style, detailed"
+    comic_book: "comic book, ink lines, halftone dots, vibrant colors, comic art"
+    cyberpunk: "cyberpunk, neon lights, futuristic, dystopian, high tech, detailed"
+    steampunk: "steampunk, brass and copper, vintage futurism, intricate details"
+    
+  # Lighting
+  lighting:
+    studio_lighting: "studio lighting, three point lighting, softboxes, professional lighting"
+    natural_lighting: "natural lighting, sunlight, soft natural light, outdoors"
+    dramatic_lighting: "dramatic lighting, high contrast, chiaroscuro, rim lighting"
+    cinematic_lighting: "cinematic lighting, volumetric lighting, moody lighting"
+    bioluminescence: "bioluminescence, glowing elements, neon lights, dark setting"
+    
+  # Camera angles
+  camera_angles:
+    eye_level: "eye level view, standard perspective"
+    low_angle: "low angle shot, looking up, dramatic perspective"
+    high_angle: "high angle shot, looking down, wide perspective"
+    close_up: "close up, tight framing, detailed focus"
+    extreme_close_up: "extreme close up, macro detail, intricate details"
+    wide_shot: "wide shot, full context, environmental storytelling"
+    
+  # Quality descriptors
+  quality:
+    high_quality: "high quality, masterpiece, best quality, highly detailed"
+    ultra_hd: "8k, ultra HD, hyper realistic, extremely detailed, photorealistic"
+    art_station: "artstation, concept art, trending art, featured"
+    cinematic: "cinematic composition, film grain, movie still"
+    
+  # Negative prompts
+  negative:
+    bad_composition: "bad composition, poorly composed, bad framing"
+    low_quality: "low quality, worst quality, low detail, blurry"
+    artifacts: "artifacts, deformation, distortion, extra limbs, extra fingers"
+    anatomy_errors: "anatomical errors, wrong anatomy, mutated hands, extra fingers"
+    watermark: "watermark, text, logo, signature, copyright, watermark"
+    dark_issues: "dark, underexposed, overexposed, grainy, noisy"
+    unnatural: "unnatural, unrealistic, uncanny, disturbing, weird"
+    
+  # Specific subjects
+  subjects:
+    human_portrait: "1 person, solo, detailed face, clear eyes, realistic skin"
+    full_body: "full body, full shot, complete figure, visible feet and hands"
+    fantasy_character: "fantasy character, magical, ethereal, otherworldly"
+    sciFi_character: "sci-fi character, futuristic, advanced technology, alien"
+    creature: "fantasy creature, mythical, magical creature, legendary beast"
+
+# Preset prompt combinations
+presets:
+  photorealistic:
+    positive: "{photography.realistic_photography}, {quality.high_quality}"
+    negative: "{negative.low_quality}, {negative.artifacts}, {negative.watermark}"
+    
+  cinematic:
+    positive: "{photography.cinematic_photography}, {lighting.cinematic_lighting}, {quality.cinematic}"
+    negative: "{negative.low_quality}, {negative.unnatural}, {negative.dark_issues}"
+    
+  digital_art:
+    positive: "{art_styles.digital_art}, {quality.high_quality}"
+    negative: "{negative.low_quality}, {negative.artifacts}"
+    
+  anime:
+    positive: "{art_styles.anime}, high quality, best quality, anime style"
+    negative: "realistic, 3d, render, low quality, blurry"
+    
+  oil_painting:
+    positive: "{art_styles.oil_painting}, {quality.high_quality}"
+    negative: "photorealistic, 3d, render, digital"

@@ -1,0 +1,36 @@
+{
+  "workflow_id": "horror.zombie-progression",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "zombie infection, rotting skin, discolored flesh",
+    "negative_prompt": "healthy, clean, no infection",
+    "infection_stage": 3,
+    "progression_speed": 1.0,
+    "severity": 0.8,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 30
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "show_infection": true,
+      "show_symptoms": true,
+      "transformation": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 20,
+    "required_features": [
+      "zombie",
+      "infection",
+      "transformation"
+    ]
+  }
+}

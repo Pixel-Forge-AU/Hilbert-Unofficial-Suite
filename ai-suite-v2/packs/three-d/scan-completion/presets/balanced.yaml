@@ -1,0 +1,14 @@
+# Balanced Preset for Scan/View Completion Mesh
+
+name: Balanced
+description: Balanced Hunyuan3D reconstruction from one or two views
+
+generation:
+  steps: 20
+  cfg: 7.5
+  mesh_resolution: 3072
+  mesh_threshold: 0.2
+
+runtime:
+  low_vram: true
+  cpu_offload: true

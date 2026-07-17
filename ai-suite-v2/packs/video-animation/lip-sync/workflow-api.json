@@ -1,0 +1,157 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.1_i2v_480p_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "strength_model": 1.0
+    }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "Wan2_1_VAE_bf16.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["3", 0],
+      "text": "The person speaks naturally in sync with the supplied audio, with stable identity, clear mouth movement, and minimal background drift."
+    }
+  },
+  "6": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["5", 0]
+    }
+  },
+  "8": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    }
+  },
+  "9": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "example.wav"
+    }
+  },
+  "10": {
+    "class_type": "AudioEncoderLoader",
+    "inputs": {
+      "audio_encoder_name": "wav2vec2-chinese-base_fp16.safetensors"
+    }
+  },
+  "11": {
+    "class_type": "AudioEncoderEncode",
+    "inputs": {
+      "audio_encoder": ["10", 0],
+      "audio": ["9", 0]
+    }
+  },
+  "12": {
+    "class_type": "ModelPatchLoader",
+    "inputs": {
+      "name": "infinitetalk_single.safetensors"
+    }
+  },
+  "13": {
+    "class_type": "WanInfiniteTalkToVideo",
+    "inputs": {
+      "mode": "single_speaker",
+      "model": ["2", 0],
+      "model_patch": ["12", 0],
+      "positive": ["5", 0],
+      "negative": ["6", 0],
+      "vae": ["4", 0],
+      "width": 832,
+      "height": 480,
+      "length": 81,
+      "audio_encoder_output_1": ["11", 0],
+      "motion_frame_count": 9,
+      "audio_scale": 1.0,
+      "start_image": ["8", 0]
+    }
+  },
+  "14": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 42
+    }
+  },
+  "15": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": ["13", 0],
+      "positive": ["13", 1],
+      "negative": ["13", 2],
+      "cfg": 1.0
+    }
+  },
+  "16": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "17": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": ["13", 0],
+      "scheduler": "normal",
+      "steps": 4,
+      "denoise": 1.0
+    }
+  },
+  "18": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["14", 0],
+      "guider": ["15", 0],
+      "sampler": ["16", 0],
+      "sigmas": ["17", 0],
+      "latent_image": ["13", 3]
+    }
+  },
+  "19": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["18", 0],
+      "vae": ["4", 0]
+    }
+  },
+  "20": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["19", 0],
+      "audio": ["9", 0],
+      "fps": 16.0
+    }
+  },
+  "21": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["20", 0],
+      "filename_prefix": "video/infinitetalk-lip-sync",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+jagged geometry, broken mesh, floating pieces, noisy surface, inconsistent front and back views

@@ -1,0 +1,22 @@
+# Creative Preset for LLM Workflow Router
+
+name: Creative
+description: Low confidence threshold for exploring creative options
+
+routing:
+  confidence_threshold: 0.3
+  fallback_workflow: null
+  max_candidates: 5
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 4096
+
+output:
+  include_confidence: true
+  include_reasoning: true
+  include_parameters: true
+  format: "creative"
+  include_alternatives: true

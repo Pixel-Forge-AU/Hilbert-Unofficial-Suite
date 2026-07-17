@@ -1,0 +1,28 @@
+# Image Editing Pack Manifest
+
+id: image-editing
+name: Image Editing
+version: "2.0.0"
+
+description: >
+  Photo editing and enhancement workflows including background removal,
+  object removal, face repair, and various editing tools.
+
+workflows:
+  - editing.background-removal
+  - editing.background-replacement
+  - editing.object-removal
+  - editing.object-replacement
+  - editing.sky-replacement
+  - editing.face-repair
+  - editing.hand-repair
+  - editing.expression-edit
+  - editing.clothing-edit
+  - editing.relighting
+  - editing.color-grading
+  - editing.perspective-correction
+  - editing.depth-of-field
+  - editing.reflection-removal
+  - editing.shadow-removal
+
+default_enabled: true

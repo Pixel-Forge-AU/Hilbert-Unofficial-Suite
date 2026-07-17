@@ -1,0 +1,1 @@
+low quality, blurry artifacts, non-manifold geometry, inverted normals, texture seams, poor topology, non-watertight, bad proportions, excessive polygons, texture noise

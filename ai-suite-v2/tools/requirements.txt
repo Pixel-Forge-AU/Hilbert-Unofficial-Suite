@@ -1,0 +1,13 @@
+# AI Suite V2 Tools Dependencies
+# Install with: pip install -r tools/requirements.txt
+
+# YAML parsing
+pyyaml>=6.0
+
+# JSON schema validation (optional, for strict validation)
+# jsonschema>=4.0  # Uncomment if you need JSON schema validation
+
+# For development
+# pytest>=7.0  # Uncomment for testing
+# black>=23.0  # Uncomment for code formatting
+# flake8>=6.0  # Uncomment for linting

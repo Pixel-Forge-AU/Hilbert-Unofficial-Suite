@@ -1,0 +1,29 @@
+# Extreme Preset for AI Telephone
+
+name: Extreme
+description: Aggressive transformation with maximum distortion
+
+generations:
+  count: 10
+  steps: 25
+  cfg: 7.0
+
+transformation:
+  prompt_modifier: "completely transform this into something unexpected and unusual"
+  preserve_concept: false
+  gradual_change: false
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: karras
+  denoise: 1.0
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: true

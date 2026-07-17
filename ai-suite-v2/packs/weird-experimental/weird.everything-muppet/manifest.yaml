@@ -1,0 +1,186 @@
+# Everything Muppet Workflow Manifest
+
+id: weird.everything-muppet
+name: Everything Muppet
+version: "2.0.0"
+
+category: weird-experimental
+subcategory: experimental-stylize
+media_type: image
+
+description: >
+  Transforms an uploaded image into a handmade puppet look using a real ComfyUI
+  image-to-image graph with felt texture, stitched seams, plush materials, and
+  theatrical color styling.
+
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+
+inputs:
+  - id: source_image
+    label: Source image
+    type: file
+    required: true
+    default: example.png
+    node_id: "3"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Image to transform
+
+  - id: prompt
+    label: Prompt
+    type: textarea
+    required: true
+    default: "muppet style transformation, handmade felt puppet, plush fabric texture, stitched seams, expressive googly eyes, soft foam shapes, vibrant theatrical colors, whimsical studio lighting"
+    node_id: "2"
+    node_type: CLIPTextEncode
+    input: text
+    description: Positive prompt describing the puppet transformation
+
+  - id: negative_prompt
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: "low quality, blurry, watermark, text, logo, extra limbs, malformed hands, distorted face, harsh plastic, uncanny realism"
+    node_id: "8"
+    node_type: CLIPTextEncode
+    input: text
+    description: Things to avoid
+
+  - id: muppet_intensity
+    label: Muppet intensity
+    type: float
+    required: false
+    default: 0.72
+    minimum: 0.1
+    maximum: 1.0
+    step: 0.01
+    node_id: "4"
+    node_type: KSampler
+    input: denoise
+    description: Higher values transform the image more strongly
+
+  - id: width
+    label: Width
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    node_id: "9"
+    node_type: ImageScale
+    input: width
+    description: Output image width in pixels
+
+  - id: height
+    label: Height
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    node_id: "9"
+    node_type: ImageScale
+    input: height
+    description: Output image height in pixels
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 18
+    minimum: 1
+    maximum: 80
+    step: 1
+    node_id: "4"
+    node_type: KSampler
+    input: steps
+    description: Sampling steps
+
+  - id: cfg
+    label: CFG
+    type: float
+    required: false
+    default: 6.5
+    minimum: 0.0
+    maximum: 20.0
+    step: 0.1
+    node_id: "4"
+    node_type: KSampler
+    input: cfg
+    description: Prompt guidance strength
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    node_id: "4"
+    node_type: KSampler
+    input: seed
+    description: Random seed for reproducibility (-1 for random)
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: ai-suite/muppet
+    node_id: "7"
+    node_type: SaveImage
+    input: filename_prefix
+    description: Output filename prefix
+
+outputs:
+  - id: final_image
+    type: image
+    description: Uploaded image transformed into a puppet-style image
+
+models:
+  required:
+    - type: checkpoints
+      name: juggernaut-xl-v9.safetensors
+      url: ""
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: heavy
+  batch_supported: false
+
+content:
+  themes:
+    - puppet
+    - handmade
+    - fabric
+    - stylized
+  adult_only: false
+
+tags:
+  - experimental
+  - puppet
+  - texture
+  - stylize
+  - handmade
+  - fabric
+  - whimsical
+
+presets:
+  - subtle
+  - extreme

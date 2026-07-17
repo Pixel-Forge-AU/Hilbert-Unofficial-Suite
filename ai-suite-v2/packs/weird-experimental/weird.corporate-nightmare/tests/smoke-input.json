@@ -1,0 +1,19 @@
+{
+  "workflow_id": "weird.corporate-nightmare",
+  "preset": "subtle",
+  "inputs": {
+    "prompt": "A futuristic city skyline",
+    "branding_intensity": 0.7,
+    "logo_count": 6,
+    "font_style": "corporate-sans",
+    "color_scheme": "corporate-blue",
+    "width": 1920,
+    "height": 1080,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

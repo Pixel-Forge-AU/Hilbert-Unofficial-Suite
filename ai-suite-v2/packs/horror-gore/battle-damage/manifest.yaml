@@ -1,0 +1,182 @@
+# Battle Damage Workflow Manifest
+
+id: horror.battle-damage
+name: Battle Damage & Wear
+version: "1.0.0"
+
+category: horror-gore
+subcategory: battle-damage
+
+description: >
+  Apply realistic battle damage including dirt, blood, torn clothing, and 
+  combat wear to characters and surfaces. Creates gritty, battle-worn effects
+  perfect for horror and action scenes.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: image
+    type: image
+    required: true
+    description: Base image to apply battle damage to
+    
+  - id: prompt
+    type: text
+    required: false
+    default: ""
+    description: Positive prompt for additional details
+    
+  - id: negative_prompt
+    type: text
+    required: false
+    default: ""
+    description: Negative prompt for undesirable elements
+    
+  - id: damage_intensity
+    type: float
+    required: false
+    default: 0.7
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.05
+    description: Intensity of battle damage (0=none, 1=extreme)
+    
+  - id: blood_amount
+    type: float
+    required: false
+    default: 0.6
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.05
+    description: Amount of blood effect
+    
+  - id: dirt_amount
+    type: float
+    required: false
+    default: 0.5
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.05
+    description: Amount of dirt and grime
+    
+  - id: tear_amount
+    type: float
+    required: false
+    default: 0.4
+    minimum: 0.0
+    maximum: 1.0
+    step: 0.05
+    description: Amount of torn/cut damage
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+    
+  - id: steps
+    type: int
+    required: false
+    default: 25
+    minimum: 10
+    maximum: 100
+    step: 1
+    description: Number of inference steps
+
+outputs:
+  - id: image
+    type: image
+    description: Image with applied battle damage effects
+  - id: mask
+    type: mask
+    description: Damage mask showing applied effects
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - qwen
+        - wan
+        - hunyuan
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: controlnet
+      suggested:
+        - depth
+        - canny
+        - normal
+
+  optional:
+    - role: lora
+      suggested:
+        - damage-overlay
+        - blood-textures
+        - dirt-grime
+        - torn-cloth
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-better-images
+
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: heavy
+  batch_supported: false
+
+content:
+  themes:
+    - battle-damage
+    - gore
+    - gritty
+    - action
+    - combat
+    - wear-and-tear
+    - violence
+  adult_only: false
+
+tags:
+  - battle-damage
+  - gore
+  - gritty
+  - wear-and-tear
+  - combat
+  - dirt
+  - blood
+  - torn-cloth
+  - action
+  - violence
+
+presets:
+  - subtle
+  - cinematic
+  - extreme

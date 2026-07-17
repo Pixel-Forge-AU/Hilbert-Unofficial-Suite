@@ -1,0 +1,1 @@
+Analyze this input and determine the best workflow:\n\n{input_text}\n\nContext: {context}\n\nAvailable workflows: {available_workflows}\n\nRespond with JSON: {"selected_workflow": "workflow_id", "confidence": 0-1, "reasoning": "explanation"}

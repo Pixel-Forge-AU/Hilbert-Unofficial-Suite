@@ -1,0 +1,25 @@
+# Character Pack Manifest
+
+id: character
+name: Character
+version: "2.0.0"
+
+description: >
+  Character creation and consistency workflows including character sheets,
+  identity preservation, and various character generation modes.
+
+workflows:
+  - character.portrait
+  - character.full-body
+  - character.character-sheet
+  - character.expression-sheet
+  - character.pose-sheet
+  - character.identity-consistency
+  - character.fantasy-race-generator
+  - character.scifi-character-generator
+  - character.creature-human-hybrid
+  - character.costume-variants
+  - character.armour-variants
+  - character.profession-variants
+
+default_enabled: true

@@ -1,0 +1,16 @@
+{
+  "workflow_id": "video.frame-interpolation",
+  "preset": "balanced",
+  "inputs": {
+    "fps_multiplier": 2.0,
+    "interpolation_quality": 0.8,
+    "motion_preservation": 0.9,
+    "smoothing": 0.3,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "video"
+  }
+}

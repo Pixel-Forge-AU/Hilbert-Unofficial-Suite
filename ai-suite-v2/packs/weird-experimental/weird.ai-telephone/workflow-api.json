@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "name": "AI Telephone API",
+  "description": "API-compatible version of multi-generational AI telephone game workflow",
+  "nodes": {
+    "load_checkpoint": {
+      "type": "CheckpointLoader",
+      "model_path": "${checkpoint}",
+      "inputs": [],
+      "outputs": ["model", "clip", "vae"]
+    },
+    "positive_prompt": {
+      "type": "CLIPTextEncode",
+      "text": "${prompt}",
+      "clip": "clip",
+      "outputs": ["positive"]
+    },
+    "negative_prompt": {
+      "type": "CLIPTextEncode",
+      "text": "${negative_prompt}",
+      "clip": "clip",
+      "outputs": ["negative"]
+    },
+    "empty_latent": {
+      "type": "EmptyLatentImage",
+      "width": "${width}",
+      "height": "${height}",
+      "batch_size": 1,
+      "outputs": ["latent"]
+    },
+    "sampler_1": {
+      "type": "KSampler",
+      "model": "model",
+      "positive": "positive",
+      "negative": "negative",
+      "latent_image": "latent",
+      "seed": "${seed}",
+      "steps": 12,
+      "cfg": "${cfg}",
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "outputs": ["latent_1"]
+    },
+    "vae_decode_1": {
+      "type": "VAEDecode",
+      "samples": "latent_1",
+      "vae": "vae",
+      "outputs": ["image_1"]
+    },
+    "output_1": {
+      "type": "SaveImage",
+      "images": "image_1",
+      "filename": "ai-telephone-gen-1_${timestamp}",
+      "outputs": []
+    }
+  },
+  "connections": {
+    "load_checkpoint.clip": ["positive_prompt.clip", "negative_prompt.clip", "vae_decode_1.vae"],
+    "load_checkpoint.vae": ["vae_decode_1.vae"],
+    "empty_latent.latent": ["sampler_1.latent_image"],
+    "positive_prompt.conditioning": ["sampler_1.positive"],
+    "negative_prompt.conditioning": ["sampler_1.negative"],
+    "sampler_1.latent_1": ["vae_decode_1.samples"],
+    "vae_decode_1.image_1": ["output_1.images"]
+  },
+  "parameters": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "description": "Initial prompt to start the telephone game"
+    },
+    "negative_prompt": {
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Negative prompt for undesirable elements"
+    },
+    "generations": {
+      "type": "integer",
+      "required": false,
+      "default": 5,
+      "minimum": 2,
+      "maximum": 20,
+      "step": 1,
+      "description": "Number of generations to run through"
+    },
+    "prompt_modifier": {
+      "type": "string",
+      "required": false,
+      "default": "transform this in an unusual and creative way",
+      "description": "Instruction to modify the prompt at each generation"
+    },
+    "width": {
+      "type": "integer",
+      "required": false,
+      "default": 1024,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image width in pixels"
+    },
+    "height": {
+      "type": "integer",
+      "required": false,
+      "default": 1024,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image height in pixels"
+    },
+    "seed": {
+      "type": "integer",
+      "required": false,
+      "default": -1,
+      "minimum": -1,
+      "maximum": 1152921504606846975,
+      "description": "Random seed for reproducibility (-1 for random)"
+    },
+    "cfg": {
+      "type": "float",
+      "required": false,
+      "default": 7.0,
+      "minimum": 1.0,
+      "maximum": 20.0,
+      "step": 0.5,
+      "description": "Classifier-free guidance scale"
+    },
+    "checkpoint": {
+      "type": "string",
+      "required": false,
+      "default": "flux_realism.safetensors",
+      "description": "Checkpoint model file name"
+    }
+  },
+  "outputs": {
+    "final_image": {
+      "type": "image",
+      "description": "Final generated image after all generations"
+    },
+    "intermediate_images": {
+      "type": "array",
+      "description": "Array of all intermediate generated images"
+    },
+    "prompt_history": {
+      "type": "text",
+      "description": "History of prompt transformations"
+    }
+  }
+}

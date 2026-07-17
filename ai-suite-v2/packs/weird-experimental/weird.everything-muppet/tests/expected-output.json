@@ -1,0 +1,31 @@
+{
+  "workflow_id": "weird.everything-muppet",
+  "inputs": {
+    "prompt": "A cyberpunk city at night",
+    "muppet_intensity": 0.6,
+    "texture_detail": 8,
+    "color_saturation": 1.2,
+    "edge_style": "hand-stitched",
+    "width": 1024,
+    "height": 1024,
+    "seed": 42
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "dimensions": [1024, 1024],
+    "properties": {
+      "has_content": true,
+      "no_watermark": true,
+      "no_artifacts": true,
+      "muppet_style": true,
+      "fabric_texture": true,
+      "vibrant_colors": true
+    }
+  },
+  "validation": {
+    "min_resolution": [512, 512],
+    "max_file_size_mb": 10,
+    "expected_transformation": "muppet"
+  }
+}

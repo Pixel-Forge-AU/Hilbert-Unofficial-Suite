@@ -1,0 +1,38 @@
+{
+  "workflow_id": "three-d.depth-to-mesh",
+  "inputs": {
+    "depth_map": "base64_depth_map",
+    "original_image": "base64_original_image",
+    "mesh_resolution": 1024,
+    "depth_scale": 1.0,
+    "watertight": true
+  },
+  "expected_output": {
+    "type": "mesh",
+    "formats": ["obj", "gltf"],
+    "properties": {
+      "has_valid_geometry": true,
+      "is_watertight": true,
+      "has_normals": true,
+      "has_texture": true,
+      "texture_resolution": [2048, 2048],
+      "vertex_count_range": [5000, 500000]
+    },
+    "preview": {
+      "type": "image",
+      "format": "webp",
+      "dimensions": [1024, 1024]
+    }
+  },
+  "validation": {
+    "required_features": [
+      "watertight",
+      "valid-geometry",
+      "surface-normals"
+    ],
+    "optional_features": [
+      "uv-mapping",
+      "texture-mapping"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+# Precise Preset for LLM Prompt Engineer
+
+name: Precise
+description: Fidelity to original with minimal enhancement
+
+enhancement:
+  level: 1
+  creativity_boost: false
+  add_descriptive_keywords: false
+  add_artistic_terms: false
+  add_quality_markers: true
+  max_length: 300
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.3
+  top_p: 0.7
+  max_tokens: 2048
+
+style:
+  apply_masterpiece: true
+  apply_quality: true
+  apply_detail: false
+  apply_lighting: false
+  apply_composition: false
+
+output:
+  format: "minimal_enhanced"
+  include_analysis: false
+  include_negative: true

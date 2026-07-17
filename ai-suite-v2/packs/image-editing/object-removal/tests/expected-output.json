@@ -1,0 +1,25 @@
+{
+  "workflow_id": "editing.object-removal",
+  "inputs": {
+    "image": "https://example.com/photo-with-objects.jpg",
+    "inpainting_strength": 0.7,
+    "context_preservation": 0.8
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "properties": {
+      "objects_removed": true,
+      "seamless_integration": true,
+      "context_preserved": true,
+      "no_artifacts": true
+    }
+  },
+  "validation": {
+    "required_features": [
+      "target_objects_removed",
+      "natural_inpainting",
+      "background_consistent"
+    ]
+  }
+}

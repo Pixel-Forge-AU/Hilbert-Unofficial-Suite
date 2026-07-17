@@ -1,0 +1,20 @@
+# LLM Orchestration Pack Manifest
+
+id: llm-orchestration
+name: LLM Orchestration
+version: "2.0.0"
+
+description: >
+  LLM-assisted generation workflows including prompt engineering,
+  image criticism, and workflow routing.
+
+workflows:
+  - llm.prompt-engineer
+  - llm.image-critic
+  - llm.workflow-router
+  - llm.best-of-n
+  - llm.iterative-refinement
+  - llm.storyboard-director
+  - llm.model-selector
+
+default_enabled: true

@@ -1,0 +1,14 @@
+# High-quality Preset for Scan/View Completion Mesh
+
+name: High-quality
+description: Higher-detail reconstruction when VRAM and runtime allow
+
+generation:
+  steps: 36
+  cfg: 8.0
+  mesh_resolution: 4096
+  mesh_threshold: 0.2
+
+runtime:
+  low_vram: false
+  cpu_offload: false

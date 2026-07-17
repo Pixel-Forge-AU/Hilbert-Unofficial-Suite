@@ -1,0 +1,15 @@
+{
+  "workflow_id": "video.animation",
+  "preset": "balanced",
+  "inputs": {
+    "animation_strength": 0.7,
+    "frame_count": 60,
+    "fps": 24,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "video"
+  }
+}

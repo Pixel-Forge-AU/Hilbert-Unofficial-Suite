@@ -1,0 +1,20 @@
+# Creative Preset for LLM Best of N
+
+name: Creative
+description: Generate more variants for creative exploration
+
+generation:
+  num_variants: 5
+  temperature: 0.7
+  creativity_boost: true
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 4096
+
+evaluation:
+  criteria: "creativity, originality, artistic value"
+  scoring_range: 0-10
+  include_detailed_reasoning: true

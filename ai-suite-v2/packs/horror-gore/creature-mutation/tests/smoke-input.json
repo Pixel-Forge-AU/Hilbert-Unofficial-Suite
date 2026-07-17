@@ -1,0 +1,19 @@
+{
+  "workflow_id": "horror.creature-mutation",
+  "preset": "pronounced",
+  "inputs": {
+    "image": "https://example.com/character.jpg",
+    "prompt": "mutation, horror, grotesque",
+    "negative_prompt": "clean, normal, no mutation",
+    "mutation_strength": 0.6,
+    "chaos_factor": 0.7,
+    "seed": 42,
+    "cfg": 7.5,
+    "steps": 30
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

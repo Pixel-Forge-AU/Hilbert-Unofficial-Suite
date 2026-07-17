@@ -1,0 +1,88 @@
+id: llm.workflow-router
+name: LLM Workflow Router
+version: 2.0.0
+category: llm-orchestration
+subcategory: routing
+description: 'Route to appropriate workflow based on intent analysis using LLM intelligence.
+  Analyzes user input or context to determine the best workflow for the task. Supports
+  dynamic routing between prompt engineering, image evaluation, and generation workflows.
+
+  Runs locally through the AI Suite llama.cpp service instead of ComfyUI custom nodes.
+
+  '
+status: stable
+entrypoints:
+  service: llama_cpp
+inputs:
+- id: input_text
+  type: text
+  required: true
+  description: Input text or query to analyze for routing
+- id: context
+  type: text
+  required: false
+  default: ''
+  description: Additional context for routing decisions
+- id: available_workflows
+  type: text
+  required: false
+  default: all
+  description: Comma-separated list of available workflow IDs to consider
+- id: llm_model
+  type: text
+  required: false
+  default: gpt-4o
+  description: LLM model to use for intent analysis
+outputs:
+- id: selected_workflow
+  type: text
+  description: The ID of the selected workflow
+- id: confidence
+  type: float
+  description: Confidence score for the routing decision
+- id: reasoning
+  type: text
+  description: Explanation of why this workflow was selected
+- id: parameters
+  type: object
+  description: Suggested parameters for the selected workflow
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required: []
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: light
+  batch_supported: false
+  type: llm_service
+  service: llama_cpp
+  endpoint: http://127.0.0.1:8080/v1/chat/completions
+content:
+  themes:
+  - llm
+  - orchestration
+  - routing
+  - automation
+  adult_only: false
+tags:
+- automation
+- decision-making
+- intelligent
+- llama-cpp
+- llm
+- local-llm
+- orchestration
+- routing
+- service-workflow
+- workflow-router
+presets:
+- balanced
+- creative
+- precise
+media_type: text

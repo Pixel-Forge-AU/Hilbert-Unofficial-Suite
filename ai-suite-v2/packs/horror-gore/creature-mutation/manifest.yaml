@@ -1,0 +1,138 @@
+# Creature Mutation Generator Workflow Manifest
+
+id: horror.creature-mutation
+name: Creature Mutation Generator
+version: "1.0.0"
+
+category: horror-gore
+subcategory: creaturemutation
+
+description: >
+  Generate creature mutation generator effects with customizable levels of horror and gore.
+
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: image
+    type: image
+    required: true
+    description: Base image to apply effects to
+    
+  - id: prompt
+    type: text
+    required: false
+    default: ""
+    description: Positive prompt for additional details
+    
+  - id: negative_prompt
+    type: text
+    required: false
+    default: ""
+    description: Negative prompt for undesirable elements
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+    
+  - id: steps
+    type: int
+    required: false
+    default: 25
+    minimum: 10
+    maximum: 100
+    step: 1
+    description: Number of inference steps
+
+outputs:
+  - id: image
+    type: image
+    description: Image with applied effects
+  - id: mask
+    type: mask
+    description: Effects mask showing affected areas
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - qwen
+        - wan
+        - hunyuan
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: controlnet
+      suggested:
+        - depth
+        - canny
+        - normal
+
+  optional:
+    - role: lora
+      suggested:
+        - overlay
+        - texture
+    - role: controlnet
+      suggested:
+        - depth
+        - canny
+        - normal
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+    - comfyui-better-images
+
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: heavy
+  batch_supported: false
+
+content:
+  themes:
+    - creaturemutation
+    - gore
+    - horror
+    - violence
+    - dark
+  adult_only: false
+
+tags:
+  - creaturemutation
+  - gore
+  - horror
+  - violence
+  - dark
+
+presets:
+

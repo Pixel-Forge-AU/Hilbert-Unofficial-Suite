@@ -1,0 +1,22 @@
+# Quick Preset for LLM Image Critic
+
+name: Quick
+description: Fast, surface-level critique
+
+critique:
+  depth: 1
+  comprehensive: false
+  areas: "all"
+  max_length: 500
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.5
+  top_p: 0.8
+  max_tokens: 2048
+
+output:
+  include_strengths: true
+  include_weaknesses: true
+  include_score: true
+  format: "concise"

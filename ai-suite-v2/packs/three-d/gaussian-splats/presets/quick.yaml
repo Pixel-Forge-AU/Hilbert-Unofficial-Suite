@@ -1,0 +1,17 @@
+# Quick Preset for Gaussian Splatting
+
+name: Quick
+description: Fast splat generation for preview
+
+gaussians:
+  density: 0.7
+  optimization_steps: 200
+  enable_sharpen: false
+
+quality:
+  resolution: 512
+  enable_upscale: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true

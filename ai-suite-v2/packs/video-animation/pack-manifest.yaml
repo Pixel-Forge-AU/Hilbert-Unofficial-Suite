@@ -1,0 +1,19 @@
+# Video & Animation Pack Manifest
+
+id: video-animation
+name: Video & Animation
+version: "2.0.0"
+
+description: >
+  Video generation and animation workflows including image-to-video,
+  video-to-video, talking head, lip sync, and frame interpolation.
+
+workflows:
+  - video.image-to-video
+  - video.video-to-video
+  - video.talking-head
+  - video.lip-sync
+  - video.frame-interpolation
+  - video.animation
+
+default_enabled: true

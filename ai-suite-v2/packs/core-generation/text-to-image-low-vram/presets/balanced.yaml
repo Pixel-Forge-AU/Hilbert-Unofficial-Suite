@@ -1,0 +1,28 @@
+# Balanced Preset for Text-to-Image Low VRAM
+
+name: Balanced
+description: Balanced quality for low VRAM systems
+
+generation:
+  width: 768
+  height: 768
+  steps: 25
+  cfg: 7.0
+  batch_size: 1
+
+sampling:
+  sampler: euler
+  scheduler: simple
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: true
+  enable_cpu_offload: true
+  tile_size: 512

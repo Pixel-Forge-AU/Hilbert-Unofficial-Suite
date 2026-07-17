@@ -1,0 +1,17 @@
+{
+  "workflow_id": "core.text-to-image-fast",
+  "preset": "fast",
+  "inputs": {
+    "prompt": "A futuristic city in the clouds with flying vehicles and neon lights",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 1024,
+    "seed": 42,
+    "cfg": 2.0
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

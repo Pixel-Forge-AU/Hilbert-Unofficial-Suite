@@ -1,0 +1,14 @@
+# Quick Preset for Scan/View Completion Mesh
+
+name: Quick
+description: Faster low-iteration reconstruction from scan/photo views
+
+generation:
+  steps: 12
+  cfg: 6.5
+  mesh_resolution: 2048
+  mesh_threshold: 0.2
+
+runtime:
+  low_vram: true
+  cpu_offload: true

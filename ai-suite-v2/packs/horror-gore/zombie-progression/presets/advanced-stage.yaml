@@ -1,0 +1,31 @@
+# Advanced Stage Preset
+
+name: Advanced Stage
+description: Severe transformation, extreme symptoms
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 35
+  cfg: 7.5
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+infection:
+  stage: 5
+  severity: 0.95
+  speed: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: false

@@ -1,0 +1,21 @@
+# Balanced Preset for LLM Workflow Router
+
+name: Balanced
+description: Moderate confidence threshold for general purpose routing
+
+routing:
+  confidence_threshold: 0.5
+  fallback_workflow: null
+  max_candidates: 3
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.5
+  top_p: 0.8
+  max_tokens: 2048
+
+output:
+  include_confidence: true
+  include_reasoning: true
+  include_parameters: true
+  format: "balanced"

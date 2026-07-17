@@ -1,0 +1,1 @@
+gaussian splatting, 3D gaussians, real-time rendering, novel view synthesis, high-quality representation, photorealistic

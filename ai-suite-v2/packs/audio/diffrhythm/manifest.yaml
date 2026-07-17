@@ -1,0 +1,114 @@
+# DiffRhythm Workflow Manifest
+
+id: audio.diffrhythm
+name: DiffRhythm Audio Generation
+version: "2.0.0"
+category: audio
+description: >
+  Generate music from text prompts using DiffRhythm model.
+  Creates full musical tracks with rhythm and melody.
+
+status: stable
+media_type: audio
+
+entrypoints:
+  ui: workflow.json
+
+inputs:
+  - id: prompt
+    label: Prompt
+    type: textarea
+    required: true
+    default: "A warm synthwave track with pulsing bass and dreamy pads"
+    legacy_kind: textarea
+    node_id: "1"
+    node_type: PrimitiveNode
+    input: value
+    description: Text prompt describing the desired music
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 30
+    legacy_kind: number
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: steps
+    description: Number of sampling steps
+
+  - id: guidance
+    label: Guidance
+    type: float
+    required: false
+    default: 0.8
+    legacy_kind: number
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: guidance
+    description: Guidance scale for generation
+
+  - id: duration
+    label: Duration
+    type: float
+    required: false
+    default: 1.0
+    legacy_kind: number
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: duration
+    description: Duration in seconds
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: 1
+    legacy_kind: number
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: seed
+    description: Random seed for reproducibility
+
+  - id: device
+    label: Device
+    type: text
+    required: false
+    default: "cuda"
+    legacy_kind: text
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: device
+    description: Device to run on (cuda/cpu)
+
+outputs:
+  - id: audio
+    type: audio
+    description: Generated audio output
+
+models:
+  required: []
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional:
+    - comfyui-diffrhythm
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+
+tags:
+  - audio
+  - music
+  - diffrhythm
+  - text-to-audio
+  - synthwave
+
+presets:
+  - balanced
+  - high-quality

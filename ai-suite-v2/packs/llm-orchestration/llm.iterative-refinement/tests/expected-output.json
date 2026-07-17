@@ -1,0 +1,53 @@
+{
+  "workflow_id": "llm.iterative-refinement",
+  "inputs": {
+    "initial_content": "a landscape photo",
+    "refinement_iterations": 3,
+    "llm_model": "gpt-4o",
+    "refinement_focus": "visual composition and detail"
+  },
+  "expected_output": {
+    "final_content": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "is_not_empty": true,
+        "improved_from_input": true
+      }
+    },
+    "iteration_history": {
+      "type": "array",
+      "format": "json",
+      "properties": {
+        "has_all_iterations": true,
+        "each_iteration_has_content_and_feedback": true
+      }
+    },
+    "feedback_summary": {
+      "type": "text",
+      "format": "string",
+      "properties": {
+        "contains_summary": true,
+        "references_iterations": true
+      }
+    },
+    "improvement_metrics": {
+      "type": "object",
+      "format": "json",
+      "properties": {
+        "has_initial_and_final_scores": true,
+        "shows_improvement": true
+      }
+    }
+  },
+  "validation": {
+    "min_iterations": 1,
+    "max_iterations": 10,
+    "required_fields": [
+      "final_content",
+      "iteration_history",
+      "feedback_summary",
+      "improvement_metrics"
+    ]
+  }
+}

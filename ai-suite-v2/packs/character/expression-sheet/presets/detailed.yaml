@@ -1,0 +1,28 @@
+# Detailed Preset for Character Expression Sheet
+
+name: Detailed
+description: High-quality expression sheet with detailed facial expressions
+
+generation:
+  width: 1024
+  height: 768
+  steps: 40
+  cfg: 8.0
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: simple
+  denoise: 1.0
+
+quality:
+  enable_upscale: true
+  enable_face_restore: true
+  enable_sharpen: true
+  sharpen_amount: 0.3
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

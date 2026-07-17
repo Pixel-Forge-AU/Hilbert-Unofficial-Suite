@@ -1,0 +1,15 @@
+{
+  "workflow_id": "llm.workflow-router",
+  "preset": "balanced",
+  "inputs": {
+    "input_text": "Enhance this prompt for a beautiful landscape photo",
+    "context": "User wants better results for image generation",
+    "available_workflows": "llm.prompt-engineer,llm.image-critic,llm.workflow-router,llm.best-of-n,llm.iterative-refinement",
+    "llm_model": "gpt-4o"
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "text"
+  }
+}

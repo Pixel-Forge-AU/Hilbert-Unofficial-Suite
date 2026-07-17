@@ -1,0 +1,2 @@
+Avoid: generic critique, superficial analysis, missing specific examples, not providing actionable feedback
+Focus on: composition, quality, prompt adherence, specific details, constructive recommendations

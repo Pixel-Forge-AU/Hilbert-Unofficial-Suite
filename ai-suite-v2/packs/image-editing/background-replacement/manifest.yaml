@@ -1,0 +1,147 @@
+id: editing.background-replacement
+name: Background Replacement
+version: 2.0.0
+category: image-editing
+media_type: image
+description: Prompt-guided background replacement using a real ComfyUI img2img graph.
+  Describe the desired background and use lower strength to preserve the subject.
+status: stable
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: image
+  label: Subject image
+  type: file
+  required: true
+  default: example.png
+  node_id: '8'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Source image
+- id: prompt
+  label: Background instruction
+  type: textarea
+  required: false
+  default: replace the background with a clean professional studio background, keep
+    the subject unchanged, natural lighting, realistic composite, high quality
+  node_id: '2'
+  node_type: CLIPTextEncode
+  input: text
+  description: Edit instruction
+- id: negative_prompt
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: changed subject, distorted subject, extra people, low quality, blurry,
+    text, watermark
+  node_id: '4'
+  node_type: CLIPTextEncode
+  input: text
+  description: Things to avoid
+- id: blend_strength
+  label: Replacement strength
+  type: float
+  required: false
+  default: 0.55
+  minimum: 0.05
+  maximum: 1.0
+  step: 0.01
+  node_id: '5'
+  node_type: KSampler
+  input: denoise
+  description: How strongly to alter the source image
+- id: width
+  label: Width
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '9'
+  node_type: ImageScale
+  input: width
+- id: height
+  label: Height
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '9'
+  node_type: ImageScale
+  input: height
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 18
+  minimum: 1
+  maximum: 100
+  step: 1
+  node_id: '5'
+  node_type: KSampler
+  input: steps
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 5.0
+  minimum: 1.0
+  maximum: 20.0
+  step: 0.5
+  node_id: '5'
+  node_type: KSampler
+  input: cfg
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  minimum: -1
+  maximum: 1152921504606846975
+  node_id: '5'
+  node_type: KSampler
+  input: seed
+- id: checkpoint
+  label: Checkpoint
+  type: model
+  required: false
+  default: juggernaut-xl-v9.safetensors
+  description: Checkpoint model to use
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: ai-suite/background-replacement
+  node_id: '7'
+  node_type: SaveImage
+  input: filename_prefix
+outputs:
+- id: image
+  type: image
+  description: Edited image output
+models:
+  required:
+  - type: checkpoints
+    name: juggernaut-xl-v9.safetensors
+    url: ''
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: medium
+  batch_supported: false
+tags:
+- background-replacement
+- img2img
+- composite

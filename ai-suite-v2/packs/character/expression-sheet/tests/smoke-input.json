@@ -1,0 +1,18 @@
+{
+  "workflow_id": "character.expression-sheet",
+  "preset": "detailed",
+  "inputs": {
+    "prompt": "expression sheet of a young woman with blue eyes showing happy, sad, angry, surprised, and neutral expressions",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 1024,
+    "height": 768,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 30
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

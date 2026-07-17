@@ -1,0 +1,19 @@
+{
+  "workflow_id": "weird.dream-degradation",
+  "preset": "subtle",
+  "inputs": {
+    "prompt": "A peaceful garden at dawn",
+    "degradation_strength": 0.4,
+    "blur_iterations": 3,
+    "noise_intensity": 0.15,
+    "color_shift": 0.2,
+    "width": 512,
+    "height": 512,
+    "seed": 42
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

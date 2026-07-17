@@ -1,0 +1,27 @@
+# Quick Preset for Image to Video
+
+name: Quick
+description: Fast animation for rapid prototyping and testing
+
+generation:
+  width: 512
+  height: 512
+  steps: 12
+  cfg: 2.0
+  batch_size: 1
+
+sampling:
+  sampler: euler
+  scheduler: simple
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

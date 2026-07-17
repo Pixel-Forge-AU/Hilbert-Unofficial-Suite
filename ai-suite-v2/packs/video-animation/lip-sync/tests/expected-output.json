@@ -1,0 +1,30 @@
+{
+  "workflow_id": "video.lip-sync",
+  "inputs": {
+    "image": "example.png",
+    "audio": "example.wav",
+    "frames": 9,
+    "fps": 8,
+    "steps": 1,
+    "cfg": 1.0,
+    "motion_frame_count": 1,
+    "seed": 42
+  },
+  "expected_output": {
+    "type": "video",
+    "format": "mp4",
+    "properties": {
+      "has_audio": true,
+      "lip_motion": true,
+      "source_identity_visible": true
+    }
+  },
+  "validation": {
+    "runtime_status": "experimental",
+    "required_features": [
+      "infinitetalk",
+      "image-plus-audio",
+      "wan2.1"
+    ]
+  }
+}

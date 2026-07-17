@@ -1,0 +1,21 @@
+# Quick Preset for Hand Repair
+
+name: Quick
+description: Fast hand repair with standard settings
+
+generation:
+  restoration_model: hand-gfpgan
+  enhancement_strength: 0.7
+  anatomy_preservation: 0.9
+  batch_size: 1
+
+quality:
+  enable_upscale: false
+  enable_hand_restore: false
+  enable_sharpen: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

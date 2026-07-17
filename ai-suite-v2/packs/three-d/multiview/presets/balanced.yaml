@@ -1,0 +1,20 @@
+# Balanced Preset for Multiview
+
+name: Balanced
+description: Good consistency with reasonable computation time
+
+views:
+  arrangement: "4-view"
+  width: 1024
+  height: 1024
+
+quality:
+  steps: 30
+  consistency_strength: 0.7
+  enable_upscale: true
+  enable_face_restore: false
+
+runtime:
+  low_vram: true
+  cpu_offload: true
+  enable_tiling: false

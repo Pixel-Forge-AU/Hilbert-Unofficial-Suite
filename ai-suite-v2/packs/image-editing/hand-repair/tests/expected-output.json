@@ -1,0 +1,25 @@
+{
+  "workflow_id": "editing.hand-repair",
+  "inputs": {
+    "image": "https://example.com/portrait-with-hand-issues.jpg",
+    "enhancement_strength": 0.7,
+    "anatomy_preservation": 0.9
+  },
+  "expected_output": {
+    "type": "image",
+    "format": "webp",
+    "properties": {
+      "hands_repaired": true,
+      "natural_appearance": true,
+      "anatomy_correct": true,
+      "details_enhanced": true
+    }
+  },
+  "validation": {
+    "required_features": [
+      "hand_anatomy_preserved",
+      "fingers_correct",
+      "details_enhanced"
+    ]
+  }
+}

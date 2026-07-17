@@ -1,0 +1,21 @@
+# Weird & Experimental Pack Manifest
+
+id: weird-experimental
+name: Weird & Experimental
+version: "2.0.0"
+
+description: >
+  Unusual, experimental, and artistic pipelines for creative exploration.
+  These workflows push boundaries and create unusual results.
+
+workflows:
+  - weird.ai-telephone
+  - weird.dream-degradation
+  - weird.everything-muppet
+  - weird.corporate-nightmare
+  - weird.alternate-universe
+  - weird.reverse-archaeology
+  - weird.wrong-medium
+  - weird.fake-documentary
+
+default_enabled: true

@@ -1,0 +1,147 @@
+# AI Telephone Workflow Manifest
+
+id: weird.ai-telephone
+name: AI Telephone
+version: "1.0.0"
+
+category: weird-experimental
+subcategory: experimental-game
+
+description: >
+  Multi-generational AI telephone game where an initial prompt is transformed
+  through multiple AI generations, creating progressively more abstract and
+  distorted interpretations - like the classic telephone game but with AI.
+
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    type: text
+    required: true
+    description: Initial prompt to start the telephone game
+    
+  - id: generations
+    type: int
+    required: false
+    default: 5
+    minimum: 2
+    maximum: 20
+    step: 1
+    description: Number of generations to run through
+    
+  - id: prompt_modifier
+    type: text
+    required: false
+    default: "transform this in an unusual and creative way"
+    description: Instruction to modify the prompt at each generation
+    
+  - id: width
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image width in pixels
+    
+  - id: height
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    description: Output image height in pixels
+    
+  - id: seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
+    description: Random seed for reproducibility (-1 for random)
+    
+  - id: cfg
+    type: float
+    required: false
+    default: 7.0
+    minimum: 1.0
+    maximum: 20.0
+    step: 0.5
+    description: Classifier-free guidance scale
+
+outputs:
+  - id: final_image
+    type: image
+    description: Final generated image after all generations
+  - id: intermediate_images
+    type: array
+    description: Array of all intermediate generated images
+  - id: prompt_history
+    type: text
+    description: History of prompt transformations
+
+models:
+  required:
+    - role: checkpoint
+      family:
+        - flux
+        - sdxl
+        - sd15
+        - sd3
+        - sdxl-lightning
+    - role: vae
+      suggested:
+        - ae
+        - vae-ft-mse-840000-ema-pruned
+    - role: text_encoder
+      suggested:
+        - t5xxl
+        - clip-l
+
+  optional:
+    - role: lora
+      suggested: []
+
+custom_nodes:
+  required:
+    - comfyui
+
+  optional:
+    - comfyui-impact-pack
+    - comfyui-controlnet-aux
+
+hardware:
+  minimum_vram_gb: 4
+  recommended_vram_gb: 8
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+runtime:
+  class: medium
+  batch_supported: false
+
+content:
+  themes:
+    - experimental
+    - game
+    - abstract
+    - transformation
+  adult_only: false
+
+tags:
+  - experimental
+  - telephone
+  - multi-generation
+  - abstract
+  - transformation
+  - recursive
+  - game
+
+presets:
+  - subtle
+  - extreme

@@ -1,0 +1,220 @@
+{
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "65",
+        0
+      ],
+      "filename_prefix": "Studio/text-to-3d/source-image"
+    }
+  },
+  "62": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    }
+  },
+  "63": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "65": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "70",
+        0
+      ],
+      "vae": [
+        "63",
+        0
+      ]
+    }
+  },
+  "66": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "67": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "62",
+        0
+      ],
+      "text": "anime RPG game style, cute anime girl with gigantic fennec ears and a big fluffy fox tail with long wavy blonde hair and large blue eyes blonde colored eyelashes wearing a pink sweater a large oversized gold trimmed black winter coat and a long blue maxi skirt and a red scarf, she is sitting beside a campfire in the wilderness at night playing guitar with a milky way galaxy sky"
+    }
+  },
+  "68": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "69": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "66",
+        0
+      ],
+      "shift": 3
+    }
+  },
+  "70": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "69",
+        0
+      ],
+      "positive": [
+        "67",
+        0
+      ],
+      "negative": [
+        "71",
+        0
+      ],
+      "latent_image": [
+        "68",
+        0
+      ],
+      "seed": 42,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "71": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "62",
+        0
+      ],
+      "text": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs"
+    }
+  },
+  "1003": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1070",
+        0
+      ],
+      "positive": [
+        "1080",
+        0
+      ],
+      "negative": [
+        "1080",
+        1
+      ],
+      "latent_image": [
+        "1066",
+        0
+      ],
+      "seed": 242832339647017,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1
+    }
+  },
+  "1082": {
+    "class_type": "SaveGLB",
+    "inputs": {
+      "mesh": [
+        "1081",
+        0
+      ],
+      "filename_prefix": "mesh/text-to-3d-local"
+    }
+  },
+  "1081": {
+    "class_type": "VoxelToMesh",
+    "inputs": {
+      "voxel": [
+        "1061",
+        0
+      ],
+      "algorithm": "surface net",
+      "threshold": 0.6
+    }
+  },
+  "1051": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "clip_vision": [
+        "1054",
+        1
+      ],
+      "image": [
+        "65",
+        0
+      ],
+      "crop": "none"
+    }
+  },
+  "1066": {
+    "class_type": "EmptyLatentHunyuan3Dv2",
+    "inputs": {
+      "resolution": 3072,
+      "batch_size": 1
+    }
+  },
+  "1054": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "inputs": {
+      "ckpt_name": "hunyuan3d-dit-v2_fp16.safetensors"
+    }
+  },
+  "1070": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "1054",
+        0
+      ],
+      "shift": 1.0000000000000002
+    }
+  },
+  "1080": {
+    "class_type": "Hunyuan3Dv2Conditioning",
+    "inputs": {
+      "clip_vision_output": [
+        "1051",
+        0
+      ]
+    }
+  },
+  "1061": {
+    "class_type": "VAEDecodeHunyuan3D",
+    "inputs": {
+      "samples": [
+        "1003",
+        0
+      ],
+      "vae": [
+        "1054",
+        2
+      ],
+      "num_chunks": 8000,
+      "octree_resolution": 256
+    }
+  }
+}

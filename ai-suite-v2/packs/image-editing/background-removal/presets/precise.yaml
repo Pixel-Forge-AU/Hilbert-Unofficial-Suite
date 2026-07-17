@@ -1,0 +1,21 @@
+# Precise Preset for Background Removal
+
+name: Precise
+description: High-quality segmentation using SAM2 for complex edges
+
+generation:
+  segmentation_model: sam2
+  dilation: 0
+  blur_edges: 3.0
+  batch_size: 1
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: true
+
+runtime:
+  low_vram: false
+  cpu_offload: false
+  enable_tiling: true
+  enable_cpu_offload: false

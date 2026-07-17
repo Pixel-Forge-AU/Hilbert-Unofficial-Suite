@@ -1,0 +1,27 @@
+# Balanced Preset for Text-to-Image Extreme
+
+name: Balanced
+description: Balanced quality for extreme workflow
+
+generation:
+  width: 1024
+  height: 1024
+  steps: 50
+  cfg: 8.0
+  batch_size: 1
+
+sampling:
+  sampler: dpmpp_2m
+  scheduler: karras
+  denoise: 1.0
+
+quality:
+  enable_upscale: false
+  enable_face_restore: true
+  enable_sharpen: subtle
+
+runtime:
+  low_vram: false
+  cpu_offload: true
+  enable_tiling: false
+  enable_cpu_offload: true

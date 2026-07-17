@@ -1,0 +1,126 @@
+# ACE Step 1.5 Workflow Manifest
+
+id: audio.ace-step-1-5
+name: ACE Step 1.5 Audio Generation
+version: "2.0.0"
+category: audio
+description: >
+  Generate high-quality audio from text prompts using ACE Step 1.5 model.
+  Supports lyrics, tags, and duration control for music generation.
+
+status: stable
+media_type: audio
+
+entrypoints:
+  ui: workflow.json
+
+inputs:
+  - id: prompt
+    label: Prompt
+    type: textarea
+    required: false
+    default: ""
+    legacy_kind: textarea
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: lyrics
+    description: Lyrics or text prompt for audio generation
+
+  - id: tags
+    label: Tags
+    type: textarea
+    required: false
+    default: ""
+    legacy_kind: textarea
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: tags
+    description: Style tags (genre, mood, instruments)
+
+  - id: duration
+    label: Duration
+    type: float
+    required: false
+    default: 120.0
+    legacy_kind: number
+    node_id: "99"
+    node_type: PrimitiveNode
+    input: value
+    description: Duration in seconds
+
+  - id: bpm
+    label: BPM
+    type: int
+    required: false
+    default: 120
+    legacy_kind: number
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: bpm
+    description: Beats per minute
+
+  - id: key
+    label: Key
+    type: text
+    required: false
+    default: "E minor"
+    legacy_kind: text
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: key
+    description: Musical key
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: 0
+    legacy_kind: number
+    node_id: "61"
+    node_type: KSamplerAdvanced
+    input: start_noise_seed
+    description: Random seed for reproducibility
+
+outputs:
+  - id: audio
+    type: audio
+    description: Generated audio output
+
+models:
+  required:
+    - role: checkpoint
+      name: acestep_v1.5_xl_turbo_bf16.safetensors
+      directory: diffusion_models
+      url: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors
+    - role: vae
+      name: ace_1.5_vae.safetensors
+      directory: vae
+      url: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/vae/ace_1.5_vae.safetensors
+    - role: text_encoder
+      name: qwen_0.6b_ace15.safetensors
+      directory: text_encoders
+      url: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_0.6b_ace15.safetensors
+
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+
+tags:
+  - audio
+  - music
+  - lyrics
+  - ace-step
+  - text-to-audio
+
+presets:
+  - balanced
+  - high-quality

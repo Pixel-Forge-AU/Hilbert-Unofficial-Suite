@@ -1,0 +1,14 @@
+{
+  "workflow_id": "editing.hand-repair",
+  "preset": "quick",
+  "inputs": {
+    "image": "https://example.com/portrait-with-hand-issues.jpg",
+    "enhancement_strength": 0.7,
+    "anatomy_preservation": 0.9
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "workflow_id": "character.portrait",
+  "preset": "detailed",
+  "inputs": {
+    "prompt": "portrait of a young woman with blue eyes, long brown hair, wearing a white dress, looking at viewer",
+    "negative_prompt": "low quality, blurry, text, watermark",
+    "width": 768,
+    "height": 1024,
+    "seed": 42,
+    "cfg": 7.0,
+    "steps": 25
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "expected_output_type": "image"
+  }
+}

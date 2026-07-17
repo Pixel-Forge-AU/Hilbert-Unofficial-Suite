@@ -1,0 +1,80 @@
+{
+  "version": "1.0.0",
+  "name": "Corporate Nightmare API",
+  "description": "API-compatible version of corporate branding nightmare workflow",
+  "parameters": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "description": "Prompt describing the corporate concept"
+    },
+    "branding_intensity": {
+      "type": "float",
+      "required": false,
+      "default": 0.8,
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "step": 0.01,
+      "description": "How much branding to apply"
+    },
+    "logo_count": {
+      "type": "integer",
+      "required": false,
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20,
+      "step": 1,
+      "description": "Number of logos to overlay"
+    },
+    "font_style": {
+      "type": "string",
+      "required": false,
+      "default": "corporate-sans",
+      "enum": [
+        "corporate-sans",
+        "aggressive-serif",
+        "tech-futuristic",
+        "bureaucratic-std"
+      ],
+      "description": "Typography style"
+    },
+    "color_scheme": {
+      "type": "string",
+      "required": false,
+      "default": "corporate-blue",
+      "enum": [
+        "corporate-blue",
+        "energy-orange",
+        "eco-green",
+        "luxury-black"
+      ],
+      "description": "Corporate color palette"
+    },
+    "width": {
+      "type": "integer",
+      "required": false,
+      "default": 1920,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image width in pixels"
+    },
+    "height": {
+      "type": "integer",
+      "required": false,
+      "default": 1080,
+      "minimum": 256,
+      "maximum": 2048,
+      "step": 64,
+      "description": "Output image height in pixels"
+    },
+    "seed": {
+      "type": "integer",
+      "required": false,
+      "default": -1,
+      "minimum": -1,
+      "maximum": 1152921504606846975,
+      "description": "Random seed for reproducibility (-1 for random)"
+    }
+  }
+}

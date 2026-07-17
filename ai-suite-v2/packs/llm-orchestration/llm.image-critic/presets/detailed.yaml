@@ -1,0 +1,23 @@
+# Detailed Preset for LLM Image Critic
+
+name: Detailed
+description: Comprehensive, in-depth analysis
+
+critique:
+  depth: 2
+  comprehensive: true
+  areas: "all"
+  max_length: 1500
+
+llm_config:
+  model: "gpt-4o"
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 4096
+
+output:
+  include_strengths: true
+  include_weaknesses: true
+  include_score: true
+  format: "detailed"
+  include_recommendations: true

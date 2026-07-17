@@ -1,0 +1,173 @@
+# AI Suite V2 Shared Templates
+# Reusable workflow components
+
+templates:
+  # Standard model loader template
+  model_loader:
+    description: "Standard checkpoint + VAE + CLIP loader"
+    files:
+      - "shared/templates/model_loader.json"
+    inputs:
+      - "checkpoint"
+      - "vae"
+      - "clip"
+    outputs:
+      - "model"
+      - "vae"
+      - "clip"
+      
+  # Standard prompt loader template
+  prompt_loader:
+    description: "Standard positive and negative prompt loader"
+    files:
+      - "shared/templates/prompt_loader.json"
+    inputs:
+      - "positive_prompt"
+      - "negative_prompt"
+    outputs:
+      - "positive"
+      - "negative"
+      
+  # Standard sampler template
+  sampler:
+    description: "Standard sampling configuration"
+    files:
+      - "shared/templates/sampler.json"
+    inputs:
+      - "model"
+      - "positive"
+      - "negative"
+      - "seed"
+      - "steps"
+      - "cfg"
+    outputs:
+      - "latents"
+      
+  # Standard image save template
+  image_save:
+    description: "Standard image saving with metadata"
+    files:
+      - "shared/templates/image_save.json"
+    inputs:
+      - "image"
+      - "metadata"
+    outputs:
+      - "output_path"
+      
+  # Standard latent upscaling template
+  latent_upscale:
+    description: "Standard latent upscale with optional denoise"
+    files:
+      - "shared/templates/latent_upscale.json"
+    inputs:
+      - "samples"
+      - "upscale_method"
+      - "scale_factor"
+    outputs:
+      - "upscaled_samples"
+      
+  # Standard image resizing template
+  image_resize:
+    description: "Standard image resizing with multiple methods"
+    files:
+      - "shared/templates/image_resize.json"
+    inputs:
+      - "image"
+      - "width"
+      - "height"
+      - "method"
+    outputs:
+      - "resized_image"
+      
+  # Standard mask loading template
+  mask_loader:
+    description: "Standard mask loader with optional blur"
+    files:
+      - "shared/templates/mask_loader.json"
+    inputs:
+      - "mask"
+      - "blur_radius"
+    outputs:
+      - "processed_mask"
+      
+  # Standard LoRA loader template
+  lora_loader:
+    description: "Standard LoRA stacking loader"
+    files:
+      - "shared/templates/lora_loader.json"
+    inputs:
+      - "model"
+      - "clip"
+      - "lora_stack"
+    outputs:
+      - "loaded_model"
+      - "loaded_clip"
+      
+  # Standard ControlNet loader template
+  controlnet_loader:
+    description: "Standard ControlNet loading with conditioning"
+    files:
+      - "shared/templates/controlnet_loader.json"
+    inputs:
+      - "model"
+      - "controlnet"
+      - "image"
+      - "strength"
+    outputs:
+      - "controlnet_conditioning"
+      
+  # Standard batch processing template
+  batch_processor:
+    description: "Standard batch processing with queue management"
+    files:
+      - "shared/templates/batch_processor.json"
+    inputs:
+      - "input_batch"
+      - "workflow"
+    outputs:
+      - "output_batch"
+
+# Shared subgraphs for common operations
+subgraphs:
+  # Model loading subgraph
+  model_loading:
+    description: "Complete model loading pipeline with fallbacks"
+    path: "shared/subgraphs/model_loading.json"
+    components:
+      - checkpoint_loader
+      - vae_loader
+      - clip_loader
+      - lora_stack_loader
+      - controlnet_stack_loader
+      
+  # Prompt construction subgraph
+  prompt_construction:
+    description: "Complete prompt building with style, subject, environment"
+    path: "shared/subgraphs/prompt_construction.json"
+    components:
+      - base_prompt
+      - style_prompt
+      - subject_prompt
+      - environment_prompt
+      - negative_prompt
+      
+  # Sampling subgraph
+  sampling:
+    description: "Complete sampling pipeline with optional stages"
+    path: "shared/subgraphs/sampling.json"
+    components:
+      - sampler_config
+      - scheduler_config
+      - optional_refinement
+      - optional_upscale
+      
+  # Post-processing subgraph
+  post_processing:
+    description: "Complete post-processing pipeline"
+    path: "shared/subgraphs/post_processing.json"
+    components:
+      - optional_upscale
+      - optional_face_restore
+      - optional_sharpen
+      - optional_quality_check
+      - output_save
