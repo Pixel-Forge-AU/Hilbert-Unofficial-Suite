@@ -1,0 +1,122 @@
+# Stable Audio Open 1.0 - Sound Effects Workflow Manifest
+
+id: audio.stable-audio-sfx
+name: Stable Audio SFX Generation
+version: "1.0.0"
+category: audio
+description: >
+  Generate sound effects, foley, and ambient audio from text prompts using
+  Stable Audio Open 1.0. Best for short, non-musical sounds (footsteps,
+  impacts, weather, mechanical noises, ambiences) rather than full songs.
+
+status: stable
+media_type: audio
+
+entrypoints:
+  ui: workflow.json
+
+inputs:
+  - id: prompt
+    label: Sound Prompt
+    type: textarea
+    required: true
+    default: "footsteps on gravel, crisp foley"
+    legacy_kind: textarea
+    node_id: "3"
+    node_type: CLIPTextEncode
+    input: text
+    description: Text description of the sound effect or ambience to generate
+
+  - id: negative_prompt
+    label: Negative Prompt
+    type: textarea
+    required: false
+    default: "music, melody, tonal"
+    legacy_kind: textarea
+    node_id: "4"
+    node_type: CLIPTextEncode
+    input: text
+    description: What to steer away from (defaults keep output non-musical)
+
+  - id: duration
+    label: Duration (seconds)
+    type: float
+    required: false
+    default: 10.0
+    legacy_kind: number
+    node_id: "5"
+    node_type: EmptyLatentAudio
+    input: seconds
+    description: Length of the generated clip, up to ~47 seconds
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 50
+    legacy_kind: number
+    node_id: "6"
+    node_type: KSampler
+    input: steps
+    description: Number of sampling steps
+
+  - id: cfg
+    label: CFG
+    type: float
+    required: false
+    default: 4.98
+    legacy_kind: number
+    node_id: "6"
+    node_type: KSampler
+    input: cfg
+    description: Classifier-free guidance scale
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: -1
+    legacy_kind: number
+    node_id: "6"
+    node_type: KSampler
+    input: seed
+    description: Random seed for reproducibility (-1 = random)
+
+outputs:
+  - id: audio
+    type: audio
+    description: Generated sound effect audio
+
+models:
+  required:
+    - role: checkpoint
+      name: stable_audio_open_1.0.safetensors
+      directory: checkpoints
+      url: https://huggingface.co/Comfy-Org/stable-audio-open-1.0_repackaged/resolve/main/stable-audio-open-1.0.safetensors
+    - role: text_encoder
+      name: t5_base.safetensors
+      directory: text_encoders
+      url: https://huggingface.co/google-t5/t5-base/resolve/main/model.safetensors
+
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 8
+  supports_low_vram: true
+  supports_cpu_offload: false
+
+tags:
+  - audio
+  - sfx
+  - foley
+  - sound-effects
+  - ambience
+  - stable-audio
+
+presets: []

@@ -8,7 +8,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^[a-z]+\\.[a-z-]+$",
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z0-9][a-z0-9-]*$",
       "description": "Unique workflow identifier (e.g., 'core.text-to-image-fast')"
     },
     "name": {
@@ -34,13 +34,13 @@
     },
     "status": {
       "type": "string",
-      "enum": ["experimental", "stable", "deprecated"],
+      "enum": ["experimental", "stable", "deprecated", "migrated"],
       "default": "stable",
       "description": "Workflow maturity status"
     },
     "entrypoints": {
       "type": "object",
-      "required": ["ui", "api"],
+      "minProperties": 1,
       "properties": {
         "ui": {
           "type": "string",
@@ -49,6 +49,10 @@
         "api": {
           "type": "string",
           "description": "Path to API workflow JSON file"
+        },
+        "service": {
+          "type": "string",
+          "description": "Local service used by non-ComfyUI workflows"
         }
       }
     },
@@ -64,7 +68,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["image", "text", "float", "int", "boolean", "model", "mask"]
+            "enum": ["image", "file", "textarea", "text", "float", "int", "boolean", "model", "mask"]
           },
           "required": {
             "type": "boolean",
@@ -98,7 +102,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["image", "mask", "video", "text", "metadata"]
+            "enum": ["image", "mask", "video", "audio", "text", "metadata", "object", "array"]
           },
           "description": {
             "type": "string"
@@ -176,7 +180,7 @@
         },
         "recommended_vram_gb": {
           "type": "integer",
-          "minimum": 8
+          "minimum": 4
         },
         "supports_low_vram": {
           "type": "boolean",

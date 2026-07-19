@@ -43,10 +43,24 @@ inputs:
     required: false
     default: 120.0
     legacy_kind: number
-    node_id: "99"
-    node_type: PrimitiveNode
-    input: value
+    node_id: "98"
+    node_type: EmptyAceStep1.5LatentAudio
+    input: seconds
     description: Duration in seconds
+
+  - id: conditioning_duration
+    label: Duration (conditioning)
+    type: float
+    required: false
+    default: 120.0
+    legacy_kind: number
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: duration
+    description: >
+      Must be kept equal to "duration" - the text encoder's own duration input,
+      separate from the latent's seconds. If these two disagree the model gets
+      conflicting length signals and produces truncated or malformed audio.
 
   - id: bpm
     label: BPM
@@ -67,19 +81,41 @@ inputs:
     legacy_kind: text
     node_id: "60"
     node_type: TextEncodeAceStepAudio1.5
-    input: key
+    input: keyscale
     description: Musical key
 
   - id: seed
     label: Seed
     type: int
     required: false
-    default: 0
+    default: -1
     legacy_kind: number
     node_id: "61"
     node_type: KSamplerAdvanced
-    input: start_noise_seed
-    description: Random seed for reproducibility
+    input: noise_seed
+    description: Diffusion noise seed. Use -1 to randomize each generation; set a value to reproduce a specific take.
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 8
+    legacy_kind: number
+    node_id: "61"
+    node_type: KSamplerAdvanced
+    input: steps
+    description: Sampler steps. The checkpoint is step/cfg-distilled ("turbo"), so cfg is left fixed; a modest increase here is the safe quality lever.
+
+  - id: voice_seed
+    label: Voice Seed
+    type: int
+    required: false
+    default: -1
+    legacy_kind: number
+    node_id: "60"
+    node_type: TextEncodeAceStepAudio1.5
+    input: seed
+    description: Controls the vocal timbre/voice character. Leave blank to get a different voice each generation; set a value to keep reusing a voice you like.
 
 outputs:
   - id: audio
@@ -100,6 +136,10 @@ models:
       name: qwen_0.6b_ace15.safetensors
       directory: text_encoders
       url: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_0.6b_ace15.safetensors
+    - role: text_encoder
+      name: qwen_1.7b_ace15.safetensors
+      directory: text_encoders
+      url: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_1.7b_ace15.safetensors
 
   optional: []
 

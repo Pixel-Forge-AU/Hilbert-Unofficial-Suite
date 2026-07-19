@@ -1,35 +1,30 @@
 {
   "id": "audio-diffrhythm",
   "revision": 0,
-  "last_node_id": 12,
-  "last_link_id": 10,
+  "last_node_id": 3,
+  "last_link_id": 1,
   "nodes": [
-    {
-      "id": 1,
-      "type": "PrimitiveNode",
-      "pos": [ 80, 110 ],
-      "size": [ 260, 110 ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [ { "name": "STRING", "type": "STRING", "widget": { "name": "prompt" }, "links": [ 1 ] } ],
-      "title": "Prompt",
-      "properties": { "Run widget replace on values": false },
-      "widgets_values": [ "A warm synthwave track with pulsing bass and dreamy pads", "fixed" ]
-    },
     {
       "id": 2,
       "type": "DiffRhythmRun",
       "pos": [ 420, 110 ],
-      "size": [ 320, 220 ],
+      "size": [ 320, 300 ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 0,
-      "inputs": [ { "name": "prompt", "type": "STRING", "widget": { "name": "prompt" }, "link": 1 } ],
-      "outputs": [ { "name": "AUDIO", "type": "AUDIO", "links": [ 2 ] } ],
+      "inputs": [
+        { "name": "model", "type": "COMBO", "widget": { "name": "model" }, "link": null },
+        { "name": "style_prompt", "type": "STRING", "widget": { "name": "style_prompt" }, "link": null },
+        { "name": "unload_model", "shape": 7, "type": "BOOLEAN", "widget": { "name": "unload_model" }, "link": null },
+        { "name": "odeint_method", "shape": 7, "type": "COMBO", "widget": { "name": "odeint_method" }, "link": null },
+        { "name": "steps", "shape": 7, "type": "INT", "widget": { "name": "steps" }, "link": null },
+        { "name": "cfg", "shape": 7, "type": "INT", "widget": { "name": "cfg" }, "link": null },
+        { "name": "quality_or_speed", "shape": 7, "type": "COMBO", "widget": { "name": "quality_or_speed" }, "link": null },
+        { "name": "seed", "shape": 7, "type": "INT", "widget": { "name": "seed" }, "link": null }
+      ],
+      "outputs": [ { "name": "AUDIO", "type": "AUDIO", "links": [ 1 ] } ],
       "properties": { "Node name for S&R": "DiffRhythmRun" },
-      "widgets_values": [ "A warm synthwave track with pulsing bass and dreamy pads", 30, 0.8, 1.0, 1, "cuda" ]
+      "widgets_values": [ "cfm_model_v1_2.pt", "A warm synthwave track with pulsing bass and dreamy pads", true, "euler", 30, 4, "speed", 0 ]
     },
     {
       "id": 3,
@@ -37,17 +32,16 @@
       "pos": [ 800, 110 ],
       "size": [ 280, 140 ],
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 0,
-      "inputs": [ { "name": "audio", "type": "AUDIO", "link": 2 } ],
+      "inputs": [ { "name": "audio", "type": "AUDIO", "link": 1 } ],
       "outputs": [],
       "properties": {},
       "widgets_values": [ "Studio" ]
     }
   ],
   "links": [
-    [ 1, 1, 0, 2, 0, "STRING" ],
-    [ 2, 2, 0, 3, 0, "AUDIO" ]
+    [ 1, 2, 0, 3, 0, "AUDIO" ]
   ],
   "groups": [],
   "config": {},

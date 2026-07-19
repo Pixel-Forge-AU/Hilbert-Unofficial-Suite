@@ -7,7 +7,7 @@ status: migrated
 media_type: image
 source:
   suite: v1
-  path: legacy-workflows/z-image-turbo-fixed-ae-vae.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

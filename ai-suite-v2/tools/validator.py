@@ -148,10 +148,10 @@ def validate_id_format(id_value: str) -> Tuple[bool, str]:
     """
     import re
 
-    # Pack ID format:^[a-z-]+$
-    pack_pattern = r'^[a-z-]+$'
-    # Workflow ID format:^[a-z]+\.[a-z-]+$'
-    workflow_pattern = r'^[a-z]+\.[a-z-]+$'
+    # Pack ID format: letters, numbers, and hyphens.
+    pack_pattern = r'^[a-z][a-z0-9-]*$'
+    # Workflow ID format: category.slug, with hyphens/digits allowed in both parts.
+    workflow_pattern = r'^[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*$'
 
     if re.match(workflow_pattern, id_value):
         return True, ""
@@ -197,14 +197,13 @@ def validate_entrypoints(entrypoints: Dict[str, Any], workflow_dir: Path) -> Tup
         errors.append("Entrypoints must be an object")
         return False, errors
 
-    # Check for required entrypoints
-    if "ui" not in entrypoints:
-        errors.append("Missing required entrypoint: ui")
-    if "api" not in entrypoints:
-        errors.append("Missing required entrypoint: api")
+    if not any(name in entrypoints for name in ("ui", "api", "service")):
+        errors.append("Missing entrypoint: expected at least one of ui, api, or service")
 
     # Check that entrypoint files exist
     for entrypoint_name, entrypoint_path in entrypoints.items():
+        if entrypoint_name == "service":
+            continue
         full_path = workflow_dir / entrypoint_path
         if not full_path.exists():
             errors.append(f"Entrypoint file not found: {entrypoint_name} -> {full_path}")
@@ -313,8 +312,8 @@ def validate_hardware(hardware: Dict[str, Any]) -> Tuple[bool, List[str]]:
     if "recommended_vram_gb" in hardware:
         try:
             vram = int(hardware["recommended_vram_gb"])
-            if vram < 8:
-                errors.append(f"recommended_vram_gb must be >= 8, got {vram}")
+            if vram < 4:
+                errors.append(f"recommended_vram_gb must be >= 4, got {vram}")
         except (ValueError, TypeError):
             errors.append(f"recommended_vram_gb must be an integer, got {hardware['recommended_vram_gb']}")
 
@@ -399,7 +398,7 @@ def validate_workflow_manifest(
 
     # Validate status field if present
     if "status" in manifest:
-        valid_statuses = ["experimental", "stable", "deprecated"]
+        valid_statuses = ["experimental", "stable", "deprecated", "migrated"]
         if manifest["status"] not in valid_statuses:
             result["warnings"].append(
                 f"Invalid status: '{manifest['status']}'. "

@@ -9,6 +9,8 @@ description: >
   inpainting, and upscaling capabilities.
 
 workflows:
+  - core.text-to-image
+  - core.text-to-image-hq
   - core.text-to-image-fast
   - core.text-to-image-quality
   - core.text-to-image-extreme

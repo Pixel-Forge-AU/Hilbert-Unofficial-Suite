@@ -15,7 +15,7 @@ from pathlib import Path
 from ai_manager import ROOT, load_config, start_llama
 from comfy_studio import (
     COMFY_OUTPUT,
-    build_workflow_prompt,
+    build_workflow_prompt_from_path,
     comfy_error_message,
     ensure_comfy,
     progress as comfy_progress,
@@ -23,7 +23,8 @@ from comfy_studio import (
 )
 
 
-USERS = ("User1", "User2")  # edit to your own household's names
+DEFAULT_USER = "User 1"
+USERS = (DEFAULT_USER, "User 2")
 SYSTEM_PROMPT = (
     "You are Hilbert, a concise and helpful local assistant. You are running from a private LAN server. "
     "When web search results are provided, use them as current context and cite the included URLs. "
@@ -31,7 +32,8 @@ SYSTEM_PROMPT = (
 )
 SAFE_NAME = re.compile(r"[^a-zA-Z0-9_.-]+")
 SEARCH_RESULT_LIMIT = 6
-IMAGE_WORKFLOW_ID = "z-image-turbo-fixed-ae-vae"
+IMAGE_WORKFLOW_ID = "core.text-to-image"
+IMAGE_WORKFLOW_PATH = ROOT / "packs/core-generation/text-to-image/workflow.json"
 IMAGE_WAIT_SECONDS = 900
 
 
@@ -270,8 +272,8 @@ HTML = r"""<!doctype html>
          <label>
            User
            <select id="user">
-             <option>User1</option>
-             <option>User2</option>
+             <option>User 1</option>
+             <option>User 2</option>
            </select>
          </label>
          <input id="sessionName" placeholder="New session name">
@@ -308,7 +310,7 @@ HTML = r"""<!doctype html>
     const renameEl = document.getElementById("renameSession");
     const deleteEl = document.getElementById("deleteSession");
 
-    let currentUser = localStorage.getItem("hilbert-user") || "User1";
+    let currentUser = localStorage.getItem("hilbert-user") || "User 1";
     let currentSession = localStorage.getItem("hilbert-session-" + currentUser) || "";
     let sessions = [];
     let currentModel = localStorage.getItem("hilbert-model") || "qwen3-coder-next";
@@ -406,7 +408,7 @@ HTML = r"""<!doctype html>
         button.className = "session" + (session.id === currentSession ? " active" : "");
         button.innerHTML = `<span class="session-title"></span><span class="session-meta"></span>`;
         button.querySelector(".session-title").textContent = session.title;
-        button.querySelector(".session-meta").textContent = `${session.message_count} messages · ${formatTime(session.updated_at)}`;
+        button.querySelector(".session-meta").textContent = `${session.message_count} messages - ${formatTime(session.updated_at)}`;
         button.addEventListener("click", () => selectSession(session.id));
         sessionsEl.appendChild(button);
       }
@@ -858,7 +860,7 @@ def generate_image_with_comfy(handler, text, model=None):
         raise RuntimeError(message)
 
     values = image_control_values(prompt_text)
-    prompt, seed, catalog_item = build_workflow_prompt(IMAGE_WORKFLOW_ID, values)
+    prompt, seed, catalog_item = build_workflow_prompt_from_path(IMAGE_WORKFLOW_PATH, values, workflow_id=IMAGE_WORKFLOW_ID)
     prompt_id = queue_prompt(config, prompt, catalog_item["media_type"])
 
     deadline = time.time() + IMAGE_WAIT_SECONDS
@@ -958,7 +960,7 @@ class HilbertHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/sessions":
             query = urllib.parse.parse_qs(parsed.query)
-            user = query.get("user", ["User1"])[0]
+            user = query.get("user", [DEFAULT_USER])[0]
             self.send_json({"users": USERS, "sessions": self.server.store.list_sessions(user)})
             return
         if parsed.path == "/api/models":
@@ -966,7 +968,7 @@ class HilbertHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/session":
             query = urllib.parse.parse_qs(parsed.query)
-            user = query.get("user", ["User1"])[0]
+            user = query.get("user", [DEFAULT_USER])[0]
             session_id = query.get("id", [""])[0]
             self.send_json({"session": self.server.store.get_session(user, session_id)})
             return
@@ -976,19 +978,19 @@ class HilbertHandler(BaseHTTPRequestHandler):
         try:
             payload = self.read_json()
             if self.path == "/api/session":
-                session = self.server.store.create_session(payload.get("user", "User1"), payload.get("title", "New Chat"))
+                session = self.server.store.create_session(payload.get("user", DEFAULT_USER), payload.get("title", "New Chat"))
                 self.send_json({"session": session})
                 return
             if self.path == "/api/session/rename":
-                session = self.server.store.rename_session(payload.get("user", "User1"), payload.get("id", ""), payload.get("title", "New Chat"))
+                session = self.server.store.rename_session(payload.get("user", DEFAULT_USER), payload.get("id", ""), payload.get("title", "New Chat"))
                 self.send_json({"session": session})
                 return
             if self.path == "/api/session/delete":
-                self.server.store.delete_session(payload.get("user", "User1"), payload.get("id", ""))
+                self.server.store.delete_session(payload.get("user", DEFAULT_USER), payload.get("id", ""))
                 self.send_json({"ok": True})
                 return
             if self.path == "/api/chat":
-                user = payload.get("user", "User1")
+                user = payload.get("user", DEFAULT_USER)
                 session_id = payload.get("session_id", "")
                 model = payload.get("model", self.server.model)
                 content = (payload.get("content") or "").strip()

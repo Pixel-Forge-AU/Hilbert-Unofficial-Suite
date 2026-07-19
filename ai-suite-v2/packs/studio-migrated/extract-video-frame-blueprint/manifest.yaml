@@ -7,7 +7,7 @@ status: migrated
 media_type: video
 source:
   suite: v1
-  path: legacy-workflows/extract-video-frame-blueprint.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

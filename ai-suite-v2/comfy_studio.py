@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import argparse
 import cgi
 import copy
 import json
-import mimetypes
+import math
 import os
 import random
 import re
@@ -14,21 +13,17 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from ai_manager import ROOT, load_config
 
 
 CONFIG = load_config()
-STATIC_DIR = Path(CONFIG.get("STUDIO_STATIC_DIR", ROOT / "studio_static"))
-WORKFLOW_DIR = Path(CONFIG.get("WORKFLOW_DIR", ROOT / "legacy-workflows"))
 COMFYUI_DIR = Path(CONFIG.get("COMFYUI_DIR", ROOT / "repos/ComfyUI"))
 COMFY_OUTPUT = COMFYUI_DIR / "output"
 COMFY_INPUT = COMFYUI_DIR / "input"
 UPLOAD_SUBDIR = "studio_uploads"
 DEFAULT_NEGATIVE = "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs"
-IMAGE_WORKFLOW = WORKFLOW_DIR / "z-image-turbo-fixed-ae-vae.json"
 CONTROL_LIMIT = 42
 JOB_METADATA = {}
 CANCELLED_PROMPTS = set()
@@ -439,52 +434,6 @@ def workflow_controls(path, workflow):
     return controls[:CONTROL_LIMIT]
 
 
-def workflow_catalog():
-    catalog = []
-    for path in sorted(WORKFLOW_DIR.glob("*.json")):
-        try:
-            workflow = json.loads(path.read_text())
-        except Exception as exc:
-            catalog.append(
-                {
-                    "id": workflow_slug(path),
-                    "name": workflow_title(path),
-                    "path": str(path),
-                    "ready": False,
-                    "error": str(exc),
-                    "media_type": "image",
-                    "controls": [],
-                }
-            )
-            continue
-
-        provider_nodes = workflow_provider_nodes(workflow)
-        media_type = infer_media_type(path, workflow)
-        controls = workflow_controls(path, workflow)
-        catalog.append(
-            {
-                "id": workflow_slug(path),
-                "name": workflow_title(path),
-                "path": str(path),
-                "ready": bool(controls) and not provider_nodes,
-                "local": not provider_nodes,
-                "provider_nodes": provider_nodes,
-                "media_type": media_type,
-                "controls": controls,
-                "control_count": len(controls),
-                "format": "ui" if "nodes" in workflow else "api",
-            }
-        )
-    return catalog
-
-
-def workflow_by_id(workflow_id):
-    for item in workflow_catalog():
-        if item["id"] == workflow_id:
-            return item
-    return None
-
-
 def workflow_provider_nodes(workflow):
     node_types = []
     if "nodes" in workflow:
@@ -836,6 +785,8 @@ def workflow_to_api(workflow):
 
         if node_type == "SaveImage":
             inputs["filename_prefix"] = widgets[0] if widgets else "Studio"
+        elif node_type == "SaveAudio":
+            inputs["filename_prefix"] = widgets[0] if widgets else "Studio"
         elif node_type == "SaveGLB":
             inputs["filename_prefix"] = widgets[0] if widgets else "mesh/ComfyUI"
         elif node_type == "CLIPLoader":
@@ -900,6 +851,50 @@ def workflow_to_api(workflow):
             names = ["cfg_conds", "cfg_cond2_negative", "style"]
             for name, value in zip(names, widgets):
                 inputs[name] = value
+        elif node_type == "DualCLIPLoader":
+            names = ["clip_name1", "clip_name2", "type", "device"]
+            for name, value in zip(names, widgets):
+                inputs.setdefault(name, value)
+        elif node_type == "KSamplerAdvanced":
+            ordered = [
+                "add_noise", "noise_seed", None, "steps", "cfg", "sampler_name",
+                "scheduler", "start_at_step", "end_at_step", "return_with_leftover_noise",
+            ]
+            for name, value in zip(ordered, widgets):
+                if name:
+                    inputs.setdefault(name, value)
+        elif node_type == "LoraLoaderModelOnly":
+            names = ["lora_name", "strength_model"]
+            for name, value in zip(names, widgets):
+                inputs.setdefault(name, value)
+        elif node_type == "WanFirstLastFrameToVideo":
+            names = ["width", "height", "length", "batch_size"]
+            for name, value in zip(names, widgets):
+                inputs.setdefault(name, value)
+        elif node_type == "ModelSamplingSD3":
+            if widgets:
+                inputs.setdefault("shift", widgets[0])
+        elif node_type == "CreateVideo":
+            if widgets:
+                inputs.setdefault("fps", widgets[0])
+            if len(widgets) > 1:
+                inputs.setdefault("bit_depth", widgets[1])
+        elif node_type == "EmptyAceStep1.5LatentAudio":
+            inputs.setdefault("batch_size", widgets[1] if len(widgets) > 1 else 1)
+        elif node_type == "TextEncodeAceStepAudio1.5":
+            # Only tags/lyrics/duration are declared as promotable inputs in the exported
+            # workflow; the rest (seed, bpm, timesignature, ...) are plain widgets that never
+            # appear in node["inputs"], so the generic fallback below can't see them. Map the
+            # full widgets_values order (from ComfyUI's object_info) here instead. "seed" is
+            # followed by a UI-only "control_after_generate" slot with no backend input.
+            ordered = [
+                "tags", "lyrics", "seed", None, "bpm", "duration", "timesignature",
+                "language", "keyscale", "generate_audio_codes", "cfg_scale",
+                "temperature", "top_p", "top_k", "min_p",
+            ]
+            for name, value in zip(ordered, widgets):
+                if name:
+                    inputs.setdefault(name, value)
         elif node_type == "ImageScaleToTotalPixels":
             names = ["upscale_method", "megapixels", "resolution_steps"]
             for name, value in zip(names, widgets):
@@ -951,7 +946,7 @@ def apply_controls(prompt, catalog_item, values):
             prompt[node_id]["inputs"][input_name] = value
 
     for node in prompt.values():
-        if node.get("class_type") in ("SaveImage", "VHS_VideoCombine", "SaveAnimatedWEBP"):
+        if node.get("class_type") in ("SaveImage", "VHS_VideoCombine", "SaveAnimatedWEBP", "SaveAudio"):
             inputs = node.setdefault("inputs", {})
             if not str(inputs.get("filename_prefix", "")).strip():
                 inputs["filename_prefix"] = default_prefix
@@ -959,15 +954,17 @@ def apply_controls(prompt, catalog_item, values):
     return seed
 
 
-def build_workflow_prompt(workflow_id, values):
-    catalog_item = workflow_by_id(workflow_id)
-    if not catalog_item:
-        raise ValueError(f"Unknown workflow: {workflow_id}")
-    if not catalog_item.get("local", True):
-        providers = ", ".join(catalog_item.get("provider_nodes", []))
-        raise ValueError(f"Workflow uses provider/API nodes and is blocked for local-only mode: {providers}")
-
-    workflow = json.loads(Path(catalog_item["path"]).read_text())
+def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=None):
+    path = Path(path)
+    workflow = json.loads(path.read_text())
+    controls = workflow_controls(path, workflow)
+    catalog_item = {
+        "id": workflow_id or workflow_slug(path),
+        "name": workflow_title(path),
+        "path": str(path),
+        "controls": controls,
+        "media_type": media_type or infer_media_type(path, workflow),
+    }
     prompt = workflow_to_api(workflow) if "nodes" in workflow else clean_api_prompt(workflow)
     seed = apply_controls(prompt, catalog_item, values)
     return prompt, seed, catalog_item
@@ -1031,11 +1028,16 @@ def output_file_path(output):
     rel = Path(subfolder) / filename if subfolder else Path(filename)
     if rel.is_absolute() or ".." in rel.parts:
         return None
-    target = (COMFY_OUTPUT / rel).resolve()
-    output_root = COMFY_OUTPUT.resolve()
-    if target != output_root and output_root not in target.parents:
-        return None
-    return target
+    # Generated files live under COMFY_OUTPUT; user-uploaded files (e.g. an
+    # existing song/image supplied directly, rather than generated) land
+    # under COMFY_INPUT via the upload endpoint. Try both roots.
+    for root in (COMFY_OUTPUT, COMFY_INPUT):
+        root_resolved = root.resolve()
+        target = (root / rel).resolve()
+        if target == root_resolved or root_resolved in target.parents:
+            if target.exists():
+                return target
+    return None
 
 
 def write_prompt_sidecars(prompt_id, outputs):
@@ -1136,6 +1138,89 @@ def stitch_videos(outputs, workflow_id="sequence"):
         result = subprocess.run(reencode_cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200)
         if result.returncode != 0:
             raise ValueError(result.stdout.strip() or "ffmpeg could not stitch the sequence.")
+
+    rel = output.relative_to(COMFY_OUTPUT)
+    return {
+        "type": "video",
+        "filename": output.name,
+        "subfolder": str(rel.parent) if rel.parent != Path(".") else "",
+        "url": "/" + "/".join(["media", *[urllib.parse.quote(part) for part in rel.parts]]),
+    }
+
+
+def probe_duration_seconds(ffmpeg, path):
+    result = subprocess.run(
+        [ffmpeg, "-i", str(path)],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=30,
+    )
+    match = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", result.stdout)
+    if not match:
+        return None
+    hours, minutes, seconds = match.groups()
+    return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+
+
+def safe_title_filename(title, fallback="music-video"):
+    stem = re.sub(r"[^a-zA-Z0-9 ._-]+", "", str(title or "")).strip()
+    stem = re.sub(r"\s+", " ", stem).strip(" ._-")
+    return stem or fallback
+
+
+def mux_music_video(video_output, audio_output, title=None):
+    video_path = output_file_path(video_output or {})
+    audio_path = output_file_path(audio_output or {})
+    if not video_path or not video_path.exists():
+        raise ValueError("Film clip output was not found.")
+    if not audio_path or not audio_path.exists():
+        raise ValueError("Song output was not found.")
+
+    ffmpeg = ffmpeg_binary()
+    if not ffmpeg:
+        raise ValueError("Song and clip were generated, but ffmpeg is not installed to combine them.")
+
+    now = time.strftime("%Y%m%d-%H%M%S")
+    out_dir = COMFY_OUTPUT / "Studio" / "music-videos" / now
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output = out_dir / f"{safe_title_filename(title)}.mp4"
+
+    audio_duration = probe_duration_seconds(ffmpeg, audio_path)
+    video_duration = probe_duration_seconds(ffmpeg, video_path)
+    # -shortest doesn't reliably stop mid-loop when the video input uses -stream_loop,
+    # so precompute just enough loops to cover the song and trim exactly with -t instead.
+    loops = 0
+    if audio_duration and video_duration and video_duration > 0:
+        loops = max(0, min(2000, math.ceil(audio_duration / video_duration) - 1))
+
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-stream_loop",
+        str(loops),
+        "-i",
+        str(video_path),
+        "-i",
+        str(audio_path),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-shortest",
+    ]
+    if audio_duration:
+        cmd += ["-t", str(audio_duration)]
+    cmd.append(str(output))
+    result = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200)
+    if result.returncode != 0:
+        raise ValueError(result.stdout.strip() or "ffmpeg could not combine the song and film clip.")
 
     rel = output.relative_to(COMFY_OUTPUT)
     return {
@@ -1404,15 +1489,35 @@ def cancel_prompt(config, prompt_id):
     return {"prompt_id": prompt_id, "cancelled": cancelled}
 
 
+VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov", ".mkv", ".avi", ".gif"}
+
+
 def flatten_outputs(history_payload):
     files = []
     for prompt_data in history_payload.values():
         for output in prompt_data.get("outputs", {}).values():
-            for key, media_type in (("images", "image"), ("gifs", "video"), ("videos", "video"), ("audios", "audio"), ("3d", "model")):
-                for item in output.get(key, []):
+            for key, media_type in (
+                ("images", "image"),
+                ("gifs", "video"),
+                ("videos", "video"),
+                ("audios", "audio"),
+                ("audio", "audio"),
+                ("3d", "model"),
+            ):
+                animated_flags = output.get("animated") or []
+                for index, item in enumerate(output.get(key, [])):
+                    actual_type = media_type
+                    if key == "images":
+                        # SaveVideo reports its output under "images" in this ComfyUI
+                        # version, flagged via "animated", so a video file doesn't get
+                        # misclassified and rendered as a broken <img> tag.
+                        is_animated = bool(index < len(animated_flags) and animated_flags[index])
+                        suffix = Path(item.get("filename") or "").suffix.lower()
+                        if is_animated or suffix in VIDEO_EXTENSIONS:
+                            actual_type = "video"
                     files.append(
                         {
-                            "type": media_type,
+                            "type": actual_type,
                             "filename": item.get("filename"),
                             "subfolder": item.get("subfolder", ""),
                             "folder_type": item.get("type", "output"),
@@ -1517,193 +1622,3 @@ def handle_upload(handler):
     relative = f"{UPLOAD_SUBDIR}/{filename}"
     json_response(handler, {"name": relative, "filename": filename, "url": f"/input/{urllib.parse.quote(filename)}"})
 
-
-class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "AISuiteV2Studio/0.1"
-
-    def do_GET(self):
-        self.handle_get(send_body=True)
-
-    def do_HEAD(self):
-        self.handle_get(send_body=False)
-
-    def handle_get(self, send_body=True):
-        parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
-        if path == "/":
-            self.serve_file(STATIC_DIR / "index.html", send_body=send_body)
-        elif path in ("/app.js", "/style.css") or path.startswith("/vendor/"):
-            rel = Path(urllib.parse.unquote(path.lstrip("/")))
-            if ".." in rel.parts:
-                text_response(self, "Not found", 404)
-                return
-            self.serve_file(STATIC_DIR / path.lstrip("/"), send_body=send_body)
-        elif path == "/api/status":
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            config = load_config()
-            json_response(
-                self,
-                {
-                    "comfy": comfy_available(config),
-                    "comfy_url": comfy_base_url(config),
-                    "workflows": workflow_catalog(),
-                },
-            )
-        elif path == "/api/workflows":
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            json_response(self, {"workflows": workflow_catalog()})
-        elif path == "/api/gallery":
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            json_response(self, {"items": gallery_items()})
-        elif path == "/api/queue":
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            try:
-                config = load_config()
-                json_response(self, queue_status(config))
-            except Exception as exc:
-                json_response(self, {"running": [], "pending": [], "error": str(exc)})
-        elif path.startswith("/api/history/"):
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            config = load_config()
-            prompt_id = urllib.parse.unquote(path.removeprefix("/api/history/"))
-            payload = history(config, prompt_id)
-            prompt_data = payload.get(prompt_id, {})
-            outputs = flatten_outputs(payload)
-            write_prompt_sidecars(prompt_id, outputs)
-            json_response(
-                self,
-                {
-                    "prompt_id": prompt_id,
-                    "completed": prompt_data.get("status", {}).get("completed", False),
-                    "status": prompt_data.get("status", {}).get("status_str", "queued"),
-                    "outputs": outputs,
-                },
-            )
-        elif path.startswith("/api/progress/"):
-            if not send_body:
-                text_response(self, "", 200, "application/json")
-                return
-            config = load_config()
-            prompt_id = urllib.parse.unquote(path.removeprefix("/api/progress/"))
-            json_response(self, progress(config, prompt_id))
-        elif path.startswith("/media/"):
-            rel = Path(urllib.parse.unquote(path.removeprefix("/media/")))
-            target = (COMFY_OUTPUT / rel).resolve()
-            if COMFY_OUTPUT.resolve() not in target.parents and target != COMFY_OUTPUT.resolve():
-                text_response(self, "Invalid media path", 403)
-                return
-            self.serve_file(target, send_body=send_body)
-        else:
-            text_response(self, "Not found", 404)
-
-    def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/upload":
-            try:
-                handle_upload(self)
-            except Exception as exc:
-                json_response(self, {"error": str(exc)}, 500)
-            return
-
-        if parsed.path == "/api/stitch-videos":
-            try:
-                body = read_body(self)
-                output = stitch_videos(body.get("outputs", []), body.get("workflow_id", "sequence"))
-                json_response(self, {"output": output})
-            except Exception as exc:
-                json_response(self, {"error": str(exc)}, 500)
-            return
-
-        if parsed.path.startswith("/api/cancel/"):
-            try:
-                config = load_config()
-                prompt_id = urllib.parse.unquote(parsed.path.removeprefix("/api/cancel/"))
-                json_response(self, cancel_prompt(config, prompt_id))
-            except urllib.error.HTTPError as exc:
-                detail = exc.read().decode("utf-8", errors="replace")
-                json_response(self, {"error": comfy_error_message(detail, str(exc))}, 502)
-            except Exception as exc:
-                json_response(self, {"error": str(exc)}, 500)
-            return
-
-        if parsed.path != "/api/generate":
-            text_response(self, "Not found", 404)
-            return
-
-        try:
-            body = read_body(self)
-            workflow_id = body.get("workflow_id") or body.get("mode") or "z-image-turbo-fixed-ae-vae"
-
-            config = load_config()
-            ok, message = ensure_comfy(config)
-            if not ok:
-                json_response(self, {"error": message}, 503)
-                return
-
-            values = body.get("values", body)
-            prompt, seed, catalog_item = build_workflow_prompt(workflow_id, values)
-            workflow = json.loads(Path(catalog_item["path"]).read_text())
-            validate_workflow_prompt(config, workflow, prompt)
-            prompt_id = queue_prompt(config, prompt, catalog_item["media_type"])
-            JOB_METADATA[prompt_id] = build_job_metadata(catalog_item, values, seed)
-            json_response(
-                self,
-                {
-                    "prompt_id": prompt_id,
-                    "seed": seed,
-                    "message": message,
-                    "workflow": catalog_item["name"],
-                    "media_type": catalog_item["media_type"],
-                },
-            )
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            json_response(self, {"error": comfy_error_message(detail, str(exc))}, 502)
-        except Exception as exc:
-            json_response(self, {"error": str(exc)}, 500)
-
-    def serve_file(self, path, send_body=True):
-        if not path.exists() or not path.is_file():
-            text_response(self, "Not found", 404)
-            return
-        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-        data = path.read_bytes()
-        self.send_response(200)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        if send_body:
-            self.wfile.write(data)
-
-    def log_message(self, fmt, *args):
-        print(f"[studio] {self.address_string()} {fmt % args}")
-
-def run(host, port):
-    os.chdir(ROOT)
-    server = ThreadingHTTPServer((host, port), StudioHandler)
-    print(f"AI Suite V2 Studio running at http://{browser_host(host)}:{port}")
-    print(f"Serving static UI from {STATIC_DIR}")
-    print(f"Loading legacy workflows from {WORKFLOW_DIR}")
-    server.serve_forever()
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Meshi-style local web UI for ComfyUI workflows.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", default=8091, type=int)
-    args = parser.parse_args()
-    run(args.host, args.port)
-
-
-if __name__ == "__main__":
-    main()

@@ -11,7 +11,7 @@ status: experimental
 media_type: image
 source:
   suite: v1
-  path: legacy-workflows/image-to-image-qwen-edit.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

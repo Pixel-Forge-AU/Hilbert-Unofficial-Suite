@@ -31,8 +31,6 @@ def load_config():
         "MODELS_DIR": str(default_models),
         "COMFYUI_DIR": str(default_repos / "ComfyUI"),
         "LLAMA_CPP_DIR": str(default_repos / "llama.cpp"),
-        "WORKFLOW_DIR": str(ROOT / "legacy-workflows"),
-        "STUDIO_STATIC_DIR": str(ROOT / "studio_static"),
         "CHAT_DATA_DIR": str(ROOT / "chat-data"),
         "PLAYWRIGHT_ARTIFACT_DIR": str(ROOT / "playwright-artifacts"),
         "LLAMA_HOST": "127.0.0.1",
@@ -331,10 +329,16 @@ def base_env(config):
         env["ROCM_HOME"] = str(rocm_home)
         env["PATH"] = f"{rocm_home / 'bin'}:{env.get('PATH', '')}"
         env["LD_LIBRARY_PATH"] = f"{rocm_home / 'lib'}:{env.get('LD_LIBRARY_PATH', '')}"
+    llama_bin = Path(config.get("LLAMA_CPP_DIR", ROOT / "repos/llama.cpp")) / "build-vulkan/bin"
+    if llama_bin.exists():
+        env["LD_LIBRARY_PATH"] = f"{llama_bin}:{env.get('LD_LIBRARY_PATH', '')}"
     override = config.get("HSA_OVERRIDE_GFX_VERSION", "")
     if override:
         env["HSA_OVERRIDE_GFX_VERSION"] = override
     env["COMFYUI_DIR"] = config.get("COMFYUI_DIR", str(ROOT / "repos/ComfyUI"))
+    espeak_library = Path("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1")
+    if espeak_library.exists():
+        env.setdefault("PHONEMIZER_ESPEAK_LIBRARY", str(espeak_library))
     return env
 
 

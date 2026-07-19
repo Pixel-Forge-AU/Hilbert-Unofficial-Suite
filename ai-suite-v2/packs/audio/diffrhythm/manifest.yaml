@@ -15,16 +15,27 @@ entrypoints:
   ui: workflow.json
 
 inputs:
-  - id: prompt
-    label: Prompt
+  - id: style_prompt
+    label: Style prompt
     type: textarea
     required: true
     default: "A warm synthwave track with pulsing bass and dreamy pads"
     legacy_kind: textarea
-    node_id: "1"
-    node_type: PrimitiveNode
-    input: value
-    description: Text prompt describing the desired music
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: style_prompt
+    description: Text description of the musical style to generate
+
+  - id: model
+    label: Model
+    type: text
+    required: true
+    default: "cfm_model_v1_2.pt"
+    legacy_kind: text
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: model
+    description: "DiffRhythm checkpoint to use (cfm_model_v1_2.pt, cfm_model.pt, cfm_full_model.pt)"
 
   - id: steps
     label: Steps
@@ -37,49 +48,60 @@ inputs:
     input: steps
     description: Number of sampling steps
 
-  - id: guidance
-    label: Guidance
-    type: float
+  - id: cfg
+    label: CFG
+    type: int
     required: false
-    default: 0.8
+    default: 4
     legacy_kind: number
     node_id: "2"
     node_type: DiffRhythmRun
-    input: guidance
-    description: Guidance scale for generation
+    input: cfg
+    description: Classifier-free guidance scale (1-10)
 
-  - id: duration
-    label: Duration
-    type: float
+  - id: quality_or_speed
+    label: Quality or speed
+    type: text
     required: false
-    default: 1.0
-    legacy_kind: number
+    default: "speed"
+    legacy_kind: text
     node_id: "2"
     node_type: DiffRhythmRun
-    input: duration
-    description: Duration in seconds
+    input: quality_or_speed
+    description: "Trade-off preset: quality or speed"
+
+  - id: odeint_method
+    label: ODE solver
+    type: text
+    required: false
+    default: "euler"
+    legacy_kind: text
+    node_id: "2"
+    node_type: DiffRhythmRun
+    input: odeint_method
+    description: "ODE integration method: euler, midpoint, rk4, implicit_adams"
 
   - id: seed
     label: Seed
     type: int
     required: false
-    default: 1
+    default: 0
     legacy_kind: number
     node_id: "2"
     node_type: DiffRhythmRun
     input: seed
-    description: Random seed for reproducibility
+    description: Random seed for reproducibility (0 = random)
 
-  - id: device
-    label: Device
-    type: text
+  - id: unload_model
+    label: Unload model after run
+    type: boolean
     required: false
-    default: "cuda"
-    legacy_kind: text
+    default: true
+    legacy_kind: boolean
     node_id: "2"
     node_type: DiffRhythmRun
-    input: device
-    description: Device to run on (cuda/cpu)
+    input: unload_model
+    description: Free VRAM by unloading the model after generation
 
 outputs:
   - id: audio

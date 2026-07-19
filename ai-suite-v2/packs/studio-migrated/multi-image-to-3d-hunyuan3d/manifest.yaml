@@ -7,7 +7,7 @@ status: migrated
 media_type: model
 source:
   suite: v1
-  path: legacy-workflows/multi-image-to-3d-hunyuan3d.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

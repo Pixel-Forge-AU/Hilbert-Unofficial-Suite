@@ -11,5 +11,6 @@ description: >
 workflows:
   - audio.ace-step-1-5
   - audio.diffrhythm
+  - audio.stable-audio-sfx
 
 default_enabled: true

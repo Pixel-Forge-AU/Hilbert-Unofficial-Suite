@@ -7,7 +7,7 @@ status: migrated
 media_type: image
 source:
   suite: v1
-  path: legacy-workflows/image-inpaint-flux-fill.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

@@ -7,7 +7,7 @@ status: migrated
 media_type: video
 source:
   suite: v1
-  path: legacy-workflows/start-end-image-to-video-wan-22.json
+  path: workflow.json
 entrypoints:
   ui: workflow.json
 inputs:

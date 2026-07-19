@@ -75,6 +75,32 @@ MODELS = [
     ("loras", "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors", "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors"),
     ("diffusion_models", "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors", "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors"),
     ("vae", "wan_2.1_vae.safetensors", "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"),
+
+    # audio.ace-step-1-5
+    ("diffusion_models", "acestep_v1.5_xl_turbo_bf16.safetensors", "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors"),
+    ("vae", "ace_1.5_vae.safetensors", "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/vae/ace_1.5_vae.safetensors"),
+    ("text_encoders", "qwen_0.6b_ace15.safetensors", "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_0.6b_ace15.safetensors"),
+    ("text_encoders", "qwen_1.7b_ace15.safetensors", "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_1.7b_ace15.safetensors"),
+
+    # audio.stable-audio-sfx
+    ("checkpoints", "stable_audio_open_1.0.safetensors", "https://huggingface.co/Comfy-Org/stable-audio-open-1.0_repackaged/resolve/main/stable-audio-open-1.0.safetensors"),
+    ("text_encoders", "t5_base.safetensors", "https://huggingface.co/google-t5/t5-base/resolve/main/model.safetensors"),
+
+    # audio.diffrhythm (comfyui-diffrhythm / diffrhythm_mw custom node)
+    ("TTS/DiffRhythm", "cfm_model_v1_2.pt", "https://huggingface.co/ASLP-lab/DiffRhythm-1_2/resolve/main/cfm_model.pt"),
+    ("TTS/DiffRhythm", "config.json", "https://huggingface.co/ASLP-lab/DiffRhythm-1_2/resolve/main/config.json"),
+    ("TTS/DiffRhythm", "vae_model.pt", "https://huggingface.co/ASLP-lab/DiffRhythm-vae/resolve/main/vae_model.pt"),
+    ("TTS/DiffRhythm/eval-model", "eval.yaml", "https://huggingface.co/spaces/ASLP-lab/DiffRhythm/resolve/main/pretrained/eval.yaml"),
+    ("TTS/DiffRhythm/eval-model", "eval.safetensors", "https://huggingface.co/spaces/ASLP-lab/DiffRhythm/resolve/main/pretrained/eval.safetensors"),
+    ("TTS/DiffRhythm/MuQ-large-msd-iter", "config.json", "https://huggingface.co/OpenMuQ/MuQ-large-msd-iter/resolve/main/config.json"),
+    ("TTS/DiffRhythm/MuQ-large-msd-iter", "model.safetensors", "https://huggingface.co/OpenMuQ/MuQ-large-msd-iter/resolve/main/model.safetensors"),
+    ("TTS/DiffRhythm/MuQ-MuLan-large", "config.json", "https://huggingface.co/OpenMuQ/MuQ-MuLan-large/resolve/main/config.json"),
+    ("TTS/DiffRhythm/MuQ-MuLan-large", "pytorch_model.bin", "https://huggingface.co/OpenMuQ/MuQ-MuLan-large/resolve/main/pytorch_model.bin"),
+    ("TTS/DiffRhythm/xlm-roberta-base", "config.json", "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/main/config.json"),
+    ("TTS/DiffRhythm/xlm-roberta-base", "model.safetensors", "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/main/model.safetensors"),
+    ("TTS/DiffRhythm/xlm-roberta-base", "sentencepiece.bpe.model", "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/main/sentencepiece.bpe.model"),
+    ("TTS/DiffRhythm/xlm-roberta-base", "tokenizer.json", "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/main/tokenizer.json"),
+    ("TTS/DiffRhythm/xlm-roberta-base", "tokenizer_config.json", "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/main/tokenizer_config.json"),
 ]
 
 

@@ -49,8 +49,10 @@
 
         .search-form {
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
             align-items: center;
+            margin-bottom: 1.25rem;
         }
 
         .search-input {
@@ -338,6 +340,10 @@
             display: block;
         }
 
+        .workbench-media audio {
+            width: 90%;
+        }
+
         .model-stage {
             position: relative;
             width: 100%;
@@ -425,6 +431,10 @@
             min-height: 92px;
             object-fit: cover;
             display: block;
+        }
+
+        .media-tile audio {
+            width: 92%;
         }
 
         .workflow-card {
@@ -642,6 +652,22 @@
             margin-bottom: 1.5rem;
         }
 
+        .library-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .library-group-title {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0 0 0.6rem;
+        }
+
+        .library-card-preview audio {
+            width: 92%;
+        }
+
         .library-card {
             min-width: 0;
             background: rgba(255, 255, 255, 0.05);
@@ -685,12 +711,14 @@
 
         .library-card-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
         }
 
         .library-card-actions a,
         .library-card-actions button {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 3.4rem;
             border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 6px;
             padding: 0.45rem 0.55rem;
@@ -700,6 +728,104 @@
             cursor: pointer;
             font-size: 0.8rem;
             text-align: center;
+        }
+
+        .library-card-actions .danger-action {
+            color: #ff6b6b;
+            border-color: rgba(255, 107, 107, 0.35);
+        }
+
+        .library-card-actions .danger-action:hover {
+            background: rgba(255, 107, 107, 0.14);
+        }
+
+        .media-tab-bar {
+            margin-bottom: 1.25rem;
+        }
+
+        .media-tab-panel {
+            display: none;
+        }
+
+        .media-tab-panel.active {
+            display: block;
+        }
+
+        .media-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: end;
+            margin-bottom: 1.25rem;
+        }
+
+        .media-toolbar .form-group {
+            margin-bottom: 0;
+            flex: 1 1 220px;
+            min-width: 180px;
+        }
+
+        .media-toolbar .category-filter {
+            flex: 0 0 auto;
+        }
+
+        .media-toolbar-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .media-library-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .media-preview-panel {
+            position: sticky;
+            top: 88px;
+        }
+
+        .latest-preview audio {
+            width: 90%;
+        }
+
+        .media-pager {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.9rem;
+            margin-top: 0.25rem;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.85rem;
+        }
+
+        .media-pager button {
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #eee;
+            padding: 0.4rem 0.9rem;
+            cursor: pointer;
+        }
+
+        .media-pager button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .media-card.selected {
+            outline: 2px solid #4fc3f7;
+        }
+
+        @media (max-width: 980px) {
+            .media-library-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .media-preview-panel {
+                position: static;
+            }
         }
 
         .stored-input-row {
@@ -1031,20 +1157,6 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">AI Suite <span>V2</span></div>
-            <div class="search-form">
-                <input 
-                    type="text" 
-                    class="search-input" 
-                    id="searchInput" 
-                    placeholder="Search workflows..."
-                >
-                <div class="category-filter" id="categoryFilter">
-                    <button class="category-btn active" data-category="all">All</button>
-                    {% for category in categories %}
-                    <button class="category-btn" data-category="{{ category }}">{{ category }}</button>
-                    {% endfor %}
-                </div>
-            </div>
         </div>
     </header>
 
@@ -1053,6 +1165,8 @@
             <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
             <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
             <button class="tab-btn" type="button" data-tab="studio">Studio</button>
+            <button class="tab-btn" type="button" data-tab="musicvideo">Music Video</button>
+            <button class="tab-btn" type="button" data-tab="storyboard">Storyboard</button>
             <button class="tab-btn" type="button" data-tab="library">Library</button>
         </nav>
 
@@ -1072,9 +1186,40 @@
             </div>
             <pre class="service-output" id="serviceOutput">Loading service status...</pre>
         </section>
+
+        <section class="preview-panel">
+            <h3>Latest Output</h3>
+            <div class="latest-preview" id="latestPreview">
+                <div class="preview-empty">No generations yet.</div>
+            </div>
+            <div class="latest-meta" id="latestMeta">
+                <span>Waiting for a completed job</span>
+            </div>
+        </section>
+
+        <section class="job-panel" style="margin-top: 1rem;">
+            <h3>Progress & Generations</h3>
+            <div class="job-list" id="jobList">
+                <p style="color: rgba(255,255,255,0.5)">No jobs yet</p>
+            </div>
+        </section>
         </section>
 
         <section class="tab-panel" id="tab-catalogue">
+            <div class="search-form">
+                <input
+                    type="text"
+                    class="search-input"
+                    id="searchInput"
+                    placeholder="Search workflows..."
+                >
+                <div class="category-filter" id="categoryFilter">
+                    <button class="category-btn active" data-category="all">All</button>
+                    {% for category in categories %}
+                    <button class="category-btn" data-category="{{ category }}">{{ category }}</button>
+                    {% endfor %}
+                </div>
+            </div>
             <div class="workflow-grid" id="workflowGrid">
                 {% if workflows %}
                 {% for workflow in workflows %}
@@ -1174,44 +1319,238 @@
             </section>
         </section>
 
-        <section class="tab-panel" id="tab-library">
-            <section class="preview-panel">
-                <h3>Latest Output</h3>
-                <div class="latest-preview" id="latestPreview">
-                    <div class="preview-empty">No generations yet.</div>
-                </div>
-                <div class="latest-meta" id="latestMeta">
-                    <span>Waiting for a completed job</span>
-                </div>
-            </section>
-
-            <section class="job-panel" style="margin-top: 1rem;">
-                <h3>Progress & Generations</h3>
-                <div class="job-list" id="jobList">
-                    <p style="color: rgba(255,255,255,0.5)">No jobs yet</p>
-                </div>
-            </section>
-
-            <section class="service-panel">
-                <h3>Stored Inputs</h3>
-                <div class="library-toolbar">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="libraryUpload">Add reusable input</label>
-                        <input id="libraryUpload" type="file" multiple accept="image/*,video/*,audio/*">
+        <section class="tab-panel" id="tab-musicvideo">
+            <section class="workbench" aria-label="Music video workbench">
+                <section class="workbench-composer">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Song + Cover + Clip</h3>
+                            <p>One concept in, three chained generations out: a song, cover art, and a film clip animated from that cover art.</p>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" type="button" id="libraryUploadBtn">Save Files</button>
-                    <button class="btn btn-secondary" type="button" id="libraryRefreshBtn">Refresh</button>
+
+                    <div class="form-group">
+                        <label for="mvMode">Mode</label>
+                        <select id="mvMode" onchange="setMvMode(this.value)">
+                            <option value="generate" selected>Generate everything from a concept</option>
+                            <option value="existing">Use an existing song + image</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="mvTitle">Title</label>
+                        <input id="mvTitle" type="text" placeholder="Used as the output file name (defaults to the song file name)">
+                    </div>
+
+                    <div id="mvGenerateFields">
+                        <div class="form-group">
+                            <label for="mvConcept">Concept</label>
+                            <textarea id="mvConcept" rows="5" placeholder="Describe the song: story, mood, genre, instruments..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="mvTags">Style tags</label>
+                            <input id="mvTags" type="text" value="melodic pop, warm vocals, acoustic and synth blend">
+                        </div>
+                        <div class="form-group">
+                            <label for="mvDuration">Song duration (sec)</label>
+                            <input id="mvDuration" type="number" min="10" max="600" step="5" value="180">
+                        </div>
+                        <div class="form-group">
+                            <label for="mvCoverModel">Cover art model</label>
+                            <select id="mvCoverModel">
+                                <option value="core.text-to-image" selected>Fast (Z-Image Turbo)</option>
+                                <option value="core.text-to-image-hq">Quality (Qwen-Image, high RAM - see warning in Catalogue)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="mvExistingFields" style="display:none;">
+                        <div class="form-group">
+                            <label for="mvSongFile">Song (audio file)</label>
+                            <input id="mvSongFile" type="file" accept="audio/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="mvImageFile">Image</label>
+                            <input id="mvImageFile" type="file" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="mvMotion">Motion description</label>
+                            <textarea id="mvMotion" rows="3" placeholder="Describe the film clip's motion/mood, e.g. slow push-in, warm lighting, dreamlike..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mvClipSource">Clip source</label>
+                        <select id="mvClipSource" onchange="setMvClipSource(this.value)">
+                            <option value="generate" selected>Generate new segments</option>
+                            <option value="existing">Use existing clips (skip generation)</option>
+                        </select>
+                    </div>
+                    <div id="mvSegmentsField" class="form-group">
+                        <label for="mvSegments">Clip segments (variety)</label>
+                        <input id="mvSegments" type="number" min="2" max="16" step="1" value="6">
+                    </div>
+                    <div id="mvExistingClipsField" style="display:none;">
+                        <label>Pick existing clips, in the order you want them to play</label>
+                        <div class="inline-form-actions" style="margin: 0.5rem 0;">
+                            <button class="btn btn-secondary" type="button" id="mvRefreshClips">Refresh list</button>
+                        </div>
+                        <div id="mvClipPicker" class="workbench-gallery"></div>
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:center; gap:0.5rem;">
+                        <input id="mvMux" type="checkbox" checked style="width:auto;">
+                        <label for="mvMux" style="margin:0;">Combine song + clip into one music video file</label>
+                    </div>
+
+                    <div class="inline-form-actions">
+                        <button class="btn btn-primary" type="button" id="mvGenerate">Generate Song + Cover + Clip</button>
+                        <button class="btn btn-primary" type="button" id="mvGenerateExisting" hidden>Generate Film Clip for This Song</button>
+                    </div>
+                    <div class="workbench-status" id="mvStatus">Ready.</div>
+                </section>
+
+                <section class="workbench-preview">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Progress</h3>
+                            <p>Each stage runs in sequence; the clip stage animates the generated cover art.</p>
+                        </div>
+                    </div>
+                    <div class="editor-progress" id="mvProgress">
+                        <div class="editor-progress-top">
+                            <span id="mvProgressLabel">No active generation</span>
+                            <span id="mvProgressPercent">0%</span>
+                        </div>
+                        <div class="editor-progress-bar">
+                            <div class="editor-progress-fill" id="mvProgressFill"></div>
+                        </div>
+                    </div>
+                    <div class="job-list" id="mvStageList"></div>
+                    <div class="workbench-media" id="mvMediaStage">
+                        <div class="preview-empty">No output yet.</div>
+                    </div>
+                </section>
+            </section>
+        </section>
+
+        <section class="tab-panel" id="tab-storyboard">
+            <section class="service-panel" id="sbListView">
+                <h3>Storyboards</h3>
+                <p>Generate a series of shot images, review and refine them, then come back any time to turn the sequence into one continuous video.</p>
+                <div class="inline-form-actions" style="margin: 1rem 0;">
+                    <button class="btn btn-primary" type="button" id="sbNewButton">New Storyboard</button>
+                    <button class="btn btn-secondary" type="button" id="sbRefreshButton">Refresh</button>
                 </div>
-                <div class="library-grid" id="inputLibraryGrid">
-                    <div class="preview-empty">Loading stored inputs...</div>
-                </div>
+                <div class="workbench-gallery" id="sbList"></div>
             </section>
 
+            <section class="workbench" aria-label="Storyboard editor" id="sbEditorView" style="display:none;">
+                <section class="workbench-composer">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Storyboard</h3>
+                            <p>Each shot is a distinct generated image; the video stage animates smooth motion from each shot into the next.</p>
+                        </div>
+                        <button class="btn btn-secondary" type="button" id="sbBackButton">Back to list</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="sbTitle">Title</label>
+                        <input id="sbTitle" type="text" placeholder="Storyboard title">
+                    </div>
+                    <div id="sbShotList"></div>
+                    <div class="inline-form-actions">
+                        <button class="btn btn-secondary" type="button" id="sbAddShot">Add Shot</button>
+                        <button class="btn btn-secondary" type="button" id="sbSave">Save Storyboard</button>
+                        <button class="btn btn-secondary" type="button" id="sbDelete">Delete Storyboard</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="sbTransitionModel">Transition model</label>
+                        <select id="sbTransitionModel">
+                            <option value="fast" selected>Fast (4-step LoRA, ~5x fewer steps)</option>
+                            <option value="quality">Quality (full ~20-step sampler, much slower)</option>
+                        </select>
+                    </div>
+                    <div class="inline-form-actions">
+                        <button class="btn btn-primary" type="button" id="sbGenerateVideo">Generate Video From Storyboard</button>
+                    </div>
+                    <div class="workbench-status" id="sbStatus">Ready.</div>
+                </section>
+
+                <section class="workbench-preview">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Progress</h3>
+                            <p>Requires at least 2 shots with generated images. Each transition uses a 14B model and is slow (many minutes per pair) - see the "Unverified" note on video.keyframe-video in the Catalogue.</p>
+                        </div>
+                    </div>
+                    <div class="editor-progress" id="sbProgress">
+                        <div class="editor-progress-top">
+                            <span id="sbProgressLabel">No active generation</span>
+                            <span id="sbProgressPercent">0%</span>
+                        </div>
+                        <div class="editor-progress-bar">
+                            <div class="editor-progress-fill" id="sbProgressFill"></div>
+                        </div>
+                    </div>
+                    <div class="workbench-media" id="sbMediaStage">
+                        <div class="preview-empty">No video yet.</div>
+                    </div>
+                </section>
+            </section>
+        </section>
+
+        <section class="tab-panel" id="tab-library">
             <section class="service-panel">
-                <h3>Output Browser</h3>
-                <div class="library-grid" id="outputLibraryGrid">
-                    <div class="preview-empty">Loading outputs...</div>
+                <h3>Media Library</h3>
+                <div class="tab-bar media-tab-bar" id="mediaTabBar">
+                    <button class="tab-btn media-tab-btn active" type="button" data-media-tab="image">Image</button>
+                    <button class="tab-btn media-tab-btn" type="button" data-media-tab="video">Video</button>
+                    <button class="tab-btn media-tab-btn" type="button" data-media-tab="model">3D</button>
+                    <button class="tab-btn media-tab-btn" type="button" data-media-tab="audio">Audio</button>
                 </div>
+                {% for media in [
+                    ('image', 'Image', 'image/*'),
+                    ('video', 'Video', 'video/*'),
+                    ('model', '3D', '.glb,.gltf,.obj,.fbx,.ply,.stl'),
+                    ('audio', 'Audio', 'audio/*'),
+                ] %}
+                <div class="media-tab-panel{{ ' active' if loop.first else '' }}" data-media-panel="{{ media[0] }}">
+                    <div class="media-toolbar">
+                        <div class="form-group">
+                            <label for="mediaSearch-{{ media[0] }}">Search {{ media[1] }} files</label>
+                            <input type="search" class="search-input" id="mediaSearch-{{ media[0] }}" data-media-search="{{ media[0] }}" placeholder="Search by filename...">
+                        </div>
+                        <div class="category-filter" data-media-source="{{ media[0] }}">
+                            <button class="category-btn active" type="button" data-source="output">Outputs</button>
+                            <button class="category-btn" type="button" data-source="input">Inputs</button>
+                            <button class="category-btn" type="button" data-source="all">All</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="mediaUpload-{{ media[0] }}">Add reusable input</label>
+                            <input id="mediaUpload-{{ media[0] }}" type="file" multiple accept="{{ media[2] }}">
+                        </div>
+                        <div class="media-toolbar-actions">
+                            <button class="btn btn-primary" type="button" id="mediaUploadBtn-{{ media[0] }}">Save Files</button>
+                            <button class="btn btn-secondary" type="button" id="mediaRefresh-{{ media[0] }}">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="media-library-layout">
+                        <div>
+                            <div class="library-grid" id="mediaGrid-{{ media[0] }}">
+                                <div class="preview-empty">Loading {{ media[1] | lower }} files...</div>
+                            </div>
+                            <div class="media-pager" id="mediaPager-{{ media[0] }}"></div>
+                        </div>
+                        <section class="preview-panel media-preview-panel">
+                            <h3>Preview</h3>
+                            <div class="latest-preview" id="mediaPreviewStage-{{ media[0] }}">
+                                <div class="preview-empty">Select an item to preview.</div>
+                            </div>
+                            <div class="latest-meta" id="mediaPreviewMeta-{{ media[0] }}"></div>
+                            <div class="library-card-actions" id="mediaPreviewActions-{{ media[0] }}"></div>
+                        </section>
+                    </div>
+                </div>
+                {% endfor %}
             </section>
         </section>
     </main>
@@ -1256,6 +1595,26 @@
                     <span class="btn-text">Launch</span>
                     <span class="loading" style="display: none"></span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="sbImagePickerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Set Shot Image</h2>
+                <button class="close-btn" onclick="closeSbImagePickerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="sbImageUploadInput">Upload a new image</label>
+                    <input id="sbImageUploadInput" type="file" accept="image/*">
+                </div>
+                <p style="margin: 1rem 0 0.5rem; color: rgba(255,255,255,0.6);">Or choose from existing outputs:</p>
+                <div id="sbImagePickerGrid" class="workbench-gallery"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeSbImagePickerModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1306,6 +1665,8 @@
             await refreshStoredInputs();
             initWorkbench();
             initJobMonitor();
+            initMusicVideo();
+            initStoryboard();
             refreshServiceStatus();
             refreshOutputLibrary();
         });
@@ -1319,6 +1680,8 @@
         }
 
         function activateTab(tabName) {
+            const leavingLibrary = tabName !== 'library'
+                && document.getElementById('tab-library')?.classList.contains('active');
             document.querySelectorAll('[data-tab]').forEach(function(button) {
                 button.classList.toggle('active', button.dataset.tab === tabName);
             });
@@ -1327,6 +1690,8 @@
             });
             if (tabName === 'library') {
                 refreshLibrary();
+            } else if (leavingLibrary && activeMediaTabType === 'model') {
+                disposeModelViewer();
             }
         }
 
@@ -1335,7 +1700,7 @@
             const firstReady = workflowsData.find(function(workflow) {
                 return workflow.id === requestedWorkflow;
             }) || workflowsData.find(function(workflow) {
-                return ['image', 'video', 'model'].includes(mediaTypeForWorkflow(workflow));
+                return ['image', 'video', 'model', 'audio'].includes(mediaTypeForWorkflow(workflow));
             }) || workflowsData[0];
             if (firstReady) {
                 selectWorkbenchWorkflow(firstReady.id);
@@ -1355,7 +1720,8 @@
 
         function mediaTypeForWorkflow(workflow) {
             const explicit = (workflow?.media_type || '').toLowerCase();
-            if (explicit === 'video' || explicit === 'model' || explicit === 'image') return explicit;
+            if (explicit === 'video' || explicit === 'model' || explicit === 'image' || explicit === 'audio') return explicit;
+            if (explicit === '3d' || explicit === 'mesh') return 'model';
             const text = [
                 workflow?.id || '',
                 workflow?.category || '',
@@ -1364,6 +1730,7 @@
             ].join(' ').toLowerCase();
             if (/(video|animation|lip sync|talking head)/.test(text)) return 'video';
             if (/(three-d|3d|mesh|gltf|glb|gaussian|point cloud)/.test(text)) return 'model';
+            if (/(audio|music|sound|voice|speech|sfx|song)/.test(text)) return 'audio';
             return 'image';
         }
 
@@ -1535,7 +1902,7 @@
             }
             savePinnedInputNames();
             renderWorkbenchPinnedInputs();
-            renderInputLibrary(storedInputs);
+            refreshLibraryPinnedState();
         }
 
         function renderWorkbenchPinnedInputs() {
@@ -1751,7 +2118,7 @@
             const type = mediaTypeForWorkflow(workbenchWorkflowDetails || workflowsData.find(function(workflow) {
                 return workflow.id === workbenchWorkflowId;
             }));
-            const outputs = await fetchRecentOutputs(24);
+            const outputs = await fetchRecentOutputs(100);
             const matching = outputs.filter(function(output) {
                 return outputMediaType(output) === type;
             });
@@ -1760,10 +2127,11 @@
 
         function outputMediaType(output) {
             const media = (output.media_type || '').toLowerCase();
-            if (media === 'video' || media === 'image') return media;
+            if (media === 'video' || media === 'image' || media === 'audio' || media === 'model') return media;
             const filename = (output.filename || '').toLowerCase();
             if (/\.(mp4|webm|mov)$/i.test(filename)) return 'video';
             if (/\.(glb|gltf|obj|fbx|ply|stl)$/i.test(filename)) return 'model';
+            if (/\.(wav|mp3|flac|ogg)$/i.test(filename)) return 'audio';
             return 'image';
         }
 
@@ -1799,7 +2167,7 @@
             title.textContent = output.filename || 'Latest Output';
             meta.textContent = `${type === 'model' ? '3D' : type} output`;
             if (outputMediaType(output) === 'model') {
-                renderModelViewer(output);
+                renderModelViewer(output, stage);
                 return;
             }
             stage.innerHTML = mediaMarkup(output, false);
@@ -1823,11 +2191,14 @@
                     </div>
                 `;
             }
+            if (type === 'audio') {
+                return `<audio src="${escapedUrl}" controls preload="none"></audio>`;
+            }
             return `<img src="${escapedUrl}" alt="${escapedName}" loading="${thumb ? 'lazy' : 'eager'}">`;
         }
 
-        async function renderModelViewer(output) {
-            const stage = document.getElementById('workbenchMediaStage');
+        async function renderModelViewer(output, stage) {
+            stage = stage || document.getElementById('workbenchMediaStage');
             const escapedUrl = escapeHtml(output.url);
             const escapedName = escapeHtml(output.filename || 'model');
             stage.innerHTML = `
@@ -2018,7 +2389,7 @@
 
         // Category filter
         function initCategoryFilter() {
-            const buttons = document.querySelectorAll('.category-btn');
+            const buttons = document.querySelectorAll('#categoryFilter .category-btn');
             
             buttons.forEach(function(button) {
                 button.addEventListener('click', function() {
@@ -2328,9 +2699,62 @@
             }, timeout);
         }
 
+        const MEDIA_TYPES = [
+            { type: 'image', accept: 'image/*' },
+            { type: 'video', accept: 'video/*' },
+            { type: 'model', accept: '.glb,.gltf,.obj,.fbx,.ply,.stl' },
+            { type: 'audio', accept: 'audio/*' },
+        ];
+        const LIBRARY_PAGE_SIZE = 24;
+        let libraryOutputs = [];
+        let libraryFilters = MEDIA_TYPES.reduce(function(acc, media) {
+            acc[media.type] = { search: '', source: 'output', page: 1 };
+            return acc;
+        }, {});
+        let librarySelection = {};
+        let activeMediaTabType = 'image';
+
         function initLibrary() {
-            document.getElementById('libraryUploadBtn')?.addEventListener('click', uploadLibraryFiles);
-            document.getElementById('libraryRefreshBtn')?.addEventListener('click', refreshLibrary);
+            document.querySelectorAll('[data-media-tab]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    activateMediaTab(this.dataset.mediaTab);
+                });
+            });
+
+            MEDIA_TYPES.forEach(function(media) {
+                const type = media.type;
+                document.getElementById(`mediaSearch-${type}`)?.addEventListener('input', function() {
+                    libraryFilters[type].search = this.value;
+                    libraryFilters[type].page = 1;
+                    renderMediaGrid(type);
+                });
+                document.querySelectorAll(`[data-media-source="${type}"] [data-source]`).forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        libraryFilters[type].source = this.dataset.source;
+                        libraryFilters[type].page = 1;
+                        document.querySelectorAll(`[data-media-source="${type}"] [data-source]`).forEach(function(sibling) {
+                            sibling.classList.toggle('active', sibling === button);
+                        });
+                        renderMediaGrid(type);
+                    });
+                });
+                document.getElementById(`mediaUploadBtn-${type}`)?.addEventListener('click', function() {
+                    uploadMediaFiles(type);
+                });
+                document.getElementById(`mediaRefresh-${type}`)?.addEventListener('click', refreshLibrary);
+            });
+        }
+
+        function activateMediaTab(type) {
+            activeMediaTabType = type;
+            document.querySelectorAll('[data-media-tab]').forEach(function(button) {
+                button.classList.toggle('active', button.dataset.mediaTab === type);
+            });
+            document.querySelectorAll('.media-tab-panel').forEach(function(panel) {
+                panel.classList.toggle('active', panel.dataset.mediaPanel === type);
+            });
+            disposeModelViewer();
+            renderMediaPreview(type);
         }
 
         async function refreshLibrary() {
@@ -2342,15 +2766,12 @@
                 const response = await fetch('/api/inputs?limit=200');
                 const data = await response.json();
                 storedInputs = response.ok ? (data.inputs || []) : [];
-                renderInputLibrary(storedInputs);
-                updateStoredInputSelects();
-                renderWorkbenchPinnedInputs();
             } catch (error) {
                 storedInputs = [];
-                renderInputLibrary([]);
-                updateStoredInputSelects();
-                renderWorkbenchPinnedInputs();
             }
+            updateStoredInputSelects();
+            renderWorkbenchPinnedInputs();
+            renderAllMediaGrids();
         }
 
         function updateStoredInputSelects() {
@@ -2365,8 +2786,8 @@
             });
         }
 
-        async function uploadLibraryFiles() {
-            const input = document.getElementById('libraryUpload');
+        async function uploadMediaFiles(type) {
+            const input = document.getElementById(`mediaUpload-${type}`);
             const files = Array.from(input?.files || []);
             if (!files.length) {
                 showToast('No files selected', 'Choose one or more files to save as reusable inputs.', 'info');
@@ -2377,7 +2798,6 @@
                     await uploadWorkbenchFile(file);
                 }
                 input.value = '';
-                await refreshStoredInputs();
                 showToast('Files saved', `${files.length} file${files.length === 1 ? '' : 's'} added to stored inputs.`, 'success');
             } catch (error) {
                 showToast('Upload failed', error.message, 'error');
@@ -2385,52 +2805,129 @@
         }
 
         async function refreshOutputLibrary() {
-            const outputs = await fetchRecentOutputs(100);
-            renderOutputLibrary(outputs);
+            libraryOutputs = await fetchRecentOutputs(500);
+            renderAllMediaGrids();
         }
 
-        function renderInputLibrary(items) {
-            const grid = document.getElementById('inputLibraryGrid');
-            if (!grid) return;
-            if (!items.length) {
-                grid.innerHTML = '<div class="preview-empty">No stored inputs yet.</div>';
-                return;
+        function renderAllMediaGrids() {
+            MEDIA_TYPES.forEach(function(media) {
+                renderMediaGrid(media.type);
+            });
+        }
+
+        function refreshLibraryPinnedState() {
+            renderAllMediaGrids();
+            renderMediaPreview(activeMediaTabType);
+        }
+
+        function combinedLibraryItems(type) {
+            const inputs = storedInputs
+                .filter(function(item) { return item.media_type === type; })
+                .map(function(item) { return Object.assign({ source: 'input' }, item); });
+            const outputs = libraryOutputs
+                .filter(function(item) { return item.media_type === type; })
+                .map(function(item) { return Object.assign({ source: 'output' }, item); });
+            return inputs.concat(outputs).sort(function(a, b) {
+                return new Date(b.modified_at) - new Date(a.modified_at);
+            });
+        }
+
+        function libraryItemKey(item) {
+            return `${item.source}:${item.source === 'input' ? item.name : item.url}`;
+        }
+
+        function renderMediaGrid(type) {
+            const grid = document.getElementById(`mediaGrid-${type}`);
+            const pager = document.getElementById(`mediaPager-${type}`);
+            if (!grid || !pager) return;
+
+            const filters = libraryFilters[type];
+            const all = combinedLibraryItems(type);
+            const search = filters.search.trim().toLowerCase();
+            const filtered = all.filter(function(item) {
+                if (filters.source !== 'all' && item.source !== filters.source) return false;
+                if (!search) return true;
+                return (item.filename || item.name || '').toLowerCase().includes(search);
+            });
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / LIBRARY_PAGE_SIZE));
+            filters.page = Math.min(filters.page, totalPages);
+            const start = (filters.page - 1) * LIBRARY_PAGE_SIZE;
+            const pageItems = filtered.slice(start, start + LIBRARY_PAGE_SIZE);
+
+            if (!pageItems.length) {
+                grid.innerHTML = `<div class="preview-empty">No ${type === 'model' ? '3D' : type} files match.</div>`;
+            } else {
+                const selectedKey = librarySelection[type] ? libraryItemKey(librarySelection[type]) : null;
+                grid.innerHTML = pageItems.map(function(item) {
+                    return renderMediaCard(item, type, selectedKey === libraryItemKey(item));
+                }).join('');
+                bindMediaCardEvents(grid, type);
             }
-            grid.innerHTML = items.map(function(item) {
-                return renderLibraryCard(item, true);
-            }).join('');
-            bindLibraryCopyButtons(grid);
-        }
 
-        function renderOutputLibrary(items) {
-            const grid = document.getElementById('outputLibraryGrid');
-            if (!grid) return;
-            if (!items.length) {
-                grid.innerHTML = '<div class="preview-empty">No outputs yet.</div>';
-                return;
+            pager.innerHTML = filtered.length ? `
+                <button type="button" data-page-action="prev" ${filters.page <= 1 ? 'disabled' : ''}>Prev</button>
+                <span>Page ${filters.page} of ${totalPages} &middot; ${filtered.length} item${filtered.length === 1 ? '' : 's'}</span>
+                <button type="button" data-page-action="next" ${filters.page >= totalPages ? 'disabled' : ''}>Next</button>
+            ` : '';
+            pager.querySelector('[data-page-action="prev"]')?.addEventListener('click', function() {
+                filters.page = Math.max(1, filters.page - 1);
+                renderMediaGrid(type);
+            });
+            pager.querySelector('[data-page-action="next"]')?.addEventListener('click', function() {
+                filters.page = Math.min(totalPages, filters.page + 1);
+                renderMediaGrid(type);
+            });
+
+            const selectionStillValid = librarySelection[type] && all.some(function(item) {
+                return libraryItemKey(item) === libraryItemKey(librarySelection[type]);
+            });
+            if (!selectionStillValid) {
+                librarySelection[type] = pageItems[0] || null;
             }
-            grid.innerHTML = items.map(function(item) {
-                return renderLibraryCard(item, false);
-            }).join('');
-            bindLibraryCopyButtons(grid);
+            if (type === activeMediaTabType) {
+                renderMediaPreview(type);
+            }
         }
 
-        function renderLibraryCard(item, storedInput) {
-            const escapedUrl = escapeHtml(item.url);
+        function bindMediaCardEvents(root, type) {
+            root.querySelectorAll('.media-card').forEach(function(card) {
+                card.addEventListener('click', function(event) {
+                    if (event.target.closest('.library-card-actions')) return;
+                    selectMediaItem(type, card.dataset.mediaKey);
+                });
+            });
+            bindLibraryCopyButtons(root);
+        }
+
+        function selectMediaItem(type, key) {
+            const item = combinedLibraryItems(type).find(function(candidate) {
+                return libraryItemKey(candidate) === key;
+            });
+            if (!item) return;
+            librarySelection[type] = item;
+            document.querySelectorAll(`#mediaGrid-${type} .media-card`).forEach(function(card) {
+                card.classList.toggle('selected', card.dataset.mediaKey === key);
+            });
+            renderMediaPreview(type);
+        }
+
+        function renderMediaCard(item, type, selected) {
             const escapedName = escapeHtml(item.filename || item.name || 'file');
-            const escapedValue = escapeHtml(storedInput ? item.name : item.url);
             const modified = item.modified_at ? new Date(item.modified_at).toLocaleString() : '';
-            const pinned = storedInput && pinnedInputNames.includes(item.name);
+            const pinned = item.source === 'input' && pinnedInputNames.includes(item.name);
+            const key = libraryItemKey(item);
             return `
-                <article class="library-card">
+                <article class="library-card media-card${selected ? ' selected' : ''}" data-media-key="${escapeHtml(key)}">
                     <div class="library-card-preview">${libraryPreviewMarkup(item)}</div>
                     <div class="library-card-body">
                         <div class="library-card-title">${escapedName}</div>
-                        <div class="library-card-meta">${escapeHtml(item.media_type || 'file')} ${modified ? `· ${escapeHtml(modified)}` : ''}</div>
+                        <div class="library-card-meta">${escapeHtml(item.source)} ${modified ? `&middot; ${escapeHtml(modified)}` : ''}</div>
                         <div class="library-card-actions">
-                            <a href="${escapedUrl}" target="_blank">Open</a>
-                            ${storedInput ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
-                            <button type="button" data-copy-value="${escapedValue}">${storedInput ? 'Copy Name' : 'Copy Link'}</button>
+                            <a href="${escapeHtml(item.url)}" target="_blank">Open</a>
+                            ${item.source === 'input' ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
+                            <button type="button" data-copy-value="${escapeHtml(item.source === 'input' ? item.name : item.url)}">${item.source === 'input' ? 'Copy Name' : 'Copy Link'}</button>
+                            <button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(key)}">Delete</button>
                         </div>
                     </div>
                 </article>
@@ -2447,12 +2944,56 @@
                 return `<video src="${escapedUrl}" muted></video>`;
             }
             if (item.media_type === 'audio') {
-                return `<div class="preview-empty">Audio<br>${escapedName}</div>`;
+                return `<audio controls preload="none" src="${escapedUrl}"></audio>`;
             }
             if (item.media_type === 'model') {
                 return `<div class="preview-empty">3D<br>${escapedName}</div>`;
             }
             return `<div class="preview-empty">${escapedName}</div>`;
+        }
+
+        function renderMediaPreview(type) {
+            const stage = document.getElementById(`mediaPreviewStage-${type}`);
+            const meta = document.getElementById(`mediaPreviewMeta-${type}`);
+            const actions = document.getElementById(`mediaPreviewActions-${type}`);
+            if (!stage || !meta || !actions) return;
+            const item = librarySelection[type];
+
+            if (!item) {
+                disposeModelViewer();
+                stage.innerHTML = `<div class="preview-empty">Select an item to preview.</div>`;
+                meta.innerHTML = '';
+                actions.innerHTML = '';
+                return;
+            }
+
+            const escapedUrl = escapeHtml(item.url);
+            const escapedName = escapeHtml(item.filename || item.name || 'file');
+            const modified = item.modified_at ? new Date(item.modified_at).toLocaleString() : '';
+            const pinned = item.source === 'input' && pinnedInputNames.includes(item.name);
+            meta.innerHTML = `<span>${escapedName}</span><span>${escapeHtml(item.source)}${modified ? ` &middot; ${escapeHtml(modified)}` : ''}</span>`;
+            actions.innerHTML = `
+                <a href="${escapedUrl}" target="_blank">Open</a>
+                ${item.source === 'input' ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
+                <button type="button" data-copy-value="${escapeHtml(item.source === 'input' ? item.name : item.url)}">${item.source === 'input' ? 'Copy Name' : 'Copy Link'}</button>
+                <button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(libraryItemKey(item))}">Delete</button>
+            `;
+            bindLibraryCopyButtons(actions);
+
+            if (type === 'model') {
+                renderModelViewer(item, stage);
+                return;
+            }
+            disposeModelViewer();
+            if (item.media_type === 'image') {
+                stage.innerHTML = `<img src="${escapedUrl}" alt="${escapedName}">`;
+            } else if (item.media_type === 'video') {
+                stage.innerHTML = `<video src="${escapedUrl}" controls></video>`;
+            } else if (item.media_type === 'audio') {
+                stage.innerHTML = `<audio src="${escapedUrl}" controls></audio>`;
+            } else {
+                stage.innerHTML = `<div class="preview-empty">${escapedName}</div>`;
+            }
         }
 
         function bindLibraryCopyButtons(root) {
@@ -2471,6 +3012,44 @@
                     }
                 });
             });
+            root.querySelectorAll('[data-delete-key]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    deleteMediaItem(this.dataset.deleteType, this.dataset.deleteKey);
+                });
+            });
+        }
+
+        async function deleteMediaItem(type, key) {
+            const item = combinedLibraryItems(type).find(function(candidate) {
+                return libraryItemKey(candidate) === key;
+            });
+            if (!item) return;
+            const label = item.filename || item.name || 'this file';
+            if (!confirm(`Delete "${label}"? This permanently removes the file from disk.`)) {
+                return;
+            }
+            try {
+                const response = await fetch(item.url, { method: 'DELETE' });
+                const data = await response.json().catch(function() { return {}; });
+                if (!response.ok) throw new Error(data.error || 'Delete failed');
+
+                if (item.source === 'input') {
+                    storedInputs = storedInputs.filter(function(candidate) { return candidate.name !== item.name; });
+                    if (pinnedInputNames.includes(item.name)) {
+                        pinnedInputNames = pinnedInputNames.filter(function(name) { return name !== item.name; });
+                        savePinnedInputNames();
+                        renderWorkbenchPinnedInputs();
+                    }
+                    updateStoredInputSelects();
+                } else {
+                    libraryOutputs = libraryOutputs.filter(function(candidate) { return candidate.url !== item.url; });
+                }
+
+                renderMediaGrid(type);
+                showToast('Deleted', label, 'success', 2200);
+            } catch (error) {
+                showToast('Delete failed', error.message, 'error');
+            }
         }
 
         // Update job list
@@ -2669,6 +3248,739 @@
                     "'": '&#039;'
                 }[char];
             });
+        }
+
+        const MV_MOTION_VARIATIONS = [
+            'Slow deliberate push-in toward the subject, gentle parallax, cinematic depth.',
+            'Camera arcs gently to the left, revealing new detail at the edges of frame.',
+            'Camera arcs gently to the right, light shifting warmly across the scene.',
+            'Slow pull-back reveal, expanding the sense of space and atmosphere.',
+            'Gentle upward drift, dust and light particles catching the glow.',
+            'Subtle downward drift, shadows deepening, mood intensifying.',
+            'Soft handheld sway, intimate and alive, textures breathing with motion.',
+            'Slow orbit around the subject, dynamic lighting shifts, dramatic highlights.',
+        ];
+
+        const MV_STAGES = [
+            { key: 'song', label: 'Song' },
+            { key: 'cover', label: 'Cover art' },
+            { key: 'clip', label: 'Film clip' },
+        ];
+
+        function initMusicVideo() {
+            renderMvStageRows();
+            document.getElementById('mvGenerate').addEventListener('click', submitMusicVideo);
+            document.getElementById('mvGenerateExisting').addEventListener('click', submitMusicVideoExisting);
+            document.getElementById('mvRefreshClips').addEventListener('click', refreshExistingClipsPicker);
+        }
+
+        let mvExistingVideos = [];
+        let mvSelectedClips = [];
+
+        function setMvClipSource(mode) {
+            document.getElementById('mvSegmentsField').style.display = mode === 'existing' ? 'none' : '';
+            document.getElementById('mvExistingClipsField').style.display = mode === 'existing' ? '' : 'none';
+            if (mode === 'existing' && !mvExistingVideos.length) refreshExistingClipsPicker();
+        }
+
+        async function refreshExistingClipsPicker() {
+            const picker = document.getElementById('mvClipPicker');
+            picker.innerHTML = '<div class="preview-empty">Loading...</div>';
+            try {
+                const response = await fetch('/api/outputs?limit=200');
+                const data = await response.json();
+                mvExistingVideos = (data.outputs || []).filter(function(o) { return o.media_type === 'video'; });
+                renderMvClipPicker();
+            } catch (error) {
+                picker.innerHTML = `<div class="preview-empty">Could not load clips: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function mvClipIndexSelected(video) {
+            return mvSelectedClips.findIndex(function(s) { return s.filename === video.filename && s.subfolder === video.subfolder; });
+        }
+
+        function renderMvClipPicker() {
+            const picker = document.getElementById('mvClipPicker');
+            if (!mvExistingVideos.length) {
+                picker.innerHTML = '<div class="preview-empty">No existing video clips found. Generate some first, or check the Library tab.</div>';
+                return;
+            }
+            picker.innerHTML = '';
+            mvExistingVideos.forEach(function(video) {
+                const order = mvClipIndexSelected(video);
+                const tile = document.createElement('button');
+                tile.type = 'button';
+                tile.className = 'media-tile';
+                tile.title = video.filename + (order >= 0 ? ` (selected, #${order + 1})` : '');
+                if (order >= 0) tile.style.outline = '2px solid #4fc3f7';
+                tile.innerHTML = `<video src="${video.url}" muted></video>`;
+                tile.addEventListener('click', function() {
+                    const idx = mvClipIndexSelected(video);
+                    if (idx >= 0) mvSelectedClips.splice(idx, 1);
+                    else mvSelectedClips.push(video);
+                    renderMvClipPicker();
+                });
+                picker.append(tile);
+            });
+        }
+
+        function renderMvStageRows() {
+            const list = document.getElementById('mvStageList');
+            list.innerHTML = '';
+            for (const stage of MV_STAGES) {
+                const row = document.createElement('div');
+                row.className = 'job-item';
+                row.dataset.stageKey = stage.key;
+                row.innerHTML = `
+                    <div class="job-info">
+                        <div class="job-title"><strong>${stage.label}</strong><div class="mv-stage-status" style="color:rgba(255,255,255,0.6); font-size:0.85rem;">Pending</div></div>
+                    </div>
+                    <div class="mv-stage-output"></div>
+                `;
+                list.append(row);
+            }
+        }
+
+        function updateMvStageRow(key, statusText, output) {
+            const row = document.querySelector(`#mvStageList .job-item[data-stage-key="${key}"]`);
+            if (!row) return;
+            const status = row.querySelector('.mv-stage-status');
+            const outputSlot = row.querySelector('.mv-stage-output');
+            if (status) status.textContent = statusText;
+            if (outputSlot) {
+                outputSlot.innerHTML = output
+                    ? `<a href="${output.url}" target="_blank" rel="noreferrer">${escapeHtml(output.filename || statusText)}</a>`
+                    : '';
+            }
+        }
+
+        function setMvProgress(message, percent) {
+            const label = document.getElementById('mvProgressLabel');
+            const percentEl = document.getElementById('mvProgressPercent');
+            const fill = document.getElementById('mvProgressFill');
+            const value = Math.max(0, Math.min(100, Number(percent || 0)));
+            if (label) label.textContent = message;
+            if (percentEl) percentEl.textContent = `${value}%`;
+            if (fill) fill.style.width = `${value}%`;
+        }
+
+        async function runComfyWorkflow(workflowId, inputs, mediaType, options, progressFn) {
+            const response = await fetch(`/api/workflows/${workflowId}/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputs })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `${options.label} failed to start`);
+            const promptId = data.result && data.result.prompt_id;
+            if (!promptId) throw new Error(data.result?.error || `${options.label} did not return a prompt id`);
+            return waitForComfyPrompt(promptId, mediaType, options, progressFn);
+        }
+
+        async function waitForComfyPrompt(promptId, mediaType, options, progressFn) {
+            const setProgress = progressFn || setMvProgress;
+            const label = options.label || 'Stage';
+            const progressStart = options.progressStart ?? 0;
+            const progressEnd = options.progressEnd ?? 100;
+            const startedAt = Date.now();
+            for (let attempt = 0; attempt < 200; attempt += 1) {
+                await new Promise(function(resolve) { setTimeout(resolve, attempt < 4 ? 2000 : 5000); });
+                const response = await fetch(`/api/comfy-progress/${encodeURIComponent(promptId)}`);
+                const payload = await response.json();
+                if (payload.state === 'cancelled') throw new Error(`${label} was cancelled.`);
+                if (payload.completed) {
+                    const output = (payload.outputs || []).find(function(item) { return item.type === mediaType; });
+                    if (!output) return null;
+                    setProgress(`${label} done`, progressEnd);
+                    return output;
+                }
+                const pct = payload.state === 'running'
+                    ? progressStart + Math.round((progressEnd - progressStart) * 0.7)
+                    : progressStart + Math.round((progressEnd - progressStart) * 0.2);
+                const elapsed = formatElapsedSeconds(Date.now() - startedAt);
+                let detail = `elapsed ${elapsed}`;
+                if (payload.state === 'queued' && payload.queue_position) {
+                    detail = `position ${payload.queue_position} of ${payload.queue_remaining} ahead, ${detail}`;
+                }
+                setProgress(`${label}: ${payload.state || 'waiting'} (${detail})...`, pct);
+            }
+            throw new Error(`${label} timed out waiting for ComfyUI.`);
+        }
+
+        function formatElapsedSeconds(ms) {
+            const total = Math.max(0, Math.floor(ms / 1000));
+            const minutes = Math.floor(total / 60);
+            const seconds = total % 60;
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        async function uploadGeneratedImage(output) {
+            const response = await fetch(output.url);
+            if (!response.ok) throw new Error('Could not fetch the generated cover art for animation.');
+            const blob = await response.blob();
+            const file = new File([blob], output.filename || 'cover.png', { type: blob.type || 'image/png' });
+            const form = new FormData();
+            form.append('file', file);
+            const uploadResponse = await fetch('/api/uploads', { method: 'POST', body: form });
+            const data = await uploadResponse.json();
+            if (!uploadResponse.ok) throw new Error(data.error || 'Cover art upload failed');
+            return data;
+        }
+
+        async function generateClipSegments(imageName, motionConcept, segmentCount, progressStart, progressEnd) {
+            const segmentOutputs = [];
+            const status = document.getElementById('mvStatus');
+            for (let index = 0; index < segmentCount; index += 1) {
+                const segmentLabel = `Film clip segment ${index + 1} of ${segmentCount}`;
+                updateMvStageRow('clip', `${segmentLabel}...`);
+                status.textContent = `Generating ${segmentLabel.toLowerCase()}...`;
+                const segmentStart = progressStart + Math.round((index / segmentCount) * (progressEnd - progressStart));
+                const segmentEnd = progressStart + Math.round(((index + 1) / segmentCount) * (progressEnd - progressStart));
+                const motionPrompt = `Cinematic music video motion for: ${motionConcept}. `
+                    + `${MV_MOTION_VARIATIONS[index % MV_MOTION_VARIATIONS.length]} Smooth continuous animation, high detail.`;
+                const segmentOutput = await runComfyWorkflow('video.image-to-video', {
+                    image: imageName,
+                    prompt: motionPrompt,
+                    steps: '50',
+                    cfg: '5.0',
+                    seed: '-1',
+                }, 'video', { label: segmentLabel, progressStart: segmentStart, progressEnd: segmentEnd });
+                if (!segmentOutput) throw new Error(`${segmentLabel} did not return a video.`);
+                segmentOutputs.push(segmentOutput);
+            }
+
+            updateMvStageRow('clip', 'Stitching segments...');
+            status.textContent = 'Stitching film clip segments...';
+            setMvProgress('Stitching segments...', 91);
+            const stitchResponse = await fetch('/api/stitch-videos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outputs: segmentOutputs, workflow_id: 'music-video' })
+            });
+            const stitchPayload = await stitchResponse.json();
+            if (!stitchResponse.ok || !stitchPayload.output) {
+                throw new Error(stitchPayload.error || 'Could not stitch the film clip segments.');
+            }
+            updateMvStageRow('clip', 'Done', stitchPayload.output);
+            refreshOutputLibrary();
+            return stitchPayload.output;
+        }
+
+        async function useExistingClips(selectedClips, progressStart, progressEnd) {
+            const status = document.getElementById('mvStatus');
+            const outputs = selectedClips.map(function(c) { return { type: 'video', filename: c.filename, subfolder: c.subfolder }; });
+            if (outputs.length === 1) {
+                updateMvStageRow('clip', 'Using selected clip', outputs[0]);
+                setMvProgress('Using selected clip', progressEnd);
+                return outputs[0];
+            }
+            updateMvStageRow('clip', `Stitching ${outputs.length} selected clips...`);
+            status.textContent = `Stitching ${outputs.length} selected clips...`;
+            setMvProgress('Stitching selected clips...', progressStart + Math.round((progressEnd - progressStart) * 0.5));
+            const stitchResponse = await fetch('/api/stitch-videos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outputs, workflow_id: 'music-video' })
+            });
+            const stitchPayload = await stitchResponse.json();
+            if (!stitchResponse.ok || !stitchPayload.output) {
+                throw new Error(stitchPayload.error || 'Could not stitch the selected clips.');
+            }
+            updateMvStageRow('clip', 'Done', stitchPayload.output);
+            refreshOutputLibrary();
+            return stitchPayload.output;
+        }
+
+        async function finalizeMusicVideo(clipOutput, songOutput, mux, title, completeMessage) {
+            const status = document.getElementById('mvStatus');
+            if (mux) {
+                status.textContent = 'Combining song and clip into one music video...';
+                setMvProgress('Combining song and clip...', 96);
+                const muxResponse = await fetch('/api/mux-music-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video: clipOutput, audio: songOutput, title: title })
+                });
+                const muxPayload = await muxResponse.json();
+                if (muxResponse.ok && muxPayload.output) {
+                    renderMvMedia(muxPayload.output);
+                    status.textContent = `${completeMessage} Combined music video: ${muxPayload.output.filename}`;
+                    showToast('Music video complete', muxPayload.output.filename, 'success');
+                } else {
+                    status.textContent = muxPayload.error || `${completeMessage} Combining into one file was not available.`;
+                }
+            } else {
+                renderMvMedia(clipOutput);
+                status.textContent = completeMessage;
+            }
+            setMvProgress('Complete', 100);
+            refreshOutputLibrary();
+        }
+
+        async function submitMusicVideo() {
+            const button = document.getElementById('mvGenerate');
+            const status = document.getElementById('mvStatus');
+            const concept = document.getElementById('mvConcept').value.trim();
+            if (!concept) {
+                status.textContent = 'Enter a concept for the song first.';
+                return;
+            }
+            const tags = document.getElementById('mvTags').value.trim();
+            const duration = Number(document.getElementById('mvDuration').value) || 180;
+            const segmentCount = Math.max(2, Math.min(16, Number(document.getElementById('mvSegments').value) || 6));
+            const coverWorkflowId = document.getElementById('mvCoverModel').value;
+            const mux = document.getElementById('mvMux').checked;
+            const title = document.getElementById('mvTitle').value.trim();
+            const clipSource = document.getElementById('mvClipSource').value;
+            if (clipSource === 'existing' && mvSelectedClips.length < 1) {
+                status.textContent = 'Select at least one existing clip first.';
+                return;
+            }
+
+            button.disabled = true;
+            renderMvStageRows();
+            setMvProgress('Starting...', 2);
+
+            try {
+                status.textContent = 'Generating song...';
+                updateMvStageRow('song', 'Generating...');
+                const songOutput = await runComfyWorkflow('audio.ace-step-1-5', {
+                    prompt: concept,
+                    tags: tags,
+                    duration: String(duration),
+                    conditioning_duration: String(duration),
+                    steps: '20',
+                }, 'audio', { label: 'Song', progressStart: 2, progressEnd: 30 });
+                if (!songOutput) throw new Error('Song generation did not return an audio file.');
+                updateMvStageRow('song', 'Done', songOutput);
+
+                status.textContent = 'Generating cover art...';
+                updateMvStageRow('cover', 'Generating...');
+                const coverPrompt = `Album cover art for a song about: ${concept}. ${tags ? `Style: ${tags}. ` : ''}Symbolic, evocative, highly detailed illustration, no text, no watermark.`;
+                const coverInputs = coverWorkflowId === 'core.text-to-image-hq'
+                    ? { '67.text': coverPrompt }
+                    : { '67.text': coverPrompt, '70.steps': '14', '68.width': '1536', '68.height': '1536' };
+                const coverOutput = await runComfyWorkflow(coverWorkflowId, coverInputs, 'image', { label: 'Cover art', progressStart: 30, progressEnd: 58 });
+                if (!coverOutput) throw new Error('Cover art generation did not return an image.');
+                updateMvStageRow('cover', 'Done', coverOutput);
+
+                let clipOutput;
+                if (clipSource === 'existing') {
+                    clipOutput = await useExistingClips(mvSelectedClips, 58, 90);
+                } else {
+                    updateMvStageRow('clip', 'Uploading cover art...');
+                    status.textContent = 'Preparing cover art for animation...';
+                    const uploaded = await uploadGeneratedImage(coverOutput);
+                    clipOutput = await generateClipSegments(uploaded.name, `a song about: ${concept}`, segmentCount, 58, 90);
+                }
+                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Song + cover + clip complete.');
+            } catch (error) {
+                status.textContent = error.message;
+                setMvProgress(error.message, 0);
+                showToast('Music video generation failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function submitMusicVideoExisting() {
+            const button = document.getElementById('mvGenerateExisting');
+            const status = document.getElementById('mvStatus');
+            const songFile = document.getElementById('mvSongFile').files[0];
+            const imageFile = document.getElementById('mvImageFile').files[0];
+            if (!songFile || !imageFile) {
+                status.textContent = 'Choose both a song (audio file) and an image first.';
+                return;
+            }
+            const motion = document.getElementById('mvMotion').value.trim() || 'a music video';
+            const segmentCount = Math.max(2, Math.min(16, Number(document.getElementById('mvSegments').value) || 6));
+            const mux = document.getElementById('mvMux').checked;
+            const title = document.getElementById('mvTitle').value.trim() || songFile.name.replace(/\.[^.]+$/, '');
+
+            button.disabled = true;
+            renderMvStageRows();
+            updateMvStageRow('song', 'Skipped (using your file)');
+            updateMvStageRow('cover', 'Skipped (using your file)');
+            setMvProgress('Starting...', 2);
+
+            try {
+                status.textContent = 'Uploading song...';
+                const songUpload = await uploadWorkbenchFile(songFile);
+                const uploadedSongName = songUpload.split('/').pop();
+                const songOutput = { type: 'audio', filename: uploadedSongName, subfolder: 'studio_uploads' };
+                updateMvStageRow('song', 'Uploaded', { url: `/api/input/studio_uploads/${uploadedSongName}`, filename: uploadedSongName });
+
+                status.textContent = 'Uploading image...';
+                const imageUpload = await uploadWorkbenchFile(imageFile);
+                const uploadedImageName = imageUpload.split('/').pop();
+                updateMvStageRow('cover', 'Uploaded', { url: `/api/input/studio_uploads/${uploadedImageName}`, filename: uploadedImageName });
+
+                const clipOutput = await generateClipSegments(imageUpload, motion, segmentCount, 10, 90);
+                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Film clip for your song complete.');
+            } catch (error) {
+                status.textContent = error.message;
+                setMvProgress(error.message, 0);
+                showToast('Film clip generation failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function setMvMode(mode) {
+            document.getElementById('mvGenerateFields').style.display = mode === 'existing' ? 'none' : '';
+            document.getElementById('mvExistingFields').style.display = mode === 'existing' ? '' : 'none';
+            document.getElementById('mvGenerate').hidden = mode === 'existing';
+            document.getElementById('mvGenerateExisting').hidden = mode !== 'existing';
+        }
+
+        function renderMvMedia(output) {
+            const stage = document.getElementById('mvMediaStage');
+            if (!stage) return;
+            stage.innerHTML = `<video src="${output.url}" controls style="max-width:100%; border-radius:8px;"></video>`;
+        }
+
+        let currentStoryboard = null;
+
+        function initStoryboard() {
+            document.getElementById('sbNewButton').addEventListener('click', createNewStoryboard);
+            document.getElementById('sbRefreshButton').addEventListener('click', refreshStoryboardList);
+            document.getElementById('sbBackButton').addEventListener('click', showStoryboardList);
+            document.getElementById('sbAddShot').addEventListener('click', function() { addShot(); });
+            document.getElementById('sbSave').addEventListener('click', function() { saveStoryboard(true); });
+            document.getElementById('sbDelete').addEventListener('click', deleteCurrentStoryboard);
+            document.getElementById('sbGenerateVideo').addEventListener('click', generateStoryboardVideo);
+        }
+
+        function showStoryboardList() {
+            document.getElementById('sbListView').style.display = '';
+            document.getElementById('sbEditorView').style.display = 'none';
+            currentStoryboard = null;
+            refreshStoryboardList();
+        }
+
+        function showStoryboardEditor() {
+            document.getElementById('sbListView').style.display = 'none';
+            document.getElementById('sbEditorView').style.display = '';
+        }
+
+        async function refreshStoryboardList() {
+            const list = document.getElementById('sbList');
+            try {
+                const response = await fetch('/api/storyboards');
+                const data = await response.json();
+                const boards = data.storyboards || [];
+                if (!boards.length) {
+                    list.innerHTML = '<div class="preview-empty">No storyboards yet. Create one to get started.</div>';
+                    return;
+                }
+                list.innerHTML = boards.map(function(board) {
+                    const thumb = board.thumbnail_url
+                        ? `<img src="${board.thumbnail_url}" alt="">`
+                        : `<div class="preview-empty" style="aspect-ratio:1;">No image yet</div>`;
+                    return `
+                        <article style="cursor:pointer;" onclick="openStoryboard('${board.id}')">
+                            <div class="media-tile">${thumb}</div>
+                            <div title="${escapeHtml(board.title)}" style="margin-top:0.35rem; font-size:0.85rem;">
+                                ${escapeHtml(board.title)}<br>
+                                <small style="color:rgba(255,255,255,0.6);">${board.shots_with_images}/${board.shot_count} shots${board.has_video ? ' Β· video ready' : ''}</small>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+            } catch (error) {
+                list.innerHTML = `<div class="preview-empty">Could not load storyboards: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function createNewStoryboard() {
+            const response = await fetch('/api/storyboards', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: 'Untitled Storyboard', shot_descriptions: ['', ''] })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not create storyboard', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentStoryboard = data;
+            showStoryboardEditor();
+            renderStoryboardEditor();
+        }
+
+        async function openStoryboard(id) {
+            const response = await fetch(`/api/storyboards/${id}`);
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not open storyboard', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentStoryboard = data;
+            showStoryboardEditor();
+            renderStoryboardEditor();
+        }
+
+        function renderStoryboardEditor() {
+            document.getElementById('sbTitle').value = currentStoryboard.title || '';
+            document.getElementById('sbMediaStage').innerHTML = currentStoryboard.video
+                ? `<video src="${currentStoryboard.video.url}" controls style="max-width:100%; border-radius:8px;"></video>`
+                : '<div class="preview-empty">No video yet.</div>';
+            renderShotRows();
+        }
+
+        function renderShotRows() {
+            const container = document.getElementById('sbShotList');
+            container.innerHTML = '';
+            currentStoryboard.shots.forEach(function(shot, index) {
+                const row = document.createElement('div');
+                row.className = 'job-item';
+                row.dataset.shotIndex = String(index);
+                const thumb = shot.image
+                    ? `<a href="${shot.image.url}" target="_blank" rel="noreferrer"><img src="${shot.image.url}" alt="" style="width:72px; height:72px; object-fit:cover; border-radius:6px;"></a>`
+                    : `<div class="preview-empty" style="width:72px; height:72px; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">No image</div>`;
+                row.innerHTML = `
+                    <div class="job-info" style="align-items:center;">
+                        ${thumb}
+                        <div style="flex:1; min-width:0;">
+                            <strong>Shot ${index + 1}</strong>
+                            <textarea class="sb-shot-desc" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="Describe this shot...">${escapeHtml(shot.description || '')}</textarea>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                        <button class="btn btn-secondary sb-shot-generate" type="button">${shot.image ? 'Regenerate' : 'Generate'}</button>
+                        <button class="btn btn-secondary sb-shot-set-image" type="button">Upload / Choose...</button>
+                        <button class="btn btn-secondary sb-shot-remove" type="button">Remove</button>
+                    </div>
+                `;
+                row.querySelector('.sb-shot-desc').addEventListener('change', function(event) {
+                    currentStoryboard.shots[index].description = event.target.value;
+                });
+                row.querySelector('.sb-shot-generate').addEventListener('click', function() { generateShotImage(index); });
+                row.querySelector('.sb-shot-set-image').addEventListener('click', function() { openSbImagePicker(index); });
+                row.querySelector('.sb-shot-remove').addEventListener('click', function() { removeShot(index); });
+                container.append(row);
+            });
+        }
+
+        let sbImagePickerTargetIndex = null;
+
+        function openSbImagePicker(index) {
+            sbImagePickerTargetIndex = index;
+            document.getElementById('sbImageUploadInput').value = '';
+            document.getElementById('sbImagePickerModal').classList.add('active');
+            refreshSbImagePickerGrid();
+        }
+
+        function closeSbImagePickerModal() {
+            document.getElementById('sbImagePickerModal').classList.remove('active');
+            sbImagePickerTargetIndex = null;
+        }
+
+        async function refreshSbImagePickerGrid() {
+            const grid = document.getElementById('sbImagePickerGrid');
+            grid.innerHTML = '<div class="preview-empty">Loading...</div>';
+            try {
+                const response = await fetch('/api/outputs?limit=200');
+                const data = await response.json();
+                const images = (data.outputs || []).filter(function(o) { return o.media_type === 'image'; });
+                if (!images.length) {
+                    grid.innerHTML = '<div class="preview-empty">No existing images found.</div>';
+                    return;
+                }
+                grid.innerHTML = '';
+                images.forEach(function(image) {
+                    const tile = document.createElement('button');
+                    tile.type = 'button';
+                    tile.className = 'media-tile';
+                    tile.title = image.filename;
+                    tile.innerHTML = `<img src="${image.url}" alt="">`;
+                    tile.addEventListener('click', function() {
+                        assignSbShotImage({ type: 'image', filename: image.filename, subfolder: image.subfolder || '', url: image.url });
+                    });
+                    grid.append(tile);
+                });
+            } catch (error) {
+                grid.innerHTML = `<div class="preview-empty">Could not load images: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function assignSbShotImage(imageRef) {
+            if (sbImagePickerTargetIndex === null) return;
+            currentStoryboard.shots[sbImagePickerTargetIndex].image = imageRef;
+            renderShotRows();
+            saveStoryboard(false);
+            closeSbImagePickerModal();
+        }
+
+        document.getElementById('sbImageUploadInput').addEventListener('change', async function(event) {
+            const file = event.target.files[0];
+            if (!file || sbImagePickerTargetIndex === null) return;
+            const status = document.getElementById('sbStatus');
+            try {
+                status.textContent = 'Uploading image...';
+                const form = new FormData();
+                form.append('file', file);
+                const response = await fetch('/api/uploads', { method: 'POST', body: form });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                assignSbShotImage({ type: 'image', filename: data.filename, subfolder: 'studio_uploads', url: data.url });
+                status.textContent = 'Image uploaded.';
+            } catch (error) {
+                status.textContent = error.message;
+                showToast('Image upload failed', error.message, 'error');
+            }
+        });
+
+        function addShot() {
+            currentStoryboard.shots.push({ description: '', image: null });
+            renderShotRows();
+        }
+
+        function removeShot(index) {
+            currentStoryboard.shots.splice(index, 1);
+            if (!currentStoryboard.shots.length) currentStoryboard.shots.push({ description: '', image: null });
+            renderShotRows();
+        }
+
+        async function generateShotImage(index) {
+            const status = document.getElementById('sbStatus');
+            const description = (currentStoryboard.shots[index].description || '').trim();
+            if (!description) {
+                status.textContent = `Enter a description for shot ${index + 1} first.`;
+                return;
+            }
+            const row = document.querySelector(`#sbShotList .job-item[data-shot-index="${index}"]`);
+            const button = row ? row.querySelector('.sb-shot-generate') : null;
+            if (button) { button.disabled = true; button.textContent = 'Generating...'; }
+            status.textContent = `Generating shot ${index + 1}...`;
+            setSbProgress(`Shot ${index + 1}: generating...`, 10);
+            try {
+                const output = await runComfyWorkflow('core.text-to-image', { '67.text': description }, 'image', {
+                    label: `Shot ${index + 1}`, progressStart: 5, progressEnd: 95,
+                }, setSbProgress);
+                if (!output) throw new Error(`Shot ${index + 1} did not return an image.`);
+                currentStoryboard.shots[index].image = output;
+                renderShotRows();
+                await saveStoryboard(false);
+                status.textContent = `Shot ${index + 1} done.`;
+                setSbProgress('Idle', 0);
+            } catch (error) {
+                status.textContent = error.message;
+                showToast('Shot generation failed', error.message, 'error');
+                setSbProgress(error.message, 0);
+            } finally {
+                if (button) { button.disabled = false; button.textContent = currentStoryboard.shots[index].image ? 'Regenerate' : 'Generate'; }
+            }
+        }
+
+        async function saveStoryboard(notify) {
+            const status = document.getElementById('sbStatus');
+            currentStoryboard.title = document.getElementById('sbTitle').value.trim() || 'Untitled Storyboard';
+            const response = await fetch(`/api/storyboards/${currentStoryboard.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentStoryboard)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Save failed', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentStoryboard = data;
+            if (notify) {
+                status.textContent = 'Storyboard saved.';
+                showToast('Storyboard saved', currentStoryboard.title, 'success');
+            }
+        }
+
+        async function deleteCurrentStoryboard() {
+            if (!currentStoryboard) return;
+            await fetch(`/api/storyboards/${currentStoryboard.id}`, { method: 'DELETE' });
+            showToast('Storyboard deleted', currentStoryboard.title, 'info');
+            showStoryboardList();
+        }
+
+        function setSbProgress(message, percent) {
+            const label = document.getElementById('sbProgressLabel');
+            const percentEl = document.getElementById('sbProgressPercent');
+            const fill = document.getElementById('sbProgressFill');
+            const value = Math.max(0, Math.min(100, Number(percent || 0)));
+            if (label) label.textContent = message;
+            if (percentEl) percentEl.textContent = `${value}%`;
+            if (fill) fill.style.width = `${value}%`;
+        }
+
+        async function generateStoryboardVideo() {
+            const status = document.getElementById('sbStatus');
+            const shotsWithImages = currentStoryboard.shots.filter(function(s) { return s.image; });
+            if (shotsWithImages.length < 2) {
+                status.textContent = 'Generate at least 2 shot images first.';
+                return;
+            }
+            const button = document.getElementById('sbGenerateVideo');
+            const modelChoice = document.getElementById('sbTransitionModel').value;
+            const modelConfig = modelChoice === 'quality'
+                ? { workflowId: 'video.keyframe-video', startField: '80.image', endField: '89.image', promptField: '90.text' }
+                : { workflowId: 'video.keyframe-video-fast', startField: '68.image', endField: '62.image', promptField: '6.text' };
+            button.disabled = true;
+            setSbProgress('Starting...', 2);
+            try {
+                status.textContent = 'Uploading shot images...';
+                const uploadedNames = [];
+                for (let i = 0; i < shotsWithImages.length; i += 1) {
+                    setSbProgress(`Uploading shot images (${i + 1}/${shotsWithImages.length})...`, 2 + Math.round((i / shotsWithImages.length) * 8));
+                    uploadedNames.push(await uploadGeneratedImage(shotsWithImages[i].image));
+                }
+
+                const pairCount = shotsWithImages.length - 1;
+                const segments = [];
+                for (let i = 0; i < pairCount; i += 1) {
+                    const label = `Transition ${i + 1} of ${pairCount}`;
+                    status.textContent = `Generating ${label.toLowerCase()}...`;
+                    const progressStart = 10 + Math.round((i / pairCount) * 80);
+                    const progressEnd = 10 + Math.round(((i + 1) / pairCount) * 80);
+                    const motionPrompt = `Smooth cinematic transition from: ${shotsWithImages[i].description}. `
+                        + `Into: ${shotsWithImages[i + 1].description}. Continuous camera movement, coherent motion.`;
+                    const segment = await runComfyWorkflow(modelConfig.workflowId, {
+                        [modelConfig.startField]: uploadedNames[i].name,
+                        [modelConfig.endField]: uploadedNames[i + 1].name,
+                        [modelConfig.promptField]: motionPrompt,
+                    }, 'video', { label, progressStart, progressEnd }, setSbProgress);
+                    if (!segment) throw new Error(`${label} did not return a video.`);
+                    segments.push(segment);
+                }
+
+                let finalVideo = segments[0];
+                if (segments.length > 1) {
+                    status.textContent = 'Stitching transitions together...';
+                    setSbProgress('Stitching...', 92);
+                    const stitchResponse = await fetch('/api/stitch-videos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ outputs: segments, workflow_id: 'storyboard' })
+                    });
+                    const stitchPayload = await stitchResponse.json();
+                    if (!stitchResponse.ok || !stitchPayload.output) {
+                        throw new Error(stitchPayload.error || 'Could not stitch the storyboard transitions.');
+                    }
+                    finalVideo = stitchPayload.output;
+                }
+
+                currentStoryboard.video = finalVideo;
+                await saveStoryboard(false);
+                document.getElementById('sbMediaStage').innerHTML = `<video src="${finalVideo.url}" controls style="max-width:100%; border-radius:8px;"></video>`;
+                status.textContent = 'Storyboard video complete.';
+                setSbProgress('Complete', 100);
+                showToast('Storyboard video complete', currentStoryboard.title, 'success');
+                refreshOutputLibrary();
+            } catch (error) {
+                status.textContent = error.message;
+                setSbProgress(error.message, 0);
+                showToast('Storyboard video generation failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
         }
 
         // Job monitor

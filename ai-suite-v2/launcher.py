@@ -21,6 +21,7 @@ import copy
 import json
 import os
 import random
+import re
 import subprocess
 import sys
 import threading
@@ -47,7 +48,7 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "AI Suite V2 Team"
 
 
@@ -71,7 +72,7 @@ class ConfigManager:
                 self.config = {
                     'suite': {
                         'name': 'AI Suite V2',
-                        'version': '2.0.0',
+                        'version': '2.1.0',
                         'description': 'Modular ComfyUI workflow platform'
                     },
                     'paths': {
@@ -79,7 +80,6 @@ class ConfigManager:
                         'packs': './packs',
                         'shared': './shared',
                         'presets': './presets',
-                        'legacy_workflows': './legacy-workflows',
                         'registry': './registry',
                         'config': './config',
                         'docs': './docs',
@@ -132,7 +132,7 @@ class ConfigManager:
         self.config = {
             'suite': {
                 'name': 'AI Suite V2',
-                'version': '2.0.0',
+                'version': '2.1.0',
                 'description': 'Modular ComfyUI workflow platform'
             },
             'paths': {
@@ -140,7 +140,6 @@ class ConfigManager:
                 'packs': './packs',
                 'shared': './shared',
                 'presets': './presets',
-                'legacy_workflows': './legacy-workflows',
                 'registry': './registry',
                 'config': './config',
                 'docs': './docs',
@@ -819,7 +818,13 @@ class WorkflowManager:
             except Exception:
                 node_types = []
         elif 'nodes' in workflow:
-            node_types = [node.get('type') for node in workflow.get('nodes', [])]
+            from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES
+            node_types = [
+                node.get('type')
+                for node in workflow.get('nodes', [])
+                if node.get('type') not in PRIMITIVE_NODE_TYPES
+                and node.get('type') not in SKIP_NODE_TYPES
+            ]
         else:
             node_types = [
                 node.get('class_type')
@@ -1334,9 +1339,18 @@ class WorkflowManager:
         if not workflow or 'nodes' not in workflow:
             raise ValueError('Workflow JSON is missing or unsupported')
 
+        from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES
+
         prompt: Dict[str, Any] = {}
         link_map: Dict[Tuple[int, int], List[Any]] = {}
         link_id_map: Dict[int, List[Any]] = {}
+        primitive_values: Dict[str, Any] = {}
+
+        for node in workflow.get('nodes', []):
+            if node.get('type') in PRIMITIVE_NODE_TYPES:
+                values = node.get('widgets_values') or []
+                if values:
+                    primitive_values[str(node.get('id'))] = values[0]
 
         for node in workflow.get('nodes', []):
             for slot, output_def in enumerate(node.get('outputs', []) or []):
@@ -1354,8 +1368,10 @@ class WorkflowManager:
                 link_id_map[int(link_id)] = link_value
 
         for node in workflow.get('nodes', []):
-            node_id = str(node.get('id'))
             class_type = node.get('type')
+            if class_type in PRIMITIVE_NODE_TYPES or class_type in SKIP_NODE_TYPES:
+                continue
+            node_id = str(node.get('id'))
             node_inputs: Dict[str, Any] = {}
 
             for index, input_def in enumerate(node.get('inputs', []) or []):
@@ -1363,7 +1379,22 @@ class WorkflowManager:
                 if link_value is None and input_def.get('link') is not None:
                     link_value = link_id_map.get(int(input_def['link']))
                 if link_value is not None:
-                    node_inputs[input_def.get('name')] = link_value
+                    origin_id = link_value[0]
+                    if origin_id in primitive_values:
+                        node_inputs[input_def.get('name')] = primitive_values[origin_id]
+                    else:
+                        node_inputs[input_def.get('name')] = link_value
+
+            # Fall back to positional widgets_values for any widget-backed input
+            # that has no link. Only trusted when counts line up exactly, since a
+            # seed's "control_after_generate" widget can shift later positions.
+            widget_defs = [i for i in (node.get('inputs') or []) if i.get('widget')]
+            widgets_values = node.get('widgets_values')
+            if isinstance(widgets_values, list) and len(widget_defs) == len(widgets_values):
+                for item, value in zip(widget_defs, widgets_values):
+                    name = item.get('name')
+                    if name and name not in node_inputs:
+                        node_inputs[name] = value
 
             node_inputs.update(self._widget_inputs_for_node(class_type, node, inputs))
             prompt[node_id] = {
@@ -1392,6 +1423,11 @@ class WorkflowManager:
                 node_inputs.setdefault('filename_prefix', inputs.get('filename_prefix') or 'video/ai-suite')
                 node_inputs.setdefault('format', 'auto')
                 node_inputs.setdefault('codec', 'auto')
+            elif class_type == 'SaveAudio':
+                node_inputs.setdefault('filename_prefix', inputs.get('filename_prefix') or 'audio/ai-suite')
+            elif class_type == 'DiffRhythmRun':
+                # edit is declared optional but has no Python-side default; the node errors without it.
+                node_inputs.setdefault('edit', False)
             elif class_type == 'UpscaleModelLoader':
                 node_inputs.setdefault('model_name', inputs.get('model_name') or 'RealESRGAN_x4plus.safetensors')
 
@@ -1791,6 +1827,56 @@ class WorkflowManager:
         elif class_type == 'VAEDecodeTripoSplat':
             values['num_gaussians'] = int(inputs.get('num_gaussians', widgets[0] if len(widgets) > 0 else 262144))
             values['seed'] = int(inputs.get('splat_seed', widgets[1] if len(widgets) > 1 else 0))
+        elif class_type == 'TextEncodeAceStepAudio1.5':
+            # widgets_values on this node is not reliably ordered against its
+            # declared inputs, so required fields are set explicitly here.
+            values.update({
+                'seed': 0,
+                'bpm': 120,
+                'duration': float(inputs.get('duration', 120.0)),
+                'timesignature': '4',
+                'language': 'en',
+                'generate_audio_codes': True,
+                'cfg_scale': 2.0,
+                'temperature': 0.85,
+                'top_p': 0.9,
+                'top_k': 0,
+                'min_p': 0.0,
+            })
+        elif class_type == 'KSamplerAdvanced':
+            # Widget order: add_noise, noise_seed, control_after_generate, steps,
+            # cfg, sampler_name, scheduler, start_at_step, end_at_step,
+            # return_with_leftover_noise. Trust the pack's own tuned values when
+            # present (e.g. a turbo checkpoint needing few steps/low cfg) instead
+            # of the generic defaults below, but let Studio-provided controls win.
+            node_defaults = {}
+            if isinstance(widgets, list) and len(widgets) == 10:
+                node_defaults = {
+                    'add_noise': widgets[0],
+                    'steps': widgets[3],
+                    'cfg': widgets[4],
+                    'sampler_name': widgets[5],
+                    'scheduler': widgets[6],
+                    'start_at_step': widgets[7],
+                    'end_at_step': widgets[8],
+                    'return_with_leftover_noise': widgets[9],
+                }
+            raw_seed = inputs.get('seed', 0)
+            raw_steps = inputs.get('steps', node_defaults.get('steps', 20))
+            raw_cfg = inputs.get('cfg', node_defaults.get('cfg', 8.0))
+            values.update({
+                'add_noise': node_defaults.get('add_noise', 'enable'),
+                'noise_seed': int(raw_seed) if raw_seed not in ('', None) else 0,
+                'steps': int(raw_steps) if raw_steps not in ('', None) else node_defaults.get('steps', 20),
+                'cfg': float(raw_cfg) if raw_cfg not in ('', None) else node_defaults.get('cfg', 8.0),
+                'sampler_name': inputs.get('sampler_name') or node_defaults.get('sampler_name') or 'euler',
+                'scheduler': inputs.get('scheduler') or node_defaults.get('scheduler') or 'simple',
+                'start_at_step': node_defaults.get('start_at_step', 0),
+                'end_at_step': node_defaults.get('end_at_step', 10000),
+                'return_with_leftover_noise': node_defaults.get('return_with_leftover_noise', 'disable'),
+            })
+        elif class_type == 'ModelSamplingAuraFlow':
+            values['shift'] = float(widgets[0]) if widgets else 3.0
 
         return values
 
@@ -2054,23 +2140,78 @@ def api_run_workflow(workflow_id: str) -> jsonify:
             workflow_id=workflow_id,
             inputs=data.get('inputs', {})
         )
-        job_queue.update_job(
-            job_id,
-            status='completed' if success else 'failed',
-            progress=100,
-            result=result if success else None,
-            error=None if success else result.get('error', 'Workflow failed')
-        )
 
-        return jsonify({
+        error_message = None
+        if success and result.get('prompt_id'):
+            # ComfyUI has only ACCEPTED the prompt into its queue here, not
+            # finished rendering it. Leave the job "running" (set by start_job
+            # above) with the prompt_id attached; _reconcile_running_jobs()
+            # flips it to "completed" once ComfyUI actually finishes, the next
+            # time /api/jobs or /api/jobs/<id> is polled.
+            job_queue.update_job(job_id, progress=10, result=result)
+            response_status = 'running'
+        elif success:
+            # Non-ComfyUI workflows (e.g. LLM orchestration) return their real
+            # result synchronously, so "completed" is accurate immediately.
+            job_queue.update_job(job_id, status='completed', progress=100, result=result)
+            response_status = 'completed'
+        else:
+            error_message = result.get('error', 'Workflow failed')
+            job_queue.update_job(job_id, status='failed', progress=0, result=None, error=error_message)
+            response_status = 'failed'
+
+        response = {
             'job_id': job_id,
-            'status': 'completed' if success else 'failed',
+            'status': response_status,
             'workflow_id': workflow_id,
             'result': result
-        }), 200 if success else 400
+        }
+        if response_status == 'failed':
+            response['error'] = error_message
+        return jsonify(response), 200 if success else 400
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+
+
+def _reconcile_running_jobs() -> None:
+    """Check ComfyUI directly for jobs we only know were queued, and flip them
+    to completed/failed once they've actually finished.
+
+    api_run_workflow() returns as soon as ComfyUI *accepts* a prompt into its
+    queue, not when it's actually done - without this, a job would sit
+    labeled "running" (or, before this fix existed, incorrectly "completed")
+    indefinitely regardless of real progress.
+    """
+    if not job_queue:
+        return
+    from ai_manager import load_config
+    from comfy_studio import progress as comfy_progress
+
+    config = load_config()
+    progress_by_state = {'waiting': 10, 'queued': 15, 'running': 60, 'history': 80}
+    for job in job_queue.get_running():
+        result = job.get('result') or {}
+        prompt_id = result.get('prompt_id')
+        if not prompt_id:
+            continue
+        try:
+            payload = comfy_progress(config, prompt_id)
+        except Exception:
+            continue
+        state = payload.get('state')
+        if state == 'cancelled':
+            job_queue.update_job(job['job_id'], status='cancelled', progress=0)
+            continue
+        if not payload.get('completed'):
+            job_queue.update_job(job['job_id'], progress=progress_by_state.get(state, job.get('progress') or 10))
+            continue
+        outputs = [_rewrite_media_url(dict(o)) for o in (payload.get('outputs') or [])]
+        new_result = dict(result)
+        new_result['outputs'] = outputs
+        if not outputs:
+            new_result['message'] = f"Finished ({payload.get('status', 'done')}), but no matching output file was found."
+        job_queue.update_job(job['job_id'], status='completed', progress=100, result=new_result)
 
 
 @app.route('/api/jobs')
@@ -2080,6 +2221,7 @@ def api_jobs() -> jsonify:
         limit = max(1, min(int(request.args.get('limit', 50)), 200))
     except ValueError:
         limit = 50
+    _reconcile_running_jobs()
     completed = job_queue.get_completed(limit=limit)
     for job in completed:
         _enrich_job_outputs(job)
@@ -2093,6 +2235,7 @@ def api_jobs() -> jsonify:
 @app.route('/api/jobs/<job_id>')
 def api_job_status(job_id: str) -> jsonify:
     """Get job status by ID."""
+    _reconcile_running_jobs()
     job = job_queue.get_job(job_id)
 
     if not job:
@@ -2102,35 +2245,45 @@ def api_job_status(job_id: str) -> jsonify:
     return jsonify(job)
 
 
-@app.route('/api/outputs/<path:subpath>')
+def runtime_comfyui_dir() -> Path:
+    from ai_manager import load_config
+
+    return Path(os.environ.get('COMFYUI_DIR') or load_config().get('COMFYUI_DIR', Path(__file__).resolve().parent / 'repos/ComfyUI'))
+
+
+@app.route('/api/outputs/<path:subpath>', methods=['GET', 'DELETE'])
 def api_output_file(subpath: str):
-    """Serve a ComfyUI output file through Studio."""
+    """Serve or delete a ComfyUI output file through Studio."""
     if not config_manager:
         return jsonify({'error': 'Application not initialized'}), 500
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or str(Path(__file__).resolve().parent / 'repos/ComfyUI')
-    output_dir = (Path(comfyui_dir) / 'output').resolve()
+    output_dir = (runtime_comfyui_dir() / 'output').resolve()
     target = (output_dir / subpath).resolve()
     if output_dir not in target.parents and target != output_dir:
         return jsonify({'error': 'Invalid output path'}), 400
     if not target.exists() or not target.is_file():
         return jsonify({'error': 'Output not found'}), 404
+    if request.method == 'DELETE':
+        target.unlink()
+        return jsonify({'deleted': subpath})
     return send_from_directory(target.parent, target.name)
 
 
-@app.route('/api/input/<path:subpath>')
+@app.route('/api/input/<path:subpath>', methods=['GET', 'DELETE'])
 def api_input_file(subpath: str):
-    """Serve a ComfyUI input file through Studio."""
+    """Serve or delete a ComfyUI input file through Studio."""
     if not config_manager:
         return jsonify({'error': 'Application not initialized'}), 500
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or str(Path(__file__).resolve().parent / 'repos/ComfyUI')
-    input_dir = (Path(comfyui_dir) / 'input').resolve()
+    input_dir = (runtime_comfyui_dir() / 'input').resolve()
     target = (input_dir / subpath).resolve()
     if input_dir not in target.parents and target != input_dir:
         return jsonify({'error': 'Invalid input path'}), 400
     if not target.exists() or not target.is_file():
         return jsonify({'error': 'Input not found'}), 404
+    if request.method == 'DELETE':
+        target.unlink()
+        return jsonify({'deleted': subpath})
     return send_from_directory(target.parent, target.name)
 
 
@@ -2141,12 +2294,11 @@ def api_outputs_index() -> jsonify:
         return jsonify({'error': 'Application not initialized'}), 500
 
     try:
-        limit = max(1, min(int(request.args.get('limit', 24)), 100))
+        limit = max(1, min(int(request.args.get('limit', 24)), 500))
     except ValueError:
         limit = 24
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or str(Path(__file__).resolve().parent / 'repos/ComfyUI')
-    output_dir = (Path(comfyui_dir) / 'output').resolve()
+    output_dir = (runtime_comfyui_dir() / 'output').resolve()
     if not output_dir.exists():
         return jsonify({'outputs': []})
 
@@ -2165,6 +2317,10 @@ def api_outputs_index() -> jsonify:
         '.fbx': 'model',
         '.ply': 'model',
         '.stl': 'model',
+        '.wav': 'audio',
+        '.mp3': 'audio',
+        '.flac': 'audio',
+        '.ogg': 'audio',
     }
     files = []
     for path in output_dir.rglob('*'):
@@ -2198,8 +2354,7 @@ def api_inputs_index() -> jsonify:
     except ValueError:
         limit = 200
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or str(Path(__file__).resolve().parent / 'repos/ComfyUI')
-    input_dir = (Path(comfyui_dir) / 'input').resolve()
+    input_dir = (runtime_comfyui_dir() / 'input').resolve()
     if not input_dir.exists():
         return jsonify({'inputs': []})
 
@@ -2253,8 +2408,7 @@ def api_upload_file() -> jsonify:
     if not uploaded.filename:
         return jsonify({'error': 'Uploaded file has no filename'}), 400
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or str(Path(__file__).resolve().parent / 'repos/ComfyUI')
-    input_dir = (Path(comfyui_dir) / 'input' / 'studio_uploads').resolve()
+    input_dir = (runtime_comfyui_dir() / 'input' / 'studio_uploads').resolve()
     input_dir.mkdir(parents=True, exist_ok=True)
 
     safe_name = secure_filename(uploaded.filename) or f"upload-{int(time.time())}"
@@ -2273,6 +2427,156 @@ def api_upload_file() -> jsonify:
         'filename': target.name,
         'url': f"/api/input/{relative}",
     })
+
+
+@app.route('/api/comfy-progress/<prompt_id>')
+def api_comfy_progress(prompt_id: str) -> jsonify:
+    """Poll a ComfyUI prompt directly, with correct audio/image/video output typing.
+
+    /api/jobs/<id> only enriches outputs from the "images"/"videos" history keys
+    (see _enrich_job_outputs), so it never surfaces audio outputs and can
+    mislabel SaveVideo output as an image. This reuses comfy_studio.progress(),
+    which handles both correctly, for callers (like the music-video pipeline)
+    that need to know precisely when a specific prompt has finished.
+    """
+    from ai_manager import load_config
+    from comfy_studio import progress as comfy_progress
+
+    payload = comfy_progress(load_config(), prompt_id)
+    for output in payload.get('outputs') or []:
+        _rewrite_media_url(output)
+    return jsonify(payload)
+
+
+def _rewrite_media_url(output: Dict[str, Any]) -> Dict[str, Any]:
+    """comfy_studio's queue/progress/mux/stitch functions build "/media/..."
+    URLs for its own now-archived StudioHandler route. launcher.py serves
+    output files under /api/outputs/ instead, so rewrite in place."""
+    subfolder = output.get('subfolder') or ''
+    relative = f"{subfolder}/{output['filename']}" if subfolder else output['filename']
+    output['url'] = f"/api/outputs/{relative}"
+    return output
+
+
+@app.route('/api/mux-music-video', methods=['POST'])
+def api_mux_music_video() -> jsonify:
+    """Combine a generated clip and song into one music video file."""
+    from comfy_studio import mux_music_video
+
+    body = request.get_json() or {}
+    try:
+        output = mux_music_video(body.get('video'), body.get('audio'), title=body.get('title'))
+        return jsonify({'output': _rewrite_media_url(output)})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+
+@app.route('/api/stitch-videos', methods=['POST'])
+def api_stitch_videos() -> jsonify:
+    """Concatenate several generated video segments into one clip."""
+    from comfy_studio import stitch_videos
+
+    body = request.get_json() or {}
+    try:
+        output = stitch_videos(body.get('outputs', []), body.get('workflow_id', 'sequence'))
+        return jsonify({'output': _rewrite_media_url(output)})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+
+STORYBOARDS_DIR = Path(__file__).resolve().parent / 'storyboards'
+STORYBOARDS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _storyboard_path(storyboard_id: str) -> Optional[Path]:
+    safe_id = re.sub(r'[^a-zA-Z0-9_-]', '', storyboard_id or '')
+    if not safe_id:
+        return None
+    return STORYBOARDS_DIR / f'{safe_id}.json'
+
+
+@app.route('/api/storyboards')
+def api_list_storyboards() -> jsonify:
+    """List saved storyboards (persisted shot sequences you can generate video from later)."""
+    items = []
+    for path in STORYBOARDS_DIR.glob('*.json'):
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        shots = data.get('shots') or []
+        thumbnail_url = next((s['image']['url'] for s in shots if s.get('image')), None)
+        items.append({
+            'id': data.get('id'),
+            'title': data.get('title') or 'Untitled',
+            'shot_count': len(shots),
+            'shots_with_images': sum(1 for s in shots if s.get('image')),
+            'has_video': bool(data.get('video')),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at'),
+            'thumbnail_url': thumbnail_url,
+        })
+    items.sort(key=lambda item: item.get('updated_at') or '', reverse=True)
+    return jsonify({'storyboards': items})
+
+
+@app.route('/api/storyboards', methods=['POST'])
+def api_create_storyboard() -> jsonify:
+    """Create a new, empty (or seeded) storyboard."""
+    body = request.get_json() or {}
+    storyboard_id = uuid.uuid4().hex[:12]
+    now = datetime.utcnow().isoformat()
+    descriptions = [d for d in (body.get('shot_descriptions') or []) if str(d).strip()]
+    data = {
+        'id': storyboard_id,
+        'title': (body.get('title') or 'Untitled Storyboard').strip(),
+        'created_at': now,
+        'updated_at': now,
+        'shots': [{'description': d, 'image': None} for d in descriptions] or [{'description': '', 'image': None}],
+        'video': None,
+    }
+    _storyboard_path(storyboard_id).write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/storyboards/<storyboard_id>')
+def api_get_storyboard(storyboard_id: str) -> jsonify:
+    path = _storyboard_path(storyboard_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Storyboard not found'}), 404
+    return jsonify(json.loads(path.read_text()))
+
+
+@app.route('/api/storyboards/<storyboard_id>', methods=['PUT'])
+def api_update_storyboard(storyboard_id: str) -> jsonify:
+    """Save the full storyboard (title, shots incl. descriptions/images, video).
+
+    The client owns the in-memory storyboard object and PUTs the whole thing
+    back after each change (a shot's image finishes generating, a description
+    is edited, the video is produced) - simple and fine at this data scale.
+    """
+    path = _storyboard_path(storyboard_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Storyboard not found'}), 404
+    body = request.get_json() or {}
+    data = json.loads(path.read_text())
+    if 'title' in body:
+        data['title'] = (body.get('title') or data.get('title') or 'Untitled Storyboard').strip()
+    if 'shots' in body:
+        data['shots'] = body['shots']
+    if 'video' in body:
+        data['video'] = body['video']
+    data['updated_at'] = datetime.utcnow().isoformat()
+    path.write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/storyboards/<storyboard_id>', methods=['DELETE'])
+def api_delete_storyboard(storyboard_id: str) -> jsonify:
+    path = _storyboard_path(storyboard_id)
+    if path and path.exists():
+        path.unlink()
+    return jsonify({'deleted': storyboard_id})
 
 
 def _enrich_job_outputs(job: Dict[str, Any]) -> None:

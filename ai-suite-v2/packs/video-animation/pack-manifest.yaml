@@ -10,6 +10,8 @@ description: >
 
 workflows:
   - video.image-to-video
+  - video.keyframe-video
+  - video.keyframe-video-fast
   - video.video-to-video
   - video.talking-head
   - video.lip-sync
