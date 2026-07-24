@@ -7,7 +7,7 @@ status: migrated
 media_type: image
 source:
   suite: v1
-  path: /home/hilbert/ai-suite-v2/legacy-workflows/image-outpaint-qwen-blueprint.json
+  path: /home/hilbert/ai-suite/legacy-workflows/image-outpaint-qwen-blueprint.json
 entrypoints:
   ui: workflow.json
 inputs:

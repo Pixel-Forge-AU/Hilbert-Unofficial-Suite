@@ -1,4 +1,4 @@
-# AI Suite V2 Tools Dependencies
+# AI Suite Tools Dependencies
 # Install with: pip install -r tools/requirements.txt
 
 # YAML parsing

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Download known AI Suite V2 / migrated Studio model files.
+"""Download known AI Suite / migrated Studio model files.
 
-The v2 pack manifests often describe model roles instead of exact files. This
-script focuses on exact filenames referenced by migrated workflows and v2
+The pack manifests often describe model roles instead of exact files. This
+script focuses on exact filenames referenced by migrated workflows and
 workflow-api files, using URLs from bundled ComfyUI blueprints where possible.
 """
 
@@ -19,12 +19,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COMFY_MODELS = Path("/home/hilbert/ai-suite-v2/repos/ComfyUI/models")
+COMFY_MODELS = Path("/home/hilbert/ai-suite/repos/ComfyUI/models")
 REPORT = ROOT / "logs/model-download-report.json"
 
 
 MODELS = [
-    # Core v2 pack exact filenames
+    # Core pack exact filenames
     ("checkpoints", "sdxl.safetensors", "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"),
     ("checkpoints", "juggernaut-xl-v9.safetensors", "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"),
     ("checkpoints", "flux_realism.safetensors", None),

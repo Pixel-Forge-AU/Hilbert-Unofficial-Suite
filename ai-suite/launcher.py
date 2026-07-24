@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Suite V2 Launcher
+AI Suite Launcher
 
 A comprehensive workflow launcher for managing and executing AI generation workflows.
 
@@ -69,8 +69,8 @@ except Exception as exc:
     CHAT_AVAILABLE = False
     CHAT_IMPORT_ERROR = str(exc)
 
-__version__ = "3.0.0"
-__author__ = "AI Suite V2 Team"
+__version__ = "3.1.0"
+__author__ = "AI Suite Team"
 
 
 class ConfigManager:
@@ -92,7 +92,7 @@ class ConfigManager:
                 # Default configuration
                 self.config = {
                     'suite': {
-                        'name': 'AI Suite V2',
+                        'name': 'AI Suite',
                         'version': '2.0.0',
                         'description': 'Modular ComfyUI workflow platform'
                     },
@@ -152,7 +152,7 @@ class ConfigManager:
         """Load default configuration."""
         self.config = {
             'suite': {
-                'name': 'AI Suite V2',
+                'name': 'AI Suite',
                 'version': '2.0.0',
                 'description': 'Modular ComfyUI workflow platform'
             },
@@ -1998,6 +1998,8 @@ SERVICE_COMMANDS = {
     'genesis-stop',
     'openhands',
     'openhands-stop',
+    'pipeline-dashboard',
+    'pipeline-dashboard-stop',
     'hilbert',
     'hilbert-heretic',
     'hilbert-small',
@@ -2368,7 +2370,7 @@ def api_output_file(subpath: str):
     if not config_manager:
         return jsonify({'error': 'Application not initialized'}), 500
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     output_dir = (Path(comfyui_dir) / 'output').resolve()
     target = (output_dir / subpath).resolve()
     if output_dir not in target.parents and target != output_dir:
@@ -2387,7 +2389,7 @@ def api_input_file(subpath: str):
     if not config_manager:
         return jsonify({'error': 'Application not initialized'}), 500
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     input_dir = (Path(comfyui_dir) / 'input').resolve()
     target = (input_dir / subpath).resolve()
     if input_dir not in target.parents and target != input_dir:
@@ -2411,7 +2413,7 @@ def api_outputs_index() -> jsonify:
     except ValueError:
         limit = 24
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     output_dir = (Path(comfyui_dir) / 'output').resolve()
     if not output_dir.exists():
         return jsonify({'outputs': []})
@@ -2474,7 +2476,7 @@ def api_inputs_index() -> jsonify:
     except ValueError:
         limit = 200
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     input_dir = (Path(comfyui_dir) / 'input').resolve()
     if not input_dir.exists():
         return jsonify({'inputs': []})
@@ -2540,7 +2542,7 @@ def api_upload_file() -> jsonify:
     if not uploaded.filename:
         return jsonify({'error': 'Uploaded file has no filename'}), 400
 
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     input_dir = (Path(comfyui_dir) / 'input' / 'studio_uploads').resolve()
     input_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2607,7 +2609,7 @@ def _rewrite_media_url(output: Dict[str, Any]) -> Dict[str, Any]:
 @app.route('/media/<path:subpath>')
 def api_chat_media_file(subpath: str):
     """Serve ComfyUI output links emitted by the integrated chat helper."""
-    comfyui_dir = os.environ.get('COMFYUI_DIR') or _runtime_config().get('COMFYUI_DIR') or '/home/hilbert/ai-suite-v2/repos/ComfyUI'
+    comfyui_dir = os.environ.get('COMFYUI_DIR') or _runtime_config().get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     output_dir = (Path(comfyui_dir) / 'output').resolve()
     target = (output_dir / subpath).resolve()
     if output_dir not in target.parents and target != output_dir:
@@ -4786,7 +4788,7 @@ def show_config(args: argparse.Namespace) -> None:
         print("Error: Configuration not loaded")
         return
 
-    print("\nAI Suite V2 Configuration")
+    print("\nAI Suite Configuration")
     print("=" * 60)
 
     print("\nSuite Information:")
@@ -4864,7 +4866,7 @@ def main() -> None:
 
     # Create argument parser
     parser = argparse.ArgumentParser(
-        description='AI Suite V2 Launcher - Workflow Management System',
+        description='AI Suite Launcher - Workflow Management System',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
@@ -4964,7 +4966,7 @@ Examples:
 
     # Handle version first (before parsing)
     if len(sys.argv) > 1 and sys.argv[1] in ['-v', '--version', 'version']:
-        print(f"AI Suite V2 Launcher v{__version__}")
+        print(f"AI Suite Launcher v{__version__}")
         return
 
     # Parse arguments
@@ -4999,7 +5001,7 @@ Examples:
         service_command(args)
     elif args.command is None:
         # Start web server
-        print(f"Starting AI Suite V2 Launcher v{__version__}")
+        print(f"Starting AI Suite Launcher v{__version__}")
         print(f"Host: {args.host}:{args.port}")
         print(f"Debug: {'enabled' if args.debug else 'disabled'}")
 

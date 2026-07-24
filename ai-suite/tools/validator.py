@@ -2,7 +2,7 @@
 """
 Validator Module
 
-This module validates manifests against JSON schemas for AI Suite V2.
+This module validates manifests against JSON schemas for AI Suite.
 It checks workflow-manifest.schema.json and pack-manifest.schema.json compliance,
 validates model dependencies exist, and reports errors and warnings.
 

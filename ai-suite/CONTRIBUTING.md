@@ -1,6 +1,6 @@
-# Contributing to AI Suite V2
+# Contributing to AI Suite
 
-Thank you for your interest in contributing to AI Suite V2! This guide will help you get started contributing to this modular ComfyUI workflow platform.
+Thank you for your interest in contributing to AI Suite! This guide will help you get started contributing to this modular ComfyUI workflow platform.
 
 ---
 
@@ -73,7 +73,7 @@ This Code of Conduct applies within all project spaces, including GitHub, Discor
 
 ### First-Time Contributors
 
-Welcome! We're excited to have you contribute to AI Suite V2. Here's how to get started:
+Welcome! We're excited to have you contribute to AI Suite. Here's how to get started:
 
 #### 1. Understand the Project
 
@@ -88,8 +88,8 @@ Read these essential documents first:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ai-suite/v2.git
-cd ai-suite-v2
+git clone https://github.com/YOUR_USERNAME/ai-suite.git
+cd ai-suite
 
 # Install dependencies
 pip install -r requirements.txt
@@ -106,7 +106,7 @@ pip install jsonschema pyyaml
 Familiarize yourself with the structure:
 
 ```
-ai-suite-v2/
+ai-suite/
 ├── packs/              # Workflow packs (main development area)
 │   ├── core-generation/
 │   ├── character/
@@ -274,11 +274,11 @@ Fixes # (issue number)
 
 ```bash
 # Fork the repository on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/ai-suite-v2.git
-cd ai-suite-v2
+git clone https://github.com/YOUR_USERNAME/ai-suite.git
+cd ai-suite
 
 # Add upstream remote
-git remote add upstream https://github.com/ai-suite/v2.git
+git remote add upstream https://github.com/YOUR_USERNAME/ai-suite.git
 
 # Verify remotes
 git remote -v
@@ -912,8 +912,8 @@ Let me know what you think!
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/ai-suite-v2.git
-cd ai-suite-v2
+git clone https://github.com/YOUR_USERNAME/ai-suite.git
+cd ai-suite
 
 # Install dependencies
 pip install -r requirements.txt
@@ -1040,7 +1040,7 @@ Reach out to current maintainers if you're interested.
 
 ## License
 
-By contributing to AI Suite V2, you agree that your contributions will be licensed under the [MIT License](../LICENSE).
+By contributing to AI Suite, you agree that your contributions will be licensed under the [MIT License](../LICENSE).
 
 ---
 
@@ -1064,11 +1064,11 @@ Special thanks to the ComfyUI community for their amazing work and support.
 
 ## Thank You!
 
-Thank you for taking the time to contribute to AI Suite V2! Your efforts help make this project better for everyone.
+Thank you for taking the time to contribute to AI Suite! Your efforts help make this project better for everyone.
 
 Questions? Check out:
 - [Documentation](docs/)
 - [Discord](https://discord.gg/aistudio)
-- [GitHub Discussions](https://github.com/ai-suite/v2/discussions)
+- [GitHub Discussions](https://github.com/YOUR_USERNAME/ai-suite/discussions)
 
 Happy coding! 🎨✨

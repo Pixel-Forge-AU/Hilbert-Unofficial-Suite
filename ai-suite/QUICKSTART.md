@@ -1,4 +1,4 @@
-# AI Suite V2 - Quickstart Guide
+# AI Suite - Quickstart Guide
 
 Ready to start creating with AI? This guide will have you up and running in minutes!
 
@@ -27,8 +27,8 @@ Clone the repository and install dependencies:
 cd /workspace/repos
 
 # Clone the repository
-git clone https://github.com/your-org/ai-suite-v2.git
-cd ai-suite-v2
+git clone https://github.com/your-org/ai-suite.git
+cd ai-suite
 
 # Install dependencies
 pip install -r requirements.txt

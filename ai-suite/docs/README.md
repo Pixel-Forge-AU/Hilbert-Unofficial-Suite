@@ -1,4 +1,4 @@
-# AI Suite V2 - Comprehensive Documentation
+# AI Suite - Comprehensive Documentation
 
 ## Table of Contents
 
@@ -15,11 +15,11 @@
 
 ## Overview
 
-AI Suite V2 is a modular, extensible ComfyUI workflow platform that provides a comprehensive suite of AI-powered image generation, editing, and animation tools. The platform treats every workflow as an installable module rather than a standalone JSON file, enabling easy discovery, management, and sharing of AI generation pipelines.
+AI Suite is a modular, extensible ComfyUI workflow platform that provides a comprehensive suite of AI-powered image generation, editing, and animation tools. The platform treats every workflow as an installable module rather than a standalone JSON file, enabling easy discovery, management, and sharing of AI generation pipelines.
 
 ### Project Goals
 
-AI Suite V2 aims to:
+AI Suite aims to:
 
 - **Modularity**: Provide workflows as modular, self-contained packages with standardized interfaces
 - **Model Agnosticism**: Support multiple model families (Flux, SDXL, SD 1.5, Qwen Image, and more)
@@ -29,9 +29,9 @@ AI Suite V2 aims to:
 - **Safe Failure**: Gracefully handle missing dependencies with clear error messages
 - **Extensibility**: Enable easy addition of new workflow categories and packs
 
-### What is AI Suite V2?
+### What is AI Suite?
 
-AI Suite V2 is a workflow management platform built on top of ComfyUI that provides:
+AI Suite is a workflow management platform built on top of ComfyUI that provides:
 
 - **50+ production-ready workflows** across 15+ categories
 - **Centralized workflow registry** with searchable discovery
@@ -129,11 +129,11 @@ AI Suite V2 is a workflow management platform built on top of ComfyUI that provi
 
 ## Architecture Overview
 
-AI Suite V2 follows a modular architecture with clear separation of concerns:
+AI Suite follows a modular architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         AI Suite V2 Launcher                         │
+│                         AI Suite Launcher                         │
 │                    (Flask Web Interface + CLI)                       │
 └─────────────────────────┬───────────────────────────────────────────┘
                           │
@@ -245,8 +245,8 @@ The platform automatically optimizes workflows based on detected hardware:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/ai-suite/v2.git
-   cd ai-suite-v2
+   git clone https://github.com/YOUR_USERNAME/ai-suite.git
+   cd ai-suite
    ```
 
 2. **Install dependencies**:
@@ -295,7 +295,7 @@ python launcher.py --validate
 ## Project Structure
 
 ```
-ai-suite-v2/
+ai-suite/
 ├── docs/                      # Documentation (this directory)
 │   ├── README.md             # This file
 │   ├── USER_GUIDE.md         # User-facing documentation
@@ -399,7 +399,7 @@ ai-suite-v2/
 
 ## Contributing
 
-AI Suite V2 is built as an open, modular platform. Contributions are welcome!
+AI Suite is built as an open, modular platform. Contributions are welcome!
 
 ### Ways to Contribute
 - Create new workflows
@@ -426,7 +426,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-AI Suite V2 builds on the foundations of:
+AI Suite builds on the foundations of:
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) - The underlying workflow engine
 - Stable Diffusion community - For model development and sharing
 - AI research community - For continuous innovation

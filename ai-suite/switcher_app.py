@@ -14,7 +14,7 @@ from ai_manager import ROOT, load_config
 class Switcher(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("AI Suite V2 Switcher")
+        self.title("AI Suite Switcher")
         self.geometry("820x640")
         self.minsize(720, 540)
         self.config_data = load_config()
@@ -39,8 +39,8 @@ class Switcher(tk.Tk):
         header = ttk.Frame(self, padding=16)
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(0, weight=1)
-        ttk.Label(header, text="AI Suite V2 Switcher", style="Title.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(header, text="Run one GPU-heavy stack at a time from /home/hilbert/ai-suite-v2.").grid(row=1, column=0, sticky="w")
+        ttk.Label(header, text="AI Suite Switcher", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(header, text="Run one GPU-heavy stack at a time from /home/hilbert/ai-suite.").grid(row=1, column=0, sticky="w")
         ttk.Label(header, textvariable=self.display_safety, style="Status.TLabel").grid(row=0, column=1, sticky="e")
 
         services = ttk.LabelFrame(self, text="Services", padding=10, style="Section.TLabelframe")
@@ -92,6 +92,9 @@ class Switcher(tk.Tk):
         ttk.Button(pipeline, text="OpenHands", command=lambda: self.run("openhands"), style="Accent.TButton").grid(row=2, column=0, sticky="ew", padx=4, pady=(4, 0))
         ttk.Button(pipeline, text="OpenHands Stop", command=lambda: self.run("openhands-stop")).grid(row=2, column=1, sticky="ew", padx=4, pady=(4, 0))
         ttk.Button(pipeline, text="Open OpenHands", command=self.open_openhands).grid(row=2, column=2, sticky="ew", padx=4, pady=(4, 0))
+        ttk.Button(pipeline, text="Dashboard", command=lambda: self.run("pipeline-dashboard"), style="Accent.TButton").grid(row=2, column=3, sticky="ew", padx=4, pady=(4, 0))
+        ttk.Button(pipeline, text="Dashboard Stop", command=lambda: self.run("pipeline-dashboard-stop")).grid(row=2, column=4, sticky="ew", padx=4, pady=(4, 0))
+        ttk.Button(pipeline, text="Open Dashboard", command=self.open_dashboard).grid(row=2, column=5, sticky="ew", padx=4, pady=(4, 0))
 
         safety = ttk.LabelFrame(self, text="Display Safety", padding=10, style="Section.TLabelframe")
         safety.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 8))
@@ -268,6 +271,10 @@ class Switcher(tk.Tk):
     def open_openhands(self):
         host = self._browser_host(self.config_data.get("OPENHANDS_HOST", "0.0.0.0"))
         webbrowser.open(f"http://{host}:{self.config_data.get('OPENHANDS_PORT', '39009')}/docs")
+
+    def open_dashboard(self):
+        host = self._browser_host(self.config_data.get("DASHBOARD_HOST", "127.0.0.1"))
+        webbrowser.open(f"http://{host}:{self.config_data.get('DASHBOARD_PORT', '39016')}/")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
-# AI Suite V2 Configuration
+# AI Suite Configuration
 # Main suite configuration file
 
 suite:
-  name: "AI Suite V2"
+  name: "AI Suite"
   version: "2.1.0"
   description: "Modular ComfyUI workflow platform"
 

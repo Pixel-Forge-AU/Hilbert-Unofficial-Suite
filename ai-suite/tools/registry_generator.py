@@ -3,7 +3,7 @@
 Registry Generator Module
 
 This module generates a comprehensive registry JSON file from pack manifests
-in the AI Suite V2 repository. It scans the packs directory, extracts workflow
+in the AI Suite repository. It scans the packs directory, extracts workflow
 definitions, and creates a structured registry for workflow discovery and
 distribution.
 

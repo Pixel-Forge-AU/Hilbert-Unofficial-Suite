@@ -7,7 +7,7 @@ status: migrated
 media_type: video
 source:
   suite: v1
-  path: /home/hilbert/ai-suite-v2/legacy-workflows/hunyuan-video-15-720p-image-to-video.json
+  path: /home/hilbert/ai-suite/legacy-workflows/hunyuan-video-15-720p-image-to-video.json
 entrypoints:
   ui: workflow.json
 inputs:

@@ -83,6 +83,9 @@ def load_config():
         "OPENHANDS_HOST": "0.0.0.0",
         "OPENHANDS_PORT": "39009",
         "OPENHANDS_SESSION_API_KEY": "",
+        "OPENHANDS_VSCODE_PORT": "39017",
+        "DASHBOARD_HOST": "127.0.0.1",
+        "DASHBOARD_PORT": "39016",
         "HSA_OVERRIDE_GFX_VERSION": "",
     }
     if CONFIG.exists():
@@ -613,7 +616,7 @@ def start_studio(config):
     ]
     start_process("studio", cmd, ROOT, base_env(config))
     url = f"http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '8000')}/"
-    print(f"AI Suite V2 studio starting: {url}")
+    print(f"AI Suite studio starting: {url}")
     wait_http(url)
 
 
@@ -808,6 +811,43 @@ def stop_openhands(config):
     stop("openhands")
 
 
+def pipeline_env(config):
+    env = base_env(config)
+    env["PLANNER_DIR"] = config.get("PLANNER_DIR", str(ROOT / "planner-pipeline"))
+    env["ORCHESTRATOR_DIR"] = config.get("ORCHESTRATOR_DIR", str(ROOT / "implementation-orchestrator"))
+    env["PLANNER_URL"] = f"http://{config.get('PLANNER_HOST', '127.0.0.1')}:{config.get('PLANNER_PORT', '39006')}"
+    env["ORCHESTRATOR_URL"] = f"http://{config.get('ORCHESTRATOR_HOST', '127.0.0.1')}:{config.get('ORCHESTRATOR_PORT', '39007')}"
+    openhands_host = config.get("OPENHANDS_HOST", "0.0.0.0")
+    env["OPENHANDS_URL"] = f"http://{'127.0.0.1' if openhands_host == '0.0.0.0' else openhands_host}:{config.get('OPENHANDS_PORT', '39009')}"
+    env["OPENHANDS_PORT"] = config.get("OPENHANDS_PORT", "39009")
+    env["OPENHANDS_VSCODE_PORT"] = config.get("OPENHANDS_VSCODE_PORT", "39017")
+    return env
+
+
+def start_dashboard(config):
+    if is_running(read_pid("pipeline-dashboard")):
+        print("pipeline-dashboard already running")
+        return
+    env = pipeline_env(config)
+    env["DASHBOARD_PORT"] = config.get("DASHBOARD_PORT", "39016")
+    node = shutil.which("node") or "node"
+    start_process("pipeline-dashboard", [node, "pipeline-dashboard-server.mjs"], ROOT, env)
+    url = f"http://{config.get('DASHBOARD_HOST', '127.0.0.1')}:{config.get('DASHBOARD_PORT', '39016')}/"
+    print(f"pipeline dashboard starting: {url}")
+    wait_http(url)
+
+
+def stop_dashboard(config):
+    stop("pipeline-dashboard")
+
+
+def pipeline_status(config):
+    """Foreground terminal dashboard (pipeline-status.mjs) - runs until Ctrl+C."""
+    env = pipeline_env(config)
+    node = shutil.which("node") or "node"
+    subprocess.run([node, "pipeline-status.mjs"], cwd=str(ROOT), env=env)
+
+
 def start_health_monitor(config):
     if is_running(read_pid("health-monitor")):
         print("health-monitor already running")
@@ -919,6 +959,7 @@ def diagnostics(config):
     print(f"  orchestrator: http://{config.get('ORCHESTRATOR_HOST', '127.0.0.1')}:{config.get('ORCHESTRATOR_PORT', '39007')}")
     print(f"  genesis: http://{config.get('GENESIS_HOST', '0.0.0.0')}:{config.get('GENESIS_PORT', '39008')}")
     print(f"  openhands: http://{config.get('OPENHANDS_HOST', '0.0.0.0')}:{config.get('OPENHANDS_PORT', '39009')}")
+    print(f"  pipeline dashboard: http://{config.get('DASHBOARD_HOST', '127.0.0.1')}:{config.get('DASHBOARD_PORT', '39016')}")
     print()
     for label, command in [
         ("torch", [str(Path(config.get("COMFYUI_DIR", ROOT / "repos/ComfyUI")) / ".venv/bin/python"), "-c", "import torch; print(torch.__version__); print('HIP', torch.version.hip); print('GPU', torch.cuda.is_available())"]),
@@ -964,6 +1005,9 @@ def main(argv=None):
             "genesis-stop",
             "openhands",
             "openhands-stop",
+            "pipeline-dashboard",
+            "pipeline-dashboard-stop",
+            "pipeline-status",
             "hilbert",
             "hilbert-heretic",
             "hilbert-small",
@@ -1040,6 +1084,12 @@ def main(argv=None):
         start_openhands(config)
     elif args.command == "openhands-stop":
         stop_openhands(config)
+    elif args.command == "pipeline-dashboard":
+        start_dashboard(config)
+    elif args.command == "pipeline-dashboard-stop":
+        stop_dashboard(config)
+    elif args.command == "pipeline-status":
+        pipeline_status(config)
     elif args.command == "hilbert":
         start_llama(config)
         start_chat(config)
@@ -1066,6 +1116,7 @@ def main(argv=None):
         stop_orchestrator(config)
         stop_genesis(config)
         stop_openhands(config)
+        stop_dashboard(config)
         print("all stopped")
     elif args.command == "status":
         print(status_text("llama"))
@@ -1081,6 +1132,7 @@ def main(argv=None):
         print(status_text("orchestrator-worker"))
         print(status_text("genesis-runtime"))
         print(status_text("openhands"))
+        print(status_text("pipeline-dashboard"))
         print(status_text("health-monitor"))
         print(display_safety_text())
     elif args.command == "diag":

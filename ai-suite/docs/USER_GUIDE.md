@@ -1,4 +1,4 @@
-# AI Suite V2 - User Guide
+# AI Suite - User Guide
 
 ## Table of Contents
 
@@ -15,13 +15,13 @@
 
 ## Introduction
 
-This user guide provides comprehensive instructions for using AI Suite V2. Whether you're a beginner or an experienced AI artist, this guide will help you get the most out of the platform.
+This user guide provides comprehensive instructions for using AI Suite. Whether you're a beginner or an experienced AI artist, this guide will help you get the most out of the platform.
 
-AI Suite V2 is a powerful platform for generating AI artwork, editing images, and creating animations using ComfyUI workflows. This guide will walk you through every step of the process.
+AI Suite is a powerful platform for generating AI artwork, editing images, and creating animations using ComfyUI workflows. This guide will walk you through every step of the process.
 
 ### What You'll Learn
 
-- How to install and launch AI Suite V2
+- How to install and launch AI Suite
 - How to browse and select workflows
 - How to configure models and settings
 - How to run workflows and manage jobs
@@ -34,7 +34,7 @@ AI Suite V2 is a powerful platform for generating AI artwork, editing images, an
 
 ### Prerequisites
 
-Before installing AI Suite V2, ensure you have:
+Before installing AI Suite, ensure you have:
 
 - **Python 3.9-3.11** installed
 - **NVIDIA GPU** with CUDA support (recommended)
@@ -44,8 +44,8 @@ Before installing AI Suite V2, ensure you have:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/ai-suite/v2.git
-cd ai-suite-v2
+git clone https://github.com/YOUR_USERNAME/ai-suite.git
+cd ai-suite
 ```
 
 ### Step 2: Install Dependencies
@@ -78,7 +78,7 @@ model_paths:
     - /path/to/controlnet-models
 ```
 
-### Step 4: Launch AI Suite V2
+### Step 4: Launch AI Suite
 
 ```bash
 python launcher.py
@@ -87,7 +87,7 @@ python launcher.py
 You should see output like:
 
 ```
-AI Suite V2 Launcher v2.0.0
+AI Suite Launcher v3.1.0
 Loading configuration...
 Loading registry...
 Starting server on http://127.0.0.1:8000

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-AI Suite V2 Tools - Main Entry Point
+AI Suite Tools - Main Entry Point
 
-This module provides a unified command-line interface for all AI Suite V2 build tools,
+This module provides a unified command-line interface for all AI Suite build tools,
 including registry generation, workflow compilation, validation, and documentation generation.
 
 Example usage:
@@ -52,10 +52,10 @@ def get_tool_module(tool_name: str):
 
 
 def main():
-    """Main entry point for AI Suite V2 tools."""
+    """Main entry point for AI Suite tools."""
     parser = argparse.ArgumentParser(
         prog="ai-suite-tools",
-        description="AI Suite V2 Build Tools - A collection of utilities for managing AI workflows",
+        description="AI Suite Build Tools - A collection of utilities for managing AI workflows",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available tools:

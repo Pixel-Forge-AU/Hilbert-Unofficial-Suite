@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AI Suite V2 will be documented in this file.
+All notable changes to AI Suite will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -52,6 +52,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.gitignore` excluded `implementation-orchestrator/orchestrator-workspaces/` and
   `.../orchestrator-artifacts/`, but those directories are actually created at the repo
   root - the patterns never matched.
+
+---
+
+## [3.1.0] - 2026-07-24
+
+### ✨ New Features
+
+- **Pipeline dashboard**: `pipeline-dashboard-server.mjs` (web control panel at `:39016`,
+  new `ai-switch pipeline-dashboard`/`pipeline-dashboard-stop` commands, also on Studio's
+  "Pipeline" tab and the desktop Switcher) and `pipeline-status.mjs` (terminal equivalent,
+  `ai-switch pipeline-status`) give planner/orchestrator/OpenHands their own control plane -
+  service start/stop, `.env` editing, plan submission, and a live OpenHands chat/IDE view.
+
+### 🔧 Changed
+
+- Ported both pipeline-dashboard files in from a working copy that predated the
+  `config.env`/39000-block conventions: hardcoded `E:\AI\...` paths and a stray personal
+  plan ID are now resolved relative to the install (or from `config.env`, matching every
+  other service), and default ports/URLs now match the 39000 block instead of the old
+  3000/3001/8000/4500 ports. See the new `OPENHANDS_VSCODE_PORT`/`DASHBOARD_PORT`/
+  `DASHBOARD_HOST` entries in `config.env`.
+- Dropped the "V2" suffix from every displayed/printed name (window titles, the Studio
+  page title, `install.sh`'s banner, the desktop launcher entry, CLI startup banners,
+  etc.) - this project doesn't surface version numbers as part of its name, so the
+  suffix was just a stale leftover from the 2.0.0 rewrite. `CHANGELOG.md`'s historical
+  entries keep "V2" where it's describing what the project was actually called at the
+  time; only current-facing branding changed. Folder name was already `ai-suite`
+  (renamed in 3.0.0) - a few hardcoded `/home/hilbert/ai-suite-v2/...` fallback paths in
+  `launcher.py`/`switcher_app.py`/`tools/download_models.py` that never got updated to
+  match are now `ai-suite` too.
+
+### 🐛 Fixed
+
+- `install.sh` reported from a real install attempt (`ai-suite-v2`, the pre-rename
+  release): `./.venv/bin/pip: No such file or directory` after `python3 -m venv .venv`
+  silently produced a venv with no pip (missing `python3-venv`/broken ensurepip on the
+  user's distro) - `install.sh` now checks for `python3`, `git`, `cmake`, a C/C++
+  compiler, and working `ensurepip` up front and fails with an actionable message
+  instead of a bare "No such file or directory" partway through; also warns if `glslc`
+  (needed for llama.cpp's Vulkan backend - Debian/Ubuntu: `glslang-tools`,
+  `spirv-tools`, `spirv-headers`, `libvulkan-dev`) isn't on `PATH`. All three venvs the
+  script creates (`.venv`, `.venv-playwright`, `repos/ComfyUI/.venv`) now check for
+  `bin/pip` specifically rather than just the directory existing, so a partial venv
+  from an earlier failed run gets recreated instead of silently reused.
 
 ---
 

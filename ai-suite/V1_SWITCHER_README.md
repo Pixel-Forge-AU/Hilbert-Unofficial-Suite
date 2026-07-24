@@ -34,7 +34,7 @@ Studio:    http://127.0.0.1:8000
 Playwright:http://127.0.0.1:8092
 ```
 
-In v2, Studio opens the integrated launcher. Legacy v1 workflows are listed in
+Since the migration, Studio opens the integrated launcher. Legacy v1 workflows are listed in
 the `legacy-v1` category and queue through the migrated ComfyUI prompt runner.
 
 The Playwright service exposes a localhost HTTP API for shared browser
@@ -64,4 +64,4 @@ Hugging Face on first launch.
 # Historical V1 Notes
 
 This file was copied from the old `local-ai-switcher` for reference only.
-In AI Suite V2, `./ai-switch studio` starts the integrated v2 launcher on port `8000`; the old standalone Studio server on port `8091` is not the active path.
+In AI Suite, `./ai-switch studio` starts the integrated launcher on port `39000`; the old standalone Studio server on port `8091` is not the active path.

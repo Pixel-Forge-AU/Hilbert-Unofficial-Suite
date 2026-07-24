@@ -1,4 +1,4 @@
-# AI Suite V2 - Configuration Guide
+# AI Suite - Configuration Guide
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@
 
 ## Overview
 
-AI Suite V2 uses a comprehensive configuration system to manage all aspects of the platform. Configuration files are located in the `config/` directory and use YAML format for readability and flexibility.
+AI Suite uses a comprehensive configuration system to manage all aspects of the platform. Configuration files are located in the `config/` directory and use YAML format for readability and flexibility.
 
 ### Configuration File Locations
 
@@ -49,7 +49,7 @@ Configuration changes are applied when the launcher restarts. Some settings may 
 ```yaml
 # Suite Identification
 suite:
-  name: "AI Suite V2"
+  name: "AI Suite"
   version: "2.0.0"
   description: "Modular ComfyUI workflow platform"
   environment: "production"  # development, staging, production
@@ -157,7 +157,7 @@ Controls the suite's identity and environment:
 
 ```yaml
 suite:
-  name: "AI Suite V2"
+  name: "AI Suite"
   version: "2.0.0"
   description: "Modular ComfyUI workflow platform"
   environment: "production"
@@ -686,7 +686,7 @@ Environment variables can override any configuration value.
 
 ```bash
 # Suite identification
-export SUITE_NAME="AI Suite V2"
+export SUITE_NAME="AI Suite"
 export SUITE_VERSION="2.0.0"
 
 # Paths
@@ -755,7 +755,7 @@ set VARIABLE_NAME=value
 ```yaml
 # docker-compose.yml
 environment:
-  - SUITE_NAME=AI Suite V2
+  - SUITE_NAME=AI Suite
   - SETTINGS_LAUNCHER_PORT=8000
 ```
 

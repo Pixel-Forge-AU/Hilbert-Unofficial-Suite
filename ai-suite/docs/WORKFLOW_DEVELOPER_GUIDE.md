@@ -1,4 +1,4 @@
-# AI Suite V2 - Workflow Developer Guide
+# AI Suite - Workflow Developer Guide
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@
 
 ## Introduction
 
-This guide is for developers and creators who want to build workflows for AI Suite V2. Whether you're creating a new workflow from scratch or converting an existing ComfyUI workflow to the AI Suite format, this guide will help you.
+This guide is for developers and creators who want to build workflows for AI Suite. Whether you're creating a new workflow from scratch or converting an existing ComfyUI workflow to the AI Suite format, this guide will help you.
 
 ### What You'll Learn
 

@@ -1,6 +1,6 @@
 # Strix Halo Owner Walkthrough
 
-This walkthrough is for owners of Strix Halo systems such as the Ryzen AI Max+ 395 / Radeon 8060S machines used with AI Suite V2. It explains the BIOS memory change, Linux performance tuning, local LLM routing, and verification steps needed to reproduce the local setup.
+This walkthrough is for owners of Strix Halo systems such as the Ryzen AI Max+ 395 / Radeon 8060S machines used with AI Suite. It explains the BIOS memory change, Linux performance tuning, local LLM routing, and verification steps needed to reproduce the local setup.
 
 The tuning baseline comes from the `hogeheer499-commits/strix-halo-guide` findings, adapted to this suite and to Pop!_OS/systemd-boot.
 

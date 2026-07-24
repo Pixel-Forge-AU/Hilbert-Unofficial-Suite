@@ -7,7 +7,7 @@ status: migrated
 media_type: video
 source:
   suite: v1
-  path: /home/hilbert/ai-suite-v2/legacy-workflows/frame-interpolation.json
+  path: /home/hilbert/ai-suite/legacy-workflows/frame-interpolation.json
 entrypoints:
   ui: workflow.json
 inputs:

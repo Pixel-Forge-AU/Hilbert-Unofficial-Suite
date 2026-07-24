@@ -33,7 +33,14 @@ does **not** include ComfyUI, llama.cpp, OpenHands, or any model weights -
 those are hundreds of GB combined and you fetch/build them yourself via
 `install.sh`.
 
-**Prerequisites**: Python 3.10+, `git`, `cmake`; Node.js 22+ and Docker +
+**Prerequisites**: Python 3.10+ with `python3-venv` (not always installed by
+default - if it's missing, `python3 -m venv` can silently produce a `.venv`
+with no `bin/pip`, which is the most common install failure), `git`, `cmake`,
+a C/C++ compiler (`build-essential` on Debian/Ubuntu), and the Vulkan build
+toolchain for llama.cpp's Vulkan backend (`glslc` - Debian/Ubuntu package
+names are typically `glslang-tools`, `spirv-tools`, `spirv-headers`,
+`libvulkan-dev`). `install.sh` checks for all of these up front and tells you
+exactly what's missing before doing anything else. Node.js 22+ and Docker +
 Docker Compose if you want the AI build pipeline (`install.sh` skips that
 step and tells you if either is missing - everything else installs fine
 without them); `uv` is fetched automatically if absent (used to build the
@@ -110,7 +117,7 @@ workflow - only install what you plan to use.
 ./ai-switch stop     # stop everything
 ```
 
-Or use the desktop GUI (`./launch-switcher`, or the "AI Suite V2 Switcher"
+Or use the desktop GUI (`./launch-switcher`, or the "AI Suite Switcher"
 entry `install.sh` adds to your applications menu) for the same controls with
 buttons instead of commands.
 
@@ -121,16 +128,22 @@ buttons instead of commands.
 ./ai-switch orchestrator         # implementation-orchestrator API + worker (+ its postgres/redis)
 ./ai-switch openhands            # the real agent-server orchestrator dispatches to
 ./ai-switch genesis
+./ai-switch pipeline-dashboard   # web control panel for all of the above, at :39016
+./ai-switch pipeline-status      # terminal equivalent - polls plan/workflow status in-place
 ```
 
 `planner-setup`/`orchestrator-setup` (already run by `install.sh`) install
 each service's database schema - re-run either after pulling code changes
 that touch its packages. All of the above are also on Studio's "Pipeline" tab
-and the desktop Switcher's "AI Build Pipeline" row. See `docs/SERVICES.md`
-for the full port map, how planner and orchestrator connect, and
-troubleshooting notes (including a real gotcha already found and fixed:
-OpenHands' LLM routing needs a `provider/model`-prefixed model name, e.g.
-`openai/qwen-sidecar`, not a bare model name).
+and the desktop Switcher's "AI Build Pipeline" row - including buttons for
+`pipeline-dashboard`, whose UI lets you start/stop every pipeline service,
+edit planner/orchestrator config, submit a build plan, and watch OpenHands'
+live chat/IDE, all from one page. `pipeline-status` is terminal-only (no
+Studio button) since it runs in the foreground until Ctrl+C. See
+`docs/SERVICES.md` for the full port map, how planner and orchestrator
+connect, and troubleshooting notes (including a real gotcha already found
+and fixed: OpenHands' LLM routing needs a `provider/model`-prefixed model
+name, e.g. `openai/qwen-sidecar`, not a bare model name).
 
 Full command reference: `LAUNCHER_README.md` (the `launcher.py` CLI/web app)
 and `V1_SWITCHER_README.md` (the `ai-switch` service commands, endpoints, and

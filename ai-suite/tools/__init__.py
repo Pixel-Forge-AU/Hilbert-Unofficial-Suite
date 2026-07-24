@@ -1,8 +1,8 @@
 """
-AI Suite V2 Tools Package
+AI Suite Tools Package
 
 This package provides build tools for managing AI workflow manifests in the
-AI Suite V2 repository. It includes utilities for registry generation,
+AI Suite repository. It includes utilities for registry generation,
 workflow compilation, validation, and documentation.
 
 Modules:

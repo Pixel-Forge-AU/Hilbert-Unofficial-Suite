@@ -11,7 +11,7 @@ status: experimental
 media_type: image
 source:
   suite: v1
-  path: /home/hilbert/ai-suite-v2/legacy-workflows/image-to-image-qwen-edit.json
+  path: /home/hilbert/ai-suite/legacy-workflows/image-to-image-qwen-edit.json
 entrypoints:
   ui: workflow.json
 inputs:

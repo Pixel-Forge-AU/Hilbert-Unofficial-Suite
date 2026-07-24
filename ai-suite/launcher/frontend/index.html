@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Suite V2 Launcher</title>
+    <title>AI Suite Launcher</title>
     <style>
         * {
             margin: 0;
@@ -41,10 +41,6 @@
             font-size: 1.5rem;
             font-weight: bold;
             color: #4fc3f7;
-        }
-
-        .logo span {
-            color: #00bcd4;
         }
 
         .search-form {
@@ -1868,7 +1864,7 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <div class="logo">AI Suite <span>V2</span></div>
+            <div class="logo">AI Suite</div>
         </div>
     </header>
 
@@ -1956,6 +1952,17 @@
                 <a class="btn btn-secondary" href="http://localhost:39008/" target="_blank" rel="noopener">Genesis: Open</a>
                 <button class="btn btn-secondary" onclick="refreshServiceStatus('pipelineOutput')">Status</button>
             </div>
+            <div class="service-actions" style="margin-top: 0.5rem;">
+                <button class="btn btn-primary" onclick="runServiceCommand('pipeline-dashboard', 'pipelineOutput')">Dashboard: Start</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('pipeline-dashboard-stop', 'pipelineOutput')">Dashboard: Stop</button>
+                <a class="btn btn-secondary" href="http://localhost:39016/" target="_blank" rel="noopener">Dashboard: Open</a>
+            </div>
+            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
+                The dashboard gives Planner/Orchestrator/OpenHands their own live control panel (start/stop,
+                config editing, plan submission, and a real-time OpenHands chat/IDE view) - the buttons above
+                are enough to just get every service running. For a terminal-only view instead, run
+                <code>./ai-switch pipeline-status</code>.
+            </p>
             <pre class="service-output" id="pipelineOutput">Use Setup once per service before its first Start. Status shows every suite service.</pre>
         </section>
         </section>

@@ -1,4 +1,4 @@
-# AI Suite V2 - Architecture Guide
+# AI Suite - Architecture Guide
 
 ## Table of Contents
 
@@ -15,13 +15,13 @@
 
 ## Introduction
 
-This architecture guide provides a comprehensive overview of AI Suite V2's technical design. Understanding the architecture is essential for developers, system administrators, and advanced users who want to customize or extend the platform.
+This architecture guide provides a comprehensive overview of AI Suite's technical design. Understanding the architecture is essential for developers, system administrators, and advanced users who want to customize or extend the platform.
 
 ---
 
 ## System Architecture
 
-AI Suite V2 follows a modular, layered architecture:
+AI Suite follows a modular, layered architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -98,7 +98,7 @@ The external integration layer connects to external systems:
 ### Root Directory
 
 ```
-ai-suite-v2/
+ai-suite/
 ├── docs/                      # Documentation
 ├── config/                    # Configuration files
 ├── registry/                  # Registry databases
@@ -143,7 +143,7 @@ config/
 **suite.yaml** - Main configuration:
 ```yaml
 suite:
-  name: "AI Suite V2"
+  name: "AI Suite"
   version: "2.0.0"
 
 paths:
@@ -695,7 +695,7 @@ Jobs are processed in a queue with the following states:
 ### Integration Architecture
 
 ```
-AI Suite V2 Launcher
+AI Suite Launcher
         │
         ├── HTTP API (port 8188)
         │   ├── POST /prompt

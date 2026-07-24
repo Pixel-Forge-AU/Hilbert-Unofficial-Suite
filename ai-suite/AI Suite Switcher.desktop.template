@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=AI Suite V2 Switcher
+Name=AI Suite Switcher
 Comment=Start and switch local AI runtime services
 Exec=__INSTALL_DIR__/launch-switcher
 Path=__INSTALL_DIR__

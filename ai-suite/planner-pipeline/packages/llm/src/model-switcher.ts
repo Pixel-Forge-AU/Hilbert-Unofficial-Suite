@@ -28,14 +28,14 @@ export interface ManagedModel {
 export const MANAGED_MODELS: Record<string, ManagedModel> = {
   "qwen3.6-35b-a3b-heretic": {
     alias: "qwen3.6-35b-a3b-uncensored-heretic-q4_k_m",
-    path: "/home/hilbert/ai-suite-v2/models/qwen3.6-35b-a3b-heretic/Qwen3.6-35B-A3B-uncensored-heretic-Q4_K_M.gguf",
+    path: "/home/hilbert/ai-suite/models/qwen3.6-35b-a3b-heretic/Qwen3.6-35B-A3B-uncensored-heretic-Q4_K_M.gguf",
     ctx: "131072",
     gpuLayers: "999",
     extraArgs: "--flash-attn on --device Vulkan0 --batch-size 2048 --ubatch-size 512 --parallel 1"
   },
   "qwen3-coder-next-80b": {
     alias: "qwen3-coder-next-q5_k_m",
-    path: "/home/hilbert/ai-suite-v2/models/qwen3-coder-next/Qwen3-Coder-Next-Q5_K_M/Qwen3-Coder-Next-Q5_K_M-00001-of-00004.gguf",
+    path: "/home/hilbert/ai-suite/models/qwen3-coder-next/Qwen3-Coder-Next-Q5_K_M/Qwen3-Coder-Next-Q5_K_M-00001-of-00004.gguf",
     ctx: "131072",
     gpuLayers: "999",
     extraArgs: "--flash-attn on --device Vulkan0 --batch-size 2048 --ubatch-size 512 --parallel 1"

@@ -8,7 +8,7 @@ status: stable
 media_type: image
 source:
   suite: v1
-  path: /home/hilbert/ai-suite-v2/legacy-workflows/remove-background-birefnet.json
+  path: /home/hilbert/ai-suite/legacy-workflows/remove-background-birefnet.json
 entrypoints:
   ui: workflow.json
 inputs:

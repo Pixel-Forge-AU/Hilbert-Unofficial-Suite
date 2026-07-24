@@ -1,4 +1,4 @@
-# AI Suite V2 - API Reference
+# AI Suite - API Reference
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-AI Suite V2 provides a comprehensive REST API for programmatic access to all workflow functionality. The API is built on Flask and follows RESTful conventions.
+AI Suite provides a comprehensive REST API for programmatic access to all workflow functionality. The API is built on Flask and follows RESTful conventions.
 
 ### API Basics
 

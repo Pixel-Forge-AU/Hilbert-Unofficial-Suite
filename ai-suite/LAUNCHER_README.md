@@ -1,6 +1,6 @@
-# AI Suite V2 Launcher
+# AI Suite Launcher
 
-A Python launcher for the AI Suite V2 web interface with both Flask web interface and CLI capabilities.
+A Python launcher for the AI Suite web interface with both Flask web interface and CLI capabilities.
 
 ## Features
 
@@ -86,7 +86,7 @@ python3 launcher.py service stop
 ```
 
 The migrated v1 switcher is also available as `./launch-switcher` or `./ai-switch <command>`.
-`./ai-switch studio` starts this v2 launcher, not the old standalone Studio server.
+`./ai-switch studio` starts this launcher, not the old standalone Studio server.
 The v1 workflow JSON files and controls are loaded from `legacy-workflows/` under the `legacy-v1` category.
 
 ## Configuration
@@ -114,7 +114,7 @@ Key settings include:
 ## Project Structure
 
 ```
-ai-suite-v2/
+ai-suite/
 ├── launcher.py           # Main launcher
 ├── requirements.txt      # Dependencies
 ├── config/              # Configuration files
