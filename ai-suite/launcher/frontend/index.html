@@ -1343,6 +1343,21 @@
             font: 0.875rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
         }
 
+        .embed-panel {
+            margin-top: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .embed-panel iframe {
+            display: block;
+            width: 100%;
+            height: 720px;
+            border: 0;
+            background: #0b0d12;
+        }
+
         .job-list {
             display: grid;
             gap: 0.75rem;
@@ -1872,6 +1887,7 @@
         <nav class="tab-bar" aria-label="Main sections">
             <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
             <button class="tab-btn" type="button" data-tab="pipeline">Pipeline</button>
+            <button class="tab-btn" type="button" data-tab="genesis">Genesis</button>
             <button class="tab-btn" type="button" data-tab="chat">Chat</button>
             <button class="tab-btn" type="button" data-tab="performance">Performance</button>
             <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
@@ -1926,44 +1942,50 @@
                 Planner turns a project brief into a validated build manifest; Orchestrator executes an
                 approved manifest as a task graph against a real repository, dispatching to a real
                 OpenHands agent-server as its builder. Run each service's "Setup" once before its first
-                start (installs its database schema). Genesis Runtime is a separate, standalone
-                plugin-host runtime with no coupling to the others.
+                start (installs its database schema) - after that, start/stop Planner, Orchestrator, and
+                OpenHands from the Dashboard below rather than here, to avoid two controls fighting over
+                the same processes.
             </p>
             <div class="service-actions">
                 <button class="btn btn-secondary" onclick="runServiceCommand('planner-setup', 'pipelineOutput', 300)">Planner: Setup</button>
-                <button class="btn btn-primary" onclick="runServiceCommand('planner', 'pipelineOutput')">Planner: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('planner-stop', 'pipelineOutput')">Planner: Stop</button>
-                <a class="btn btn-secondary" href="http://localhost:39006/docs" target="_blank" rel="noopener">Planner: Open Docs</a>
-            </div>
-            <div class="service-actions" style="margin-top: 0.5rem;">
+                <a class="btn btn-secondary" href="http://{{ request_host }}:39006/docs" target="_blank" rel="noopener">Planner: Open Docs</a>
                 <button class="btn btn-secondary" onclick="runServiceCommand('orchestrator-setup', 'pipelineOutput', 300)">Orchestrator: Setup</button>
-                <button class="btn btn-primary" onclick="runServiceCommand('orchestrator', 'pipelineOutput')">Orchestrator: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('orchestrator-stop', 'pipelineOutput')">Orchestrator: Stop</button>
-                <a class="btn btn-secondary" href="http://localhost:39007/health" target="_blank" rel="noopener">Orchestrator: Open Health</a>
-            </div>
-            <div class="service-actions" style="margin-top: 0.5rem;">
-                <button class="btn btn-primary" onclick="runServiceCommand('openhands', 'pipelineOutput')">OpenHands: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('openhands-stop', 'pipelineOutput')">OpenHands: Stop</button>
-                <a class="btn btn-secondary" href="http://localhost:39009/docs" target="_blank" rel="noopener">OpenHands: Open Docs</a>
-            </div>
-            <div class="service-actions" style="margin-top: 0.5rem;">
-                <button class="btn btn-primary" onclick="runServiceCommand('genesis', 'pipelineOutput')">Genesis: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('genesis-stop', 'pipelineOutput')">Genesis: Stop</button>
-                <a class="btn btn-secondary" href="http://localhost:39008/" target="_blank" rel="noopener">Genesis: Open</a>
-                <button class="btn btn-secondary" onclick="refreshServiceStatus('pipelineOutput')">Status</button>
+                <a class="btn btn-secondary" href="http://{{ request_host }}:39007/health" target="_blank" rel="noopener">Orchestrator: Open Health</a>
+                <a class="btn btn-secondary" href="http://{{ request_host }}:39009/docs" target="_blank" rel="noopener">OpenHands: Open Docs</a>
             </div>
             <div class="service-actions" style="margin-top: 0.5rem;">
                 <button class="btn btn-primary" onclick="runServiceCommand('pipeline-dashboard', 'pipelineOutput')">Dashboard: Start</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('pipeline-dashboard-stop', 'pipelineOutput')">Dashboard: Stop</button>
-                <a class="btn btn-secondary" href="http://localhost:39016/" target="_blank" rel="noopener">Dashboard: Open</a>
+                <button class="btn btn-secondary" onclick="toggleDashboardEmbed()" id="dashboardEmbedToggle">Dashboard: Show Here</button>
+                <a class="btn btn-secondary" href="http://{{ request_host }}:39016/" target="_blank" rel="noopener">Dashboard: Open in Tab</a>
             </div>
             <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
-                The dashboard gives Planner/Orchestrator/OpenHands their own live control panel (start/stop,
-                config editing, plan submission, and a real-time OpenHands chat/IDE view) - the buttons above
-                are enough to just get every service running. For a terminal-only view instead, run
-                <code>./ai-switch pipeline-status</code>.
+                Start the dashboard here, then use its own panel - shown inline below via "Dashboard: Show
+                Here", or in its own tab - to start/stop Planner, Orchestrator, and OpenHands, edit their
+                config, submit plans, and get a real-time OpenHands chat/IDE view. For a terminal-only
+                status view instead, run <code>./ai-switch pipeline-status</code>.
             </p>
             <pre class="service-output" id="pipelineOutput">Use Setup once per service before its first Start. Status shows every suite service.</pre>
+            <div class="embed-panel" id="dashboardEmbedPanel" style="display: none;">
+                <iframe id="dashboardEmbedFrame" title="Pipeline Dashboard" loading="lazy"></iframe>
+            </div>
+        </section>
+        </section>
+
+        <section class="tab-panel" id="tab-genesis">
+        <section class="service-panel">
+            <h3>Genesis Runtime</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-top: -0.5rem;">
+                Genesis Runtime is a standalone plugin-host runtime, independent of the Planner/Orchestrator/
+                OpenHands build pipeline.
+            </p>
+            <div class="service-actions">
+                <button class="btn btn-primary" onclick="runServiceCommand('genesis', 'genesisOutput')">Genesis: Start</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('genesis-stop', 'genesisOutput')">Genesis: Stop</button>
+                <a class="btn btn-secondary" href="http://{{ request_host }}:39008/" target="_blank" rel="noopener">Genesis: Open</a>
+                <button class="btn btn-secondary" onclick="refreshServiceStatus('genesisOutput')">Status</button>
+            </div>
+            <pre class="service-output" id="genesisOutput">Use Start to launch Genesis Runtime. Status shows every suite service.</pre>
         </section>
         </section>
 
@@ -3851,6 +3873,23 @@
             } catch (error) {
                 output.textContent = 'Command failed: ' + error.message;
             }
+        }
+
+        function toggleDashboardEmbed() {
+            const panel = document.getElementById('dashboardEmbedPanel');
+            const frame = document.getElementById('dashboardEmbedFrame');
+            const toggle = document.getElementById('dashboardEmbedToggle');
+            const showing = panel.style.display !== 'none';
+            if (showing) {
+                panel.style.display = 'none';
+                toggle.textContent = 'Dashboard: Show Here';
+                return;
+            }
+            if (!frame.src) {
+                frame.src = 'http://{{ request_host }}:39016/';
+            }
+            panel.style.display = '';
+            toggle.textContent = 'Dashboard: Hide';
         }
 
         async function refreshPerformanceStatus() {

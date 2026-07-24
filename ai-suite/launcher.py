@@ -2147,7 +2147,8 @@ def index() -> str:
         'index.html',
         workflows=workflows,
         categories=sorted(categories),
-        version=__version__
+        version=__version__,
+        request_host=request.host.split(':')[0]
     )
 
 
