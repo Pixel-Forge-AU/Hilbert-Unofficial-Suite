@@ -1,0 +1,286 @@
+id: studio.image-inpaint-flux-fill
+name: Image inpaint flux fill
+version: 2.0.0
+category: image-editing
+description: Migrated V1 Studio image workflow from image-inpaint-flux-fill.json
+status: migrated
+media_type: image
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/image-inpaint-flux-fill.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 108_sg_23.text
+  label: Negative prompt (CLIPTextEncode 108_sg_23)
+  type: textarea
+  required: false
+  default: 'Remove the girl''s hat
+
+    '
+  legacy_kind: textarea
+  node_id: 108_sg_23
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_74.text
+  label: Negative prompt (CLIPTextEncode 110_sg_74)
+  type: textarea
+  required: false
+  default: ''
+  legacy_kind: textarea
+  node_id: 110_sg_74
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 17.image
+  label: Input image
+  type: file
+  required: false
+  default: image_flux.1_fill_dev_OneReward_input_image.png
+  legacy_kind: file
+  node_id: '17'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_3.steps
+  label: Steps (KSampler 108_sg_3)
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: 108_sg_3
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_58.steps
+  label: Steps (KSampler 110_sg_58)
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: 110_sg_58
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_3.cfg
+  label: CFG (KSampler 108_sg_3)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 108_sg_3
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_58.cfg
+  label: CFG (KSampler 110_sg_58)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 110_sg_58
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_3.seed
+  label: Seed (KSampler 108_sg_3)
+  type: int
+  required: false
+  default: 75154916226486
+  legacy_kind: number
+  node_id: 108_sg_3
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_58.seed
+  label: Seed (KSampler 110_sg_58)
+  type: int
+  required: false
+  default: 220433686186430
+  legacy_kind: number
+  node_id: 110_sg_58
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_34.clip_name1
+  label: DualCLIPLoader clip_name1 (DualCLIPLoader 108_sg_34)
+  type: text
+  required: false
+  default: clip_l.safetensors
+  legacy_kind: text
+  node_id: 108_sg_34
+  node_type: DualCLIPLoader
+  input: clip_name1
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_34.clip_name2
+  label: DualCLIPLoader clip_name2 (DualCLIPLoader 108_sg_34)
+  type: text
+  required: false
+  default: t5xxl_fp16.safetensors
+  legacy_kind: text
+  node_id: 108_sg_34
+  node_type: DualCLIPLoader
+  input: clip_name2
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_100.lora_name
+  label: LoraLoaderModelOnly lora_name
+  type: text
+  required: false
+  default: removal_timestep_alpha-2-1740.safetensors
+  legacy_kind: text
+  node_id: 108_sg_100
+  node_type: LoraLoaderModelOnly
+  input: lora_name
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 108_sg_3.denoise
+  label: Denoise (KSampler 108_sg_3)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 108_sg_3
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_58.denoise
+  label: Denoise (KSampler 110_sg_58)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 110_sg_58
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_75.left
+  label: ImagePadForOutpaint left
+  type: int
+  required: false
+  default: 40
+  legacy_kind: number
+  node_id: 110_sg_75
+  node_type: ImagePadForOutpaint
+  input: left
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_75.top
+  label: ImagePadForOutpaint top
+  type: int
+  required: false
+  default: 0
+  legacy_kind: number
+  node_id: 110_sg_75
+  node_type: ImagePadForOutpaint
+  input: top
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_75.right
+  label: ImagePadForOutpaint right
+  type: int
+  required: false
+  default: 104
+  legacy_kind: number
+  node_id: 110_sg_75
+  node_type: ImagePadForOutpaint
+  input: right
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_75.bottom
+  label: ImagePadForOutpaint bottom
+  type: int
+  required: false
+  default: 104
+  legacy_kind: number
+  node_id: 110_sg_75
+  node_type: ImagePadForOutpaint
+  input: bottom
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_75.feathering
+  label: ImagePadForOutpaint feathering
+  type: int
+  required: false
+  default: 40
+  legacy_kind: number
+  node_id: 110_sg_75
+  node_type: ImagePadForOutpaint
+  input: feathering
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_57.clip_name1
+  label: DualCLIPLoader clip_name1 (DualCLIPLoader 110_sg_57)
+  type: text
+  required: false
+  default: clip_l.safetensors
+  legacy_kind: text
+  node_id: 110_sg_57
+  node_type: DualCLIPLoader
+  input: clip_name1
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 110_sg_57.clip_name2
+  label: DualCLIPLoader clip_name2 (DualCLIPLoader 110_sg_57)
+  type: text
+  required: false
+  default: t5xxl_fp16.safetensors
+  legacy_kind: text
+  node_id: 110_sg_57
+  node_type: DualCLIPLoader
+  input: clip_name2
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: image
+  type: image
+  description: Generated image output
+models:
+  required:
+  - node_id: 108_sg_32
+    node_type: VAELoader
+    name: ae.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors
+  - node_id: 108_sg_31
+    node_type: UNETLoader
+    name: flux.1-fill-dev-OneReward-transformer_fp8.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/OneReward_repackaged/resolve/main/split_files/diffusion_models/flux.1-fill-dev-OneReward-transformer_fp8.safetensors
+  - node_id: 108_sg_34
+    node_type: DualCLIPLoader
+    name: clip_l.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors?download=true
+  - node_id: 108_sg_34
+    node_type: DualCLIPLoader
+    name: t5xxl_fp16.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors?download=true
+  - node_id: 108_sg_100
+    node_type: LoraLoaderModelOnly
+    name: removal_timestep_alpha-2-1740.safetensors
+    directory: loras
+    url: https://huggingface.co/lrzjason/ObjectRemovalFluxFill/resolve/main/removal_timestep_alpha-2-1740.safetensors
+  - node_id: 110_sg_59
+    node_type: VAELoader
+    name: ae.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors
+  - node_id: 110_sg_64
+    node_type: UNETLoader
+    name: flux.1-fill-dev-OneReward-transformer_fp8.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/OneReward_repackaged/resolve/main/split_files/diffusion_models/flux.1-fill-dev-OneReward-transformer_fp8.safetensors
+  - node_id: 110_sg_57
+    node_type: DualCLIPLoader
+    name: clip_l.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors?download=true
+  - node_id: 110_sg_57
+    node_type: DualCLIPLoader
+    name: t5xxl_fp16.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

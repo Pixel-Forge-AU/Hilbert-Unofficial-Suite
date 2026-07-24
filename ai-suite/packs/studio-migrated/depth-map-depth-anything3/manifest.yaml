@@ -1,0 +1,104 @@
+id: studio.depth-map-depth-anything3
+name: Depth map depth anything3
+version: 2.0.0
+category: image-analysis
+description: Migrated V1 Studio image workflow from depth-map-depth-anything3.json
+status: migrated
+media_type: image
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/depth-map-depth-anything3.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 85.image
+  label: Input image
+  type: file
+  required: false
+  default: retro_futuristic_home.png
+  legacy_kind: file
+  node_id: '85'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_7.output
+  label: DA3Render output
+  type: text
+  required: false
+  default: depth
+  legacy_kind: text
+  node_id: 14_sg_7
+  node_type: DA3Render
+  input: output
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_7.output.normalization
+  label: DA3Render output.normalization
+  type: text
+  required: false
+  default: v2_style
+  legacy_kind: text
+  node_id: 14_sg_7
+  node_type: DA3Render
+  input: output.normalization
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_7.output.apply_sky_clip
+  label: DA3Render output.apply_sky_clip
+  type: boolean
+  required: false
+  default: false
+  legacy_kind: checkbox
+  node_id: 14_sg_7
+  node_type: DA3Render
+  input: output.apply_sky_clip
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_5.resolution
+  label: DA3Inference resolution
+  type: int
+  required: false
+  default: 504
+  legacy_kind: number
+  node_id: 14_sg_5
+  node_type: DA3Inference
+  input: resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_5.resize_method
+  label: DA3Inference resize_method
+  type: text
+  required: false
+  default: upper_bound_resize
+  legacy_kind: text
+  node_id: 14_sg_5
+  node_type: DA3Inference
+  input: resize_method
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 14_sg_82.model_name
+  label: LoadDA3Model model_name
+  type: text
+  required: false
+  default: depth_anything_3_mono_large.safetensors
+  legacy_kind: text
+  node_id: 14_sg_82
+  node_type: LoadDA3Model
+  input: model_name
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: image
+  type: image
+  description: Generated image output
+models:
+  required:
+  - node_id: 14_sg_82
+    node_type: LoadDA3Model
+    name: depth_anything_3_mono_large.safetensors
+    directory: geometry_estimation
+    url: https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

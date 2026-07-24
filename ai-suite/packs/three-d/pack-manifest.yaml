@@ -1,0 +1,22 @@
+# 3D Pack Manifest
+
+id: three-d
+name: 3D
+version: "2.0.0"
+
+description: >
+  3D model and scene generation workflows including image-to-3D,
+  multi-view generation, and depth-to-mesh.
+
+workflows:
+  - three-d.image-to-mesh
+  - three-d.multiview
+  - three-d.depth-to-mesh
+  - three-d.scan-completion
+  - three-d.gaussian-splats
+  - three-d.depth-to-relief
+  - three-d.text-to-3d
+  - three-d.texture-mesh
+  - three-d.image-to-textured-mesh
+
+default_enabled: true

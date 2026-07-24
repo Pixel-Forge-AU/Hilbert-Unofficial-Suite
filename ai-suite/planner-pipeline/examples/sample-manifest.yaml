@@ -1,0 +1,1477 @@
+manifestVersion: 1.0.0
+generatedAt: 2026-07-14T10:31:58.510Z
+project:
+  title: Searchable 3D parts library
+  brief: Build a searchable parts library for a 3D printing business.
+  constraints:
+    - Must integrate with WordPress
+    - Must support more than 5000 parts
+    - Must work well on mobile
+  context:
+    existingStack:
+      - WordPress
+      - PHP
+      - JavaScript
+    existingSystems: []
+    referenceNotes: []
+  preferences:
+    strictness: 9
+    creativity: 9
+    detailLevel: 10
+    targetQualityScore: 92
+    maxRevisionCycles: 4
+productDirection:
+  selectedDirection: Reliable Catalogue with Premium Workshop preview polish
+  directionRationale: Combines dependable faceted search with a premium 3D preview
+    to build trust without the cost of full geometry search.
+  experienceThesis: Finding the right part should feel as fast as it feels trustworthy.
+  creativePrinciples:
+    - Search must never return a dead end
+    - Every part preview builds purchase confidence
+    - Mobile is the primary surface, not an afterthought
+  borrowedElements:
+    - fromConceptId: C002
+      element: 3D part preview
+      whyItSurvives: Directly builds purchase confidence
+  signatureFeatures:
+    - id: SF001
+      name: Faceted search
+      whatMakesItMemorable: Never a dead end
+      coreOrOptional: core_identity
+    - id: SF002
+      name: 3D part preview
+      whatMakesItMemorable: Tangible before buying
+      coreOrOptional: optional_novelty
+    - id: SF003
+      name: Saved searches
+      whatMakesItMemorable: Fast return visits
+      coreOrOptional: core_identity
+  discardedIdeas:
+    - idea: Shape-similarity search
+      sourceConceptId: C004
+      reasonDiscarded: Too costly for the first release
+  designRisks:
+    - 3D preview asset pipeline adds build time
+  memorabilityTest:
+    - Would a user describe this as 'the search that always finds something'?
+    - Would a user remember the 3D preview specifically?
+    - Would a returning user recall a saved search?
+users:
+  - id: U001
+    name: Hobbyist buyer
+    description: A customer browsing parts on a phone in a hurry.
+    goals:
+      - Find a compatible part fast
+    frustrations:
+      - Search returns irrelevant results
+    technicalConfidence: medium
+    primaryDevice: mobile
+    accessibilityNeeds: []
+experiencePrinciples:
+  - Search must never return a dead end
+  - Every part preview builds purchase confidence
+  - Mobile is the primary surface, not an afterthought
+journeys:
+  - id: J001
+    name: First-time part search
+    actor: Hobbyist buyer
+    trigger: Buyer needs a replacement part
+    entryPoint: Homepage search bar
+    assumptions:
+      - Buyer arrives from a search engine
+    steps:
+      - step: 1
+        location: Homepage
+        userThought: I need to find this part
+        userAction: Types a query
+        systemResponse: Shows live suggestions
+        featureIds:
+          - F001
+      - step: 2
+        location: Search results
+        userThought: Is this the right one?
+        userAction: Opens a result
+        systemResponse: Shows part detail
+        featureIds:
+          - F001
+    decisionPoints:
+      - atStep: 1
+        decision: Refine search or open first result
+        options:
+          - Refine
+          - Open
+        defaultPath: Open
+    emotionalCurve:
+      - atStep: 1
+        emotion: uncertain
+        designResponse: Instant suggestions reduce uncertainty
+    confusionRisks:
+      - Too many filters shown at once on first visit
+    recoveryPaths:
+      - failure: No results found
+        recoverySteps:
+          - Show broader suggestions
+          - Offer to clear filters
+        worstCase: Buyer leaves the site
+    completionSignal: Buyer opens a part detail page
+    returnPath: Back button returns to search results with filters intact
+    retentionOpportunity: Offer to save this search
+    instrumentation:
+      - search_performed
+      - search_result_opened
+features:
+  - id: F001
+    parentId: null
+    name: Search
+    summary: Faceted search across the parts catalogue.
+    purpose: Let buyers find a compatible part quickly.
+    userValue: Fast, confident discovery of the right part.
+    businessValue: Higher conversion from search to purchase.
+    actors:
+      - Buyer
+    entryPoints:
+      - Homepage search bar
+      - Category page search
+    prerequisites:
+      - Parts catalogue indexed
+    primaryFlow:
+      - step: 1
+        actor: Buyer
+        action: Performs step 1 of the search flow
+        systemResponse: System responds to step 1
+        visibleOutcome: Visible result of step 1
+      - step: 2
+        actor: Buyer
+        action: Performs step 2 of the search flow
+        systemResponse: System responds to step 2
+        visibleOutcome: Visible result of step 2
+      - step: 3
+        actor: Buyer
+        action: Performs step 3 of the search flow
+        systemResponse: System responds to step 3
+        visibleOutcome: Visible result of step 3
+    alternateFlows:
+      - name: Zero-result recovery
+        trigger: Search returns no matches
+        steps:
+          - step: 1
+            actor: Buyer
+            action: Performs step 1 of the search flow
+            systemResponse: System responds to step 1
+            visibleOutcome: Visible result of step 1
+        outcome: User is offered broader suggestions
+    states:
+      - state: default
+        description: Search bar at rest
+        userSees: Empty search bar with placeholder
+        userCanDo:
+          - Type a query
+        exitCondition: User types
+      - state: loading
+        description: Results loading
+        userSees: Skeleton result rows
+        userCanDo:
+          - Cancel
+        exitCondition: Results arrive
+      - state: empty
+        description: No results
+        userSees: No matches message with suggestions
+        userCanDo:
+          - Clear filters
+        exitCondition: User clears a filter
+      - state: error
+        description: Search failed
+        userSees: Error message with retry
+        userCanDo:
+          - Retry
+        exitCondition: Retry succeeds
+      - state: success
+        description: Results shown
+        userSees: List of matching parts
+        userCanDo:
+          - Open a part
+          - Refine filters
+        exitCondition: User opens a part
+      - state: offline
+        description: No connectivity
+        userSees: Offline banner with cached results
+        userCanDo:
+          - View cached results
+        exitCondition: Connectivity restored
+    dataRequirements:
+      - entity: Part
+        fields:
+          - id
+          - name
+          - compatibility
+        source: WordPress catalogue export
+        freshness: hourly
+    permissions:
+      - actor: Buyer
+        capability: Search parts
+        deniedBehaviour: Not applicable, search is public
+    analyticsEvents:
+      - name: search_performed
+        trigger: User submits a query
+        properties:
+          - queryLength
+          - resultCount
+    failureModes:
+      - failure: Search index unavailable
+        cause: Index service outage
+        userVisibleBehaviour: Error state with retry
+        recovery: Automatic retry with backoff
+    recoveryBehaviour:
+      - Automatic retry on transient failure
+    mobileBehaviour:
+      - Filters collapse into a bottom sheet on mobile
+    accessibilityBehaviour:
+      - Search results are announced via an ARIA live region
+    privacyConsiderations:
+      - Search queries are not linked to personal data
+    dependencies: []
+    acceptanceCriteria:
+      - id: AC001
+        criterion: Search returns results within 300ms for 5000+ parts
+        measurement: p95 latency under load test
+    testScenarios:
+      - id: TS001
+        name: Search returns matches
+        given: A catalogue of 5000 parts
+        when: A buyer searches a known part name
+        then: The part appears in the top 3 results
+        kind: integration
+    openDecisions:
+      - Should search history be persisted across sessions?
+designSystem:
+  visualConcept: "Industrial-premium: dense data with confident, generous imagery
+    for previews."
+  visualPrinciples:
+    - Search results prioritise scanability over decoration
+    - Part imagery is always the largest element on a card
+    - Every interactive element has a visible focus state
+  visualAntiPatterns:
+    - Do not use decorative motion on result loading
+    - Do not hide filters behind more than one tap on mobile
+    - Do not use grey-on-grey text for secondary metadata
+  layoutSystem:
+    description: 12-column responsive grid with a fixed-width content column.
+    contentMaxWidth: 1180px
+    wideLayoutMaxWidth: 1440px
+    gridColumns: 12
+    mobileGutter: 16px
+    tabletGutter: 24px
+    desktopGutter: 32px
+    breakpoints:
+      - name: mobile
+        minWidth: 0px
+      - name: desktop
+        minWidth: 1024px
+  typographySystem:
+    headingFont: Inter
+    bodyFont: Inter
+    monoFont: JetBrains Mono
+    baseSizePx: 16
+    scaleRatio: 1.25
+    lineHeights:
+      body: 1.5
+      heading: 1.2
+    weightRules:
+      - Headings use weight 600
+      - Body text uses weight 400
+  spacingSystem:
+    baseUnitPx: 4
+    spacingScale:
+      - 4
+      - 8
+      - 12
+      - 16
+      - 24
+      - 32
+      - 48
+      - 64
+    usageRules:
+      - Card padding uses the 16px step
+      - Section gaps use the 48px step
+  colourRoles:
+    - role: primary
+      value: "#1D4ED8"
+      usage: Primary actions
+      contrastNotes: Meets 4.5:1 against white
+    - role: surface
+      value: "#FFFFFF"
+      usage: Card backgrounds
+      contrastNotes: Base surface
+    - role: danger
+      value: "#DC2626"
+      usage: Error states
+      contrastNotes: Meets 4.5:1 against white
+    - role: text-secondary
+      value: "#4B5563"
+      usage: Metadata text
+      contrastNotes: Meets 4.5:1 against white
+  componentDensity: Comfortable density with 16px minimum touch targets on mobile.
+  shapeLanguage:
+    cornerRadii:
+      - 4
+      - 8
+    borderRules:
+      - 1px solid border on cards
+    elevationRules:
+      - Cards use a 1dp shadow on hover
+  iconography:
+    style: Outlined
+    strokeWidth: 1.5px
+    sizes:
+      - 16
+      - 20
+      - 24
+    library: Lucide
+  motionSystem:
+    personality: Quick and functional, never decorative.
+    microInteractionDurationMs:
+      - 120
+      - 180
+    panelTransitionDurationMs:
+      - 220
+      - 280
+    easingRules:
+      - Use ease-out for entrances
+      - Use ease-in for exits
+    forbiddenMotion:
+      - No parallax scrolling
+      - No bouncing loaders
+  responsiveRules:
+    - breakpoint: mobile
+      rule: Filters collapse into a bottom sheet
+    - breakpoint: desktop
+      rule: Filters remain visible in a left sidebar
+  darkModeRules:
+    - "Surface colours invert to #111827 background"
+  reducedMotionRules:
+    - Disable panel transitions when prefers-reduced-motion is set
+  loadingPresentation:
+    - Use skeleton rows matching final result card shape
+  emptyStatePersonality:
+    - Empty states offer a concrete next action, never just an apology
+  errorPresentation:
+    - Errors always include a retry action and a support link
+  screenshotReviewChecklist:
+    - Text contrast meets 4.5:1 on all surfaces
+    - Touch targets are at least 44px on mobile
+    - Focus states are visible on every interactive element
+    - Empty and error states are visually distinct from loading
+    - Part imagery is not cropped awkwardly on any breakpoint
+architecture:
+  systemContext: A search-first parts catalogue integrated with an existing WordPress site.
+  architecturalStyle: Modular monolith with a dedicated search index service.
+  architecturalPrinciples:
+    - Search must be independently scalable from the WordPress origin
+    - All catalogue data flows through one ingestion pipeline
+    - Every API is documented and owned by exactly one module
+  modules:
+    - id: M001
+      name: Search Service
+      responsibility: Serves faceted search queries
+      boundaries: Owns the search index only
+      dependsOn:
+        - Catalogue Ingestion
+      exposedInterfaces:
+        - GET /search
+  dataModels:
+    - name: Part
+      purpose: Represents a printable part in the catalogue
+      fields:
+        - name: id
+          type: string
+          required: true
+          notes: Primary key
+        - name: name
+          type: string
+          required: true
+          notes: Display name
+      relationships:
+        - belongs to Category
+      indexes:
+        - name
+        - compatibility
+      retention: indefinite
+  APIs:
+    - id: API001
+      method: GET
+      path: /search
+      purpose: Faceted search over parts
+      requestShape: "{ q: string, filters: object }"
+      responseShape: "{ results: Part[] }"
+      errors:
+        - 400 invalid filter
+      authRequired: false
+      owner: Search Service
+  events:
+    - name: part.indexed
+      emittedWhen: A part is added or updated
+      payloadShape: "{ partId: string }"
+      consumers:
+        - Search Service
+  stateOwnership:
+    - state: search index
+      owner: Search Service
+      rationale: Only the search service writes to the index
+  backgroundJobs:
+    - name: catalogue-sync
+      trigger: hourly schedule
+      behaviour: Pulls updated parts from WordPress and reindexes them
+      failureHandling: Retries with exponential backoff, alerts after 3 failures
+      schedule: hourly
+  cachingStrategy:
+    - data: Popular search results
+      layer: Redis
+      ttl: 5 minutes
+      invalidation: On catalogue sync completion
+  authentication:
+    approach: None required for public search
+    details:
+      - Search is a public, unauthenticated endpoint
+  authorization:
+    approach: Role-based for admin catalogue management
+    roles:
+      - buyer
+      - admin
+    rules:
+      - Only admins can trigger manual reindex
+  validationStrategy:
+    - All API input validated with schema validation at the edge
+  errorHandlingStrategy:
+    - All errors return a structured error code and message
+  observability:
+    logging:
+      - Structured JSON logs per request
+    metrics:
+      - search_latency_ms
+      - search_zero_result_rate
+    alerts:
+      - Alert when zero-result rate exceeds 20%
+  securityControls:
+    - threat: Search query injection into index backend
+      control: Parameterized query builder, no raw query strings
+      layer: Search Service
+  deploymentModel:
+    approach: Containerized services behind a load balancer
+    environments:
+      - staging
+      - production
+    steps:
+      - Build image
+      - Run migrations
+      - Deploy
+      - Smoke test
+  migrationStrategy:
+    approach: Expand-and-contract schema migrations
+    steps:
+      - Add new columns nullable
+      - Backfill
+      - Enforce constraints
+  backupStrategy:
+    approach: Nightly automated database snapshots
+    cadence: nightly
+    restoreTest: Monthly restore drill into a staging environment
+  rollbackStrategy:
+    approach: Blue-green deployment with instant traffic switch
+    steps:
+      - Route traffic back to previous version
+      - Investigate failure
+  testStrategy:
+    levels:
+      - unit
+      - integration
+      - e2e
+    tooling:
+      - Vitest
+      - Testcontainers
+    coverageExpectations: Critical search paths covered by integration tests
+  performanceTargets:
+    - metric: search p95 latency
+      target: under 300ms
+      measurement: Load test against 5000+ part catalogue
+  scalabilityRisks:
+    - Search index growth beyond single-node capacity
+  architectureDecisions:
+    - id: ADR001
+      decision: Use a dedicated search index rather than direct WordPress queries
+      rationale: WordPress database cannot serve faceted search at required latency
+      alternativesConsidered:
+        - Direct MySQL full-text search
+      tradeoffs:
+        - Adds an ingestion pipeline to operate
+      failureModes:
+        - Index falls out of sync with source data
+      futureExtension: Index can later support shape-similarity search
+    - id: ADR002
+      decision: Public search API requires no authentication
+      rationale: Search is a discovery surface intended for anonymous buyers
+      alternativesConsidered:
+        - Requiring account creation before search
+      tradeoffs:
+        - Cannot personalize anonymous search results
+      failureModes:
+        - Potential for scraping abuse
+      futureExtension: Add optional personalization for logged-in users
+    - id: ADR003
+      decision: Cache popular search results in Redis
+      rationale: Reduces repeated load on the search index for common queries
+      alternativesConsidered:
+        - No caching layer
+      tradeoffs:
+        - Cache invalidation adds operational complexity
+      failureModes:
+        - Stale cached results after a catalogue update
+      futureExtension: Move to a CDN-edge cache for global buyers
+edgeCases:
+  findings:
+    - id: EC-behaviour-1
+      category: behaviour
+      scenario: behaviour scenario 1 affecting search
+      trigger: Trigger condition 1 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 1.
+    - id: EC-behaviour-2
+      category: behaviour
+      scenario: behaviour scenario 2 affecting search
+      trigger: Trigger condition 2 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 2.
+    - id: EC-behaviour-3
+      category: behaviour
+      scenario: behaviour scenario 3 affecting search
+      trigger: Trigger condition 3 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 3.
+    - id: EC-behaviour-4
+      category: behaviour
+      scenario: behaviour scenario 4 affecting search
+      trigger: Trigger condition 4 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 4.
+    - id: EC-behaviour-5
+      category: behaviour
+      scenario: behaviour scenario 5 affecting search
+      trigger: Trigger condition 5 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 5.
+    - id: EC-behaviour-6
+      category: behaviour
+      scenario: behaviour scenario 6 affecting search
+      trigger: Trigger condition 6 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 6.
+    - id: EC-behaviour-7
+      category: behaviour
+      scenario: behaviour scenario 7 affecting search
+      trigger: Trigger condition 7 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 7.
+    - id: EC-behaviour-8
+      category: behaviour
+      scenario: behaviour scenario 8 affecting search
+      trigger: Trigger condition 8 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 8.
+    - id: EC-behaviour-9
+      category: behaviour
+      scenario: behaviour scenario 9 affecting search
+      trigger: Trigger condition 9 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 9.
+    - id: EC-behaviour-10
+      category: behaviour
+      scenario: behaviour scenario 10 affecting search
+      trigger: Trigger condition 10 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 10.
+    - id: EC-behaviour-11
+      category: behaviour
+      scenario: behaviour scenario 11 affecting search
+      trigger: Trigger condition 11 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 11.
+    - id: EC-behaviour-12
+      category: behaviour
+      scenario: behaviour scenario 12 affecting search
+      trigger: Trigger condition 12 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 12.
+    - id: EC-behaviour-13
+      category: behaviour
+      scenario: behaviour scenario 13 affecting search
+      trigger: Trigger condition 13 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 13.
+    - id: EC-behaviour-14
+      category: behaviour
+      scenario: behaviour scenario 14 affecting search
+      trigger: Trigger condition 14 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 14.
+    - id: EC-behaviour-15
+      category: behaviour
+      scenario: behaviour scenario 15 affecting search
+      trigger: Trigger condition 15 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 15.
+    - id: EC-behaviour-16
+      category: behaviour
+      scenario: behaviour scenario 16 affecting search
+      trigger: Trigger condition 16 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 16.
+    - id: EC-behaviour-17
+      category: behaviour
+      scenario: behaviour scenario 17 affecting search
+      trigger: Trigger condition 17 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 17.
+    - id: EC-behaviour-18
+      category: behaviour
+      scenario: behaviour scenario 18 affecting search
+      trigger: Trigger condition 18 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 18.
+    - id: EC-behaviour-19
+      category: behaviour
+      scenario: behaviour scenario 19 affecting search
+      trigger: Trigger condition 19 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 19.
+    - id: EC-behaviour-20
+      category: behaviour
+      scenario: behaviour scenario 20 affecting search
+      trigger: Trigger condition 20 for behaviour
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for behaviour case 20.
+    - id: EC-data-1
+      category: data
+      scenario: data scenario 1 affecting search
+      trigger: Trigger condition 1 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 1.
+    - id: EC-data-2
+      category: data
+      scenario: data scenario 2 affecting search
+      trigger: Trigger condition 2 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 2.
+    - id: EC-data-3
+      category: data
+      scenario: data scenario 3 affecting search
+      trigger: Trigger condition 3 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 3.
+    - id: EC-data-4
+      category: data
+      scenario: data scenario 4 affecting search
+      trigger: Trigger condition 4 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 4.
+    - id: EC-data-5
+      category: data
+      scenario: data scenario 5 affecting search
+      trigger: Trigger condition 5 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 5.
+    - id: EC-data-6
+      category: data
+      scenario: data scenario 6 affecting search
+      trigger: Trigger condition 6 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 6.
+    - id: EC-data-7
+      category: data
+      scenario: data scenario 7 affecting search
+      trigger: Trigger condition 7 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 7.
+    - id: EC-data-8
+      category: data
+      scenario: data scenario 8 affecting search
+      trigger: Trigger condition 8 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 8.
+    - id: EC-data-9
+      category: data
+      scenario: data scenario 9 affecting search
+      trigger: Trigger condition 9 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 9.
+    - id: EC-data-10
+      category: data
+      scenario: data scenario 10 affecting search
+      trigger: Trigger condition 10 for data
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for data case 10.
+    - id: EC-visual-1
+      category: visual
+      scenario: visual scenario 1 affecting search
+      trigger: Trigger condition 1 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 1.
+    - id: EC-visual-2
+      category: visual
+      scenario: visual scenario 2 affecting search
+      trigger: Trigger condition 2 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 2.
+    - id: EC-visual-3
+      category: visual
+      scenario: visual scenario 3 affecting search
+      trigger: Trigger condition 3 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 3.
+    - id: EC-visual-4
+      category: visual
+      scenario: visual scenario 4 affecting search
+      trigger: Trigger condition 4 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 4.
+    - id: EC-visual-5
+      category: visual
+      scenario: visual scenario 5 affecting search
+      trigger: Trigger condition 5 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 5.
+    - id: EC-visual-6
+      category: visual
+      scenario: visual scenario 6 affecting search
+      trigger: Trigger condition 6 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 6.
+    - id: EC-visual-7
+      category: visual
+      scenario: visual scenario 7 affecting search
+      trigger: Trigger condition 7 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 7.
+    - id: EC-visual-8
+      category: visual
+      scenario: visual scenario 8 affecting search
+      trigger: Trigger condition 8 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 8.
+    - id: EC-visual-9
+      category: visual
+      scenario: visual scenario 9 affecting search
+      trigger: Trigger condition 9 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 9.
+    - id: EC-visual-10
+      category: visual
+      scenario: visual scenario 10 affecting search
+      trigger: Trigger condition 10 for visual
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for visual case 10.
+    - id: EC-mobile-1
+      category: mobile
+      scenario: mobile scenario 1 affecting search
+      trigger: Trigger condition 1 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 1.
+    - id: EC-mobile-2
+      category: mobile
+      scenario: mobile scenario 2 affecting search
+      trigger: Trigger condition 2 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 2.
+    - id: EC-mobile-3
+      category: mobile
+      scenario: mobile scenario 3 affecting search
+      trigger: Trigger condition 3 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 3.
+    - id: EC-mobile-4
+      category: mobile
+      scenario: mobile scenario 4 affecting search
+      trigger: Trigger condition 4 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 4.
+    - id: EC-mobile-5
+      category: mobile
+      scenario: mobile scenario 5 affecting search
+      trigger: Trigger condition 5 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 5.
+    - id: EC-mobile-6
+      category: mobile
+      scenario: mobile scenario 6 affecting search
+      trigger: Trigger condition 6 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 6.
+    - id: EC-mobile-7
+      category: mobile
+      scenario: mobile scenario 7 affecting search
+      trigger: Trigger condition 7 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 7.
+    - id: EC-mobile-8
+      category: mobile
+      scenario: mobile scenario 8 affecting search
+      trigger: Trigger condition 8 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 8.
+    - id: EC-mobile-9
+      category: mobile
+      scenario: mobile scenario 9 affecting search
+      trigger: Trigger condition 9 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 9.
+    - id: EC-mobile-10
+      category: mobile
+      scenario: mobile scenario 10 affecting search
+      trigger: Trigger condition 10 for mobile
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for mobile case 10.
+    - id: EC-accessibility-1
+      category: accessibility
+      scenario: accessibility scenario 1 affecting search
+      trigger: Trigger condition 1 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 1.
+    - id: EC-accessibility-2
+      category: accessibility
+      scenario: accessibility scenario 2 affecting search
+      trigger: Trigger condition 2 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 2.
+    - id: EC-accessibility-3
+      category: accessibility
+      scenario: accessibility scenario 3 affecting search
+      trigger: Trigger condition 3 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 3.
+    - id: EC-accessibility-4
+      category: accessibility
+      scenario: accessibility scenario 4 affecting search
+      trigger: Trigger condition 4 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 4.
+    - id: EC-accessibility-5
+      category: accessibility
+      scenario: accessibility scenario 5 affecting search
+      trigger: Trigger condition 5 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 5.
+    - id: EC-accessibility-6
+      category: accessibility
+      scenario: accessibility scenario 6 affecting search
+      trigger: Trigger condition 6 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 6.
+    - id: EC-accessibility-7
+      category: accessibility
+      scenario: accessibility scenario 7 affecting search
+      trigger: Trigger condition 7 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 7.
+    - id: EC-accessibility-8
+      category: accessibility
+      scenario: accessibility scenario 8 affecting search
+      trigger: Trigger condition 8 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 8.
+    - id: EC-accessibility-9
+      category: accessibility
+      scenario: accessibility scenario 9 affecting search
+      trigger: Trigger condition 9 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 9.
+    - id: EC-accessibility-10
+      category: accessibility
+      scenario: accessibility scenario 10 affecting search
+      trigger: Trigger condition 10 for accessibility
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for accessibility case 10.
+    - id: EC-security-1
+      category: security
+      scenario: security scenario 1 affecting search
+      trigger: Trigger condition 1 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 1.
+    - id: EC-security-2
+      category: security
+      scenario: security scenario 2 affecting search
+      trigger: Trigger condition 2 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 2.
+    - id: EC-security-3
+      category: security
+      scenario: security scenario 3 affecting search
+      trigger: Trigger condition 3 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 3.
+    - id: EC-security-4
+      category: security
+      scenario: security scenario 4 affecting search
+      trigger: Trigger condition 4 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 4.
+    - id: EC-security-5
+      category: security
+      scenario: security scenario 5 affecting search
+      trigger: Trigger condition 5 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 5.
+    - id: EC-security-6
+      category: security
+      scenario: security scenario 6 affecting search
+      trigger: Trigger condition 6 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 6.
+    - id: EC-security-7
+      category: security
+      scenario: security scenario 7 affecting search
+      trigger: Trigger condition 7 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 7.
+    - id: EC-security-8
+      category: security
+      scenario: security scenario 8 affecting search
+      trigger: Trigger condition 8 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 8.
+    - id: EC-security-9
+      category: security
+      scenario: security scenario 9 affecting search
+      trigger: Trigger condition 9 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 9.
+    - id: EC-security-10
+      category: security
+      scenario: security scenario 10 affecting search
+      trigger: Trigger condition 10 for security
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for security case 10.
+    - id: EC-operations-1
+      category: operations
+      scenario: operations scenario 1 affecting search
+      trigger: Trigger condition 1 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 1.
+    - id: EC-operations-2
+      category: operations
+      scenario: operations scenario 2 affecting search
+      trigger: Trigger condition 2 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 2.
+    - id: EC-operations-3
+      category: operations
+      scenario: operations scenario 3 affecting search
+      trigger: Trigger condition 3 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 3.
+    - id: EC-operations-4
+      category: operations
+      scenario: operations scenario 4 affecting search
+      trigger: Trigger condition 4 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 4.
+    - id: EC-operations-5
+      category: operations
+      scenario: operations scenario 5 affecting search
+      trigger: Trigger condition 5 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 5.
+    - id: EC-operations-6
+      category: operations
+      scenario: operations scenario 6 affecting search
+      trigger: Trigger condition 6 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 6.
+    - id: EC-operations-7
+      category: operations
+      scenario: operations scenario 7 affecting search
+      trigger: Trigger condition 7 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 7.
+    - id: EC-operations-8
+      category: operations
+      scenario: operations scenario 8 affecting search
+      trigger: Trigger condition 8 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: high
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 8.
+    - id: EC-operations-9
+      category: operations
+      scenario: operations scenario 9 affecting search
+      trigger: Trigger condition 9 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 9.
+    - id: EC-operations-10
+      category: operations
+      scenario: operations scenario 10 affecting search
+      trigger: Trigger condition 10 for operations
+      expectedBehaviour: The system degrades gracefully with a clear recovery path.
+      currentGap: No explicit handling defined yet.
+      severity: medium
+      affectedFeatures:
+        - F001
+      requiredMitigation: Define explicit handling for operations case 10.
+  systemicRisks:
+    - Search reliability under catalogue growth beyond 5000 parts
+  highestRiskAreas:
+    - Zero-result recovery
+    - Offline search behaviour
+  missingRecoveryPatterns:
+    - No offline cached-results fallback defined for repeat searches
+  requiredPlanChanges:
+    - section: features.F001.states
+      problem: No offline recovery state defined for search.
+      requiredChange: Add an offline state showing cached results with a stale-data indicator.
+      responsibleStage: feature_expander
+scope:
+  classifications:
+    - itemId: F001
+      itemName: Search
+      scopeClass: essential
+      rationale: Core value proposition of the product.
+      cheaperAlternative: null
+      isSignatureElement: true
+    - itemId: SF002
+      itemName: 3D part preview
+      scopeClass: delight
+      rationale: Strong differentiator but not required for launch.
+      cheaperAlternative: Static high-resolution photos
+      isSignatureElement: true
+  minimumCompleteProduct:
+    - F001
+  recommendedFirstRelease:
+    - F001
+    - SF003
+  premiumRelease:
+    - SF002
+  experiments:
+    - Shape-similarity search prototype
+  deferredItems:
+    - Build provenance graph
+  rejectedItems: []
+  sequencingRationale:
+    - Search must ship before any premium preview feature since it is the core
+      hook.
+  scopeRisks:
+    - 3D preview asset pipeline could slip the premium release date
+implementationPlan:
+  phases:
+    - id: P1
+      name: Foundation search
+      goal: Ship faceted search over the full catalogue
+      includedFeatureIds:
+        - F001
+      exitCriteria:
+        - Search returns results within 300ms p95 for 5000+ parts
+  workstreams:
+    - id: W1
+      name: Search platform
+      description: Search indexing and query API
+      phaseIds:
+        - P1
+  dependencyGraph:
+    - from: Catalogue ingestion
+      to: Search Service
+      reason: Search indexes data produced by ingestion
+  proposedRepositoryStructure:
+    - path: apps/search-service
+      kind: directory
+      purpose: Search indexing and query API
+  fileResponsibilities:
+    - path: apps/search-service/src/index.ts
+      responsibility: Search query handler
+      relatedFeatureIds:
+        - F001
+  databaseChanges:
+    - id: DB1
+      change: Add parts table with search indexes
+      phaseId: P1
+      reversible: true
+  apiBuildOrder:
+    - GET /search
+  uiBuildOrder:
+    - Search bar
+    - Search results list
+  testBuildOrder:
+    - Search API integration tests
+    - Search UI accessibility tests
+  releaseCheckpoints:
+    - id: RC1
+      name: Search MVP launch
+      afterPhaseId: P1
+      verification:
+        - Load test passes at 5000+ parts
+        - Accessibility checklist passes
+qualityRequirements:
+  performance:
+    - Search p95 latency under 300ms
+  accessibility:
+    - Search results announced via ARIA live region
+  security:
+    - No raw query strings passed to the search backend
+  reliability:
+    - Search degrades to cached results on index outage
+  compatibility:
+    - Supports the latest two versions of major mobile browsers
+definitionOfDone:
+  - id: DOD1
+    item: Search returns results within performance targets
+    verification: Load test report
+  - id: DOD2
+    item: All UI states defined for search are implemented
+    verification: Manual QA against state list
+  - id: DOD3
+    item: Accessibility checklist passes for search
+    verification: Automated + manual accessibility audit
+  - id: DOD4
+    item: Offline recovery state is implemented
+    verification: Manual QA with network throttling
+  - id: DOD5
+    item: Search API documented via OpenAPI
+    verification: OpenAPI schema review
+unresolvedDecisions:
+  - id: UD1
+    decision: Should search history persist across sessions?
+    options:
+      - Yes, persist per account
+      - No, session-only
+    recommendation: Session-only for the first release
+    blockedBy: awaiting stakeholder input
+assumptions:
+  - id: A001
+    statement: Parts data can be exported from the existing WordPress catalogue.
+    basis: No alternative data source was mentioned in the brief.
+    confidence: medium
+    impactIfWrong: Would require a new data migration workstream.
+traceability:
+  entries:
+    - sourceRequirement: Must work well on mobile
+      origin: brief
+      featureIds:
+        - F001
+      journeyIds:
+        - J001
+      architectureIds:
+        - ADR001
+      acceptanceCriteriaIds:
+        - AC001
+      testScenarioIds:
+        - TS001
+  untracedItems: []

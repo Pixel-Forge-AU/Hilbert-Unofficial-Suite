@@ -1,0 +1,14 @@
+{
+  "name": "@planner/prompts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@planner/contracts": "workspace:*",
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.25.2"
+  }
+}

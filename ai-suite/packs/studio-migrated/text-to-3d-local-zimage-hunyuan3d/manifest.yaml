@@ -1,0 +1,274 @@
+id: studio.text-to-3d-local-zimage-hunyuan3d
+name: Text to 3d local zimage hunyuan3d
+version: 2.0.0
+category: three-d
+description: Migrated V1 Studio model workflow from text-to-3d-local-zimage-hunyuan3d.json
+status: migrated
+media_type: model
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/text-to-3d-local-zimage-hunyuan3d.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 67.text
+  label: Prompt
+  type: textarea
+  required: false
+  default: anime RPG game style, cute anime girl with gigantic fennec ears and a big
+    fluffy fox tail with long wavy blonde hair and large blue eyes blonde colored
+    eyelashes wearing a pink sweater a large oversized gold trimmed black winter coat
+    and a long blue maxi skirt and a red scarf, she is sitting beside a campfire in
+    the wilderness at night playing guitar with a milky way galaxy sky
+  legacy_kind: textarea
+  node_id: '67'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 71.text
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: low quality, bad anatomy, extra digits, missing digits, extra limbs, missing
+    limbs
+  legacy_kind: textarea
+  node_id: '71'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 68.width
+  label: Width
+  type: int
+  required: false
+  default: 1024
+  legacy_kind: number
+  node_id: '68'
+  node_type: EmptySD3LatentImage
+  input: width
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 68.height
+  label: Height
+  type: int
+  required: false
+  default: 1024
+  legacy_kind: number
+  node_id: '68'
+  node_type: EmptySD3LatentImage
+  input: height
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 70.steps
+  label: Steps (KSampler 70)
+  type: int
+  required: false
+  default: 8
+  legacy_kind: number
+  node_id: '70'
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1003.steps
+  label: Steps (KSampler 1003)
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: '1003'
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 70.cfg
+  label: CFG (KSampler 70)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '70'
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1003.cfg
+  label: CFG (KSampler 1003)
+  type: int
+  required: false
+  default: 8
+  legacy_kind: number
+  node_id: '1003'
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 68.batch_size
+  label: Batch (EmptySD3LatentImage 68)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '68'
+  node_type: EmptySD3LatentImage
+  input: batch_size
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1066.batch_size
+  label: Batch (EmptyLatentHunyuan3Dv2 1066)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '1066'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: batch_size
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 70.seed
+  label: Seed (KSampler 70)
+  type: int
+  required: false
+  default: 42
+  legacy_kind: number
+  node_id: '70'
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1003.seed
+  label: Seed (KSampler 1003)
+  type: int
+  required: false
+  default: 242832339647017
+  legacy_kind: number
+  node_id: '1003'
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 9.filename_prefix
+  label: Output folder/prefix (SaveImage 9)
+  type: text
+  required: false
+  default: Studio/text-to-3d/source-image
+  legacy_kind: text
+  node_id: '9'
+  node_type: SaveImage
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1082.filename_prefix
+  label: Output folder/prefix (SaveGLB 1082)
+  type: text
+  required: false
+  default: mesh/text-to-3d-local
+  legacy_kind: text
+  node_id: '1082'
+  node_type: SaveGLB
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 69.shift
+  label: ModelSamplingAuraFlow shift (ModelSamplingAuraFlow 69)
+  type: int
+  required: false
+  default: 3
+  legacy_kind: number
+  node_id: '69'
+  node_type: ModelSamplingAuraFlow
+  input: shift
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 70.denoise
+  label: Denoise (KSampler 70)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '70'
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1003.denoise
+  label: Denoise (KSampler 1003)
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '1003'
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1081.algorithm
+  label: VoxelToMesh algorithm
+  type: text
+  required: false
+  default: surface net
+  legacy_kind: text
+  node_id: '1081'
+  node_type: VoxelToMesh
+  input: algorithm
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1081.threshold
+  label: VoxelToMesh threshold
+  type: float
+  required: false
+  default: 0.6
+  legacy_kind: number
+  node_id: '1081'
+  node_type: VoxelToMesh
+  input: threshold
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1051.crop
+  label: CLIPVisionEncode crop
+  type: text
+  required: false
+  default: none
+  legacy_kind: text
+  node_id: '1051'
+  node_type: CLIPVisionEncode
+  input: crop
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1066.resolution
+  label: EmptyLatentHunyuan3Dv2 resolution
+  type: int
+  required: false
+  default: 3072
+  legacy_kind: number
+  node_id: '1066'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1070.shift
+  label: ModelSamplingAuraFlow shift (ModelSamplingAuraFlow 1070)
+  type: float
+  required: false
+  default: 1.0000000000000002
+  legacy_kind: number
+  node_id: '1070'
+  node_type: ModelSamplingAuraFlow
+  input: shift
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1061.num_chunks
+  label: VAEDecodeHunyuan3D num_chunks
+  type: int
+  required: false
+  default: 8000
+  legacy_kind: number
+  node_id: '1061'
+  node_type: VAEDecodeHunyuan3D
+  input: num_chunks
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 1061.octree_resolution
+  label: VAEDecodeHunyuan3D octree_resolution
+  type: int
+  required: false
+  default: 256
+  legacy_kind: number
+  node_id: '1061'
+  node_type: VAEDecodeHunyuan3D
+  input: octree_resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: model
+  type: model
+  description: Generated model output
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

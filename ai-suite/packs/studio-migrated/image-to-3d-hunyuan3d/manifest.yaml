@@ -1,0 +1,174 @@
+id: studio.image-to-3d-hunyuan3d
+name: Image to 3d hunyuan3d
+version: 2.0.0
+category: three-d
+description: Migrated V1 Studio model workflow from image-to-3d-hunyuan3d.json
+status: migrated
+media_type: model
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/image-to-3d-hunyuan3d.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 56.image
+  label: Input image
+  type: file
+  required: false
+  default: 3d_hunyuan3d_image_to_model_input_image.png
+  legacy_kind: file
+  node_id: '56'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 3.steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 3.cfg
+  label: CFG
+  type: int
+  required: false
+  default: 8
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 66.batch_size
+  label: Batch
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '66'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: batch_size
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 3.seed
+  label: Seed
+  type: int
+  required: false
+  default: 242832339647017
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 82.filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: mesh/ComfyUI
+  legacy_kind: text
+  node_id: '82'
+  node_type: SaveGLB
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 3.denoise
+  label: Denoise
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '3'
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 81.algorithm
+  label: VoxelToMesh algorithm
+  type: text
+  required: false
+  default: surface net
+  legacy_kind: text
+  node_id: '81'
+  node_type: VoxelToMesh
+  input: algorithm
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 81.threshold
+  label: VoxelToMesh threshold
+  type: float
+  required: false
+  default: 0.6
+  legacy_kind: number
+  node_id: '81'
+  node_type: VoxelToMesh
+  input: threshold
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 51.crop
+  label: CLIPVisionEncode crop
+  type: text
+  required: false
+  default: none
+  legacy_kind: text
+  node_id: '51'
+  node_type: CLIPVisionEncode
+  input: crop
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 66.resolution
+  label: EmptyLatentHunyuan3Dv2 resolution
+  type: int
+  required: false
+  default: 3072
+  legacy_kind: number
+  node_id: '66'
+  node_type: EmptyLatentHunyuan3Dv2
+  input: resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 70.shift
+  label: ModelSamplingAuraFlow shift
+  type: float
+  required: false
+  default: 1.0000000000000002
+  legacy_kind: number
+  node_id: '70'
+  node_type: ModelSamplingAuraFlow
+  input: shift
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 61.num_chunks
+  label: VAEDecodeHunyuan3D num_chunks
+  type: int
+  required: false
+  default: 8000
+  legacy_kind: number
+  node_id: '61'
+  node_type: VAEDecodeHunyuan3D
+  input: num_chunks
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 61.octree_resolution
+  label: VAEDecodeHunyuan3D octree_resolution
+  type: int
+  required: false
+  default: 256
+  legacy_kind: number
+  node_id: '61'
+  node_type: VAEDecodeHunyuan3D
+  input: octree_resolution
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: model
+  type: model
+  description: Generated model output
+models:
+  required:
+  - node_id: '54'
+    node_type: ImageOnlyCheckpointLoader
+    name: hunyuan3d-dit-v2_fp16.safetensors
+    directory: checkpoints
+    url: https://huggingface.co/Comfy-Org/hunyuan3D_2.0_repackaged/resolve/main/split_files/hunyuan3d-dit-v2_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

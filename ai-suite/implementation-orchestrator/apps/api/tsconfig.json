@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "noEmit": false
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/orchestrator-core" },
+    { "path": "../../packages/observability" }
+  ]
+}

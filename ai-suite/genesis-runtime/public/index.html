@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Genesis</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 720px; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  section { margin-bottom: 1.5rem; }
+  dt { font-weight: 600; margin-top: 0.5rem; }
+  dd { margin: 0 0 0.25rem 0; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
+  .empty { color: #777; font-style: italic; }
+  code { background: #f2f2f2; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Genesis Runtime</h1>
+
+<section>
+  <h2>Status</h2>
+  <dl id="status"><dt>Loading&hellip;</dt></dl>
+</section>
+
+<section>
+  <h2>Plugins</h2>
+  <table id="plugins"><tbody><tr><td class="empty">Loading&hellip;</td></tr></tbody></table>
+</section>
+
+<script>
+async function main() {
+  const tokenRes = await fetch("/api/admin-token");
+  const tokenJson = await tokenRes.json();
+  const headers = tokenJson.ok ? { "x-admin-token": tokenJson.token } : {};
+
+  const statusRes = await fetch("/api/runtime/status", { headers });
+  const status = await statusRes.json();
+  const statusEl = document.getElementById("status");
+  statusEl.innerHTML = `
+    <dt>Core version</dt><dd>${status.coreVersion}</dd>
+    <dt>Node version</dt><dd>${status.nodeVersion}</dd>
+    <dt>Uptime</dt><dd>${Math.round(status.uptimeMs / 1000)}s</dd>
+    <dt>Profile</dt><dd>${status.profile?.name} (${status.profile?.id})</dd>
+    <dt>Plugin load errors</dt><dd>${status.pluginLoadErrors?.length || 0}</dd>
+  `;
+
+  const pluginsRes = await fetch("/api/plugins/list", { headers });
+  const pluginsJson = await pluginsRes.json();
+  const tbody = document.querySelector("#plugins tbody");
+  if (!pluginsJson.plugins?.length) {
+    tbody.innerHTML = `<tr><td class="empty">No plugins installed &mdash; this is a zero-plugin Genesis instance.</td></tr>`;
+  } else {
+    tbody.innerHTML = pluginsJson.plugins.map((p) =>
+      `<tr><td>${p.id}</td><td>${p.name || ""}</td><td>${p.enabled ? "enabled" : "disabled"}</td></tr>`
+    ).join("");
+  }
+}
+main().catch((err) => {
+  document.getElementById("status").innerHTML = `<dt>Error</dt><dd>${err}</dd>`;
+});
+</script>
+</body>
+</html>

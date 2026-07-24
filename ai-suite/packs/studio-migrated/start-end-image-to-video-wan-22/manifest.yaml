@@ -1,0 +1,97 @@
+id: studio.start-end-image-to-video-wan-22
+name: Start end image to video wan 22
+version: 2.0.0
+category: video-animation
+description: Migrated V1 Studio video workflow from start-end-image-to-video-wan-22.json
+status: migrated
+media_type: video
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/start-end-image-to-video-wan-22.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 90.text
+  label: Prompt
+  type: textarea
+  required: false
+  default: A crystal kitten suddenly wakes up, startled and alert. It raises its head,
+    bristles with energy, and gradually grows colorful fur as it transforms into a
+    powerful mythical beast. It bares its teeth as if sensing danger, eyes wide and
+    intense. Smooth cinematic motion, coherent transformation, detailed fur and crystal
+    highlights, dramatic lighting, continuous camera movement.
+  legacy_kind: textarea
+  node_id: '90'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 78.text
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: oversaturated colors, overexposed, static image, blurry details, subtitles,
+    text, watermark, painterly style, low contrast, gray cast, worst quality, low
+    quality, JPEG artifacts, ugly, incomplete, extra fingers, poorly drawn hands,
+    poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, frozen
+    motion, cluttered background, extra legs, crowded background, walking backward
+  legacy_kind: textarea
+  node_id: '78'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 80.image
+  label: Input image (LoadImage 80)
+  type: file
+  required: false
+  default: video_wan2_2_14B_flf2v_start_image.png
+  legacy_kind: file
+  node_id: '80'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 89.image
+  label: Input image (LoadImage 89)
+  type: file
+  required: false
+  default: video_wan2_2_14B_flf2v_end_image.png
+  legacy_kind: file
+  node_id: '89'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: video
+  type: video
+  description: Generated video output
+models:
+  required:
+  - node_id: '72'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+  - node_id: '76'
+    node_type: UNETLoader
+    name: wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+  - node_id: '77'
+    node_type: UNETLoader
+    name: wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+  - node_id: '79'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

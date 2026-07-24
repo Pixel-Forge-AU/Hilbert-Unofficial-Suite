@@ -1,0 +1,16 @@
+{
+  "name": "@planner/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "start": "node dist/worker.js"
+  },
+  "dependencies": {
+    "@planner/database": "workspace:*",
+    "@planner/planner-core": "workspace:*",
+    "bullmq": "^5.34.0",
+    "pino": "^9.6.0"
+  }
+}

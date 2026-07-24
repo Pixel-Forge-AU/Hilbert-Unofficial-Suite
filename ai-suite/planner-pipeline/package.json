@@ -1,0 +1,28 @@
+{
+  "name": "planner-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:all": "vitest run",
+    "dev:api": "pnpm --filter @planner/api dev",
+    "dev:worker": "pnpm --filter @planner/worker dev",
+    "db:generate": "pnpm --filter @planner/database db:generate",
+    "db:migrate": "pnpm --filter @planner/database db:migrate",
+    "db:deploy": "pnpm --filter @planner/database db:deploy"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

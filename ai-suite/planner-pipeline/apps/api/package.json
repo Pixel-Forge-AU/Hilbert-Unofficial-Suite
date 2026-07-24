@@ -1,0 +1,22 @@
+{
+  "name": "@planner/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fastify/swagger": "^9.4.0",
+    "@fastify/swagger-ui": "^5.2.0",
+    "@planner/contracts": "workspace:*",
+    "@planner/database": "workspace:*",
+    "@planner/observability": "workspace:*",
+    "@planner/planner-core": "workspace:*",
+    "bullmq": "^5.34.0",
+    "fastify": "^5.2.0",
+    "pino": "^9.6.0",
+    "zod": "^3.24.0"
+  }
+}

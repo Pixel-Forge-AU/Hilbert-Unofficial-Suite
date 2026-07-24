@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: orchestrator
+      POSTGRES_PASSWORD: orchestrator
+      POSTGRES_DB: orchestrator
+    ports:
+      - "39012:5432"
+    volumes:
+      - orchestrator-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orchestrator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "39013:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: orchestrator
+      MINIO_ROOT_PASSWORD: orchestrator123
+    ports:
+      - "39014:9000"
+      - "39015:9001"
+    volumes:
+      - orchestrator-minio-data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://orchestrator:orchestrator@postgres:5432/orchestrator
+      REDIS_URL: redis://redis:6379
+      PORT: "3000"
+    ports:
+      - "39007:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://orchestrator:orchestrator@postgres:5432/orchestrator
+      REDIS_URL: redis://redis:6379
+
+volumes:
+  orchestrator-postgres-data:
+  orchestrator-minio-data:

@@ -1,0 +1,17 @@
+{
+  "id": "default",
+  "name": "Default Profile",
+  "description": "Baseline Genesis profile with no plugins enabled.",
+  "enabledPlugins": [],
+  "disabledPlugins": [],
+  "defaultProvider": "",
+  "systemPromptAddons": [],
+  "ui": {
+    "title": "Genesis",
+    "hiddenTabs": [],
+    "defaultTab": "plugins"
+  },
+  "runtime": {
+    "allowGeneralAssistant": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@implementation-orchestrator/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@implementation-orchestrator/contracts": "workspace:*",
+    "@implementation-orchestrator/database": "workspace:*",
+    "@implementation-orchestrator/orchestrator-core": "workspace:*",
+    "@implementation-orchestrator/observability": "workspace:*",
+    "fastify": "^5.1.0",
+    "bullmq": "^5.28.1",
+    "ioredis": "5.10.1",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "testcontainers": "^10.13.2",
+    "@testcontainers/postgresql": "^10.13.2",
+    "vitest": "^2.1.4"
+  }
+}

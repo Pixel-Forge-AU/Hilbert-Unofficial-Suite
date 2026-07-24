@@ -1,0 +1,203 @@
+id: studio.hunyuan-video-15-720p-text-to-video
+name: Hunyuan video 15 720p text to video
+version: 2.0.0
+category: video-animation
+description: Migrated V1 Studio video workflow from hunyuan-video-15-720p-text-to-video.json
+status: migrated
+media_type: video
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/hunyuan-video-15-720p-text-to-video.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 44.text
+  label: Prompt
+  type: textarea
+  required: false
+  default: A paper airplane released from the top of a skyscraper, gliding through
+    urban canyons, crossing traffic, flying over streets, spiraling upward between
+    buildings. The camera follows the paper airplane's perspective, shooting cityscape
+    in first-person POV, finally flying toward the sunset, disappearing in golden
+    light. Creative camera movement, free perspective, dreamlike colors.
+  legacy_kind: textarea
+  node_id: '44'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 93.text
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: ''
+  legacy_kind: textarea
+  node_id: '93'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 124.width
+  label: Width
+  type: int
+  required: false
+  default: 1280
+  legacy_kind: number
+  node_id: '124'
+  node_type: EmptyHunyuanVideo15Latent
+  input: width
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 124.height
+  label: Height
+  type: int
+  required: false
+  default: 720
+  legacy_kind: number
+  node_id: '124'
+  node_type: EmptyHunyuanVideo15Latent
+  input: height
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 128.steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  legacy_kind: number
+  node_id: '128'
+  node_type: BasicScheduler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 131.cfg
+  label: CFG
+  type: int
+  required: false
+  default: 6
+  legacy_kind: number
+  node_id: '131'
+  node_type: CFGGuider
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 124.length
+  label: Frames
+  type: int
+  required: false
+  default: 121
+  legacy_kind: number
+  node_id: '124'
+  node_type: EmptyHunyuanVideo15Latent
+  input: length
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 101.fps
+  label: FPS
+  type: int
+  required: false
+  default: 24
+  legacy_kind: number
+  node_id: '101'
+  node_type: CreateVideo
+  input: fps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 124.batch_size
+  label: Batch
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '124'
+  node_type: EmptyHunyuanVideo15Latent
+  input: batch_size
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 129.noise_seed
+  label: Seed
+  type: int
+  required: false
+  default: 887963123424675
+  legacy_kind: number
+  node_id: '129'
+  node_type: RandomNoise
+  input: noise_seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102.filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: video/hunyuan_video_1.5
+  legacy_kind: text
+  node_id: '102'
+  node_type: SaveVideo
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 11.clip_name1
+  label: DualCLIPLoader clip_name1
+  type: text
+  required: false
+  default: qwen_2.5_vl_7b_fp8_scaled.safetensors
+  legacy_kind: text
+  node_id: '11'
+  node_type: DualCLIPLoader
+  input: clip_name1
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 11.clip_name2
+  label: DualCLIPLoader clip_name2
+  type: text
+  required: false
+  default: byt5_small_glyphxl_fp16.safetensors
+  legacy_kind: text
+  node_id: '11'
+  node_type: DualCLIPLoader
+  input: clip_name2
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 128.denoise
+  label: Denoise
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '128'
+  node_type: BasicScheduler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 132.shift
+  label: ModelSamplingSD3 shift
+  type: int
+  required: false
+  default: 7
+  legacy_kind: number
+  node_id: '132'
+  node_type: ModelSamplingSD3
+  input: shift
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: video
+  type: video
+  description: Generated video output
+models:
+  required:
+  - node_id: '11'
+    node_type: DualCLIPLoader
+    name: qwen_2.5_vl_7b_fp8_scaled.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+  - node_id: '11'
+    node_type: DualCLIPLoader
+    name: byt5_small_glyphxl_fp16.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/byt5_small_glyphxl_fp16.safetensors
+  - node_id: '10'
+    node_type: VAELoader
+    name: hunyuanvideo15_vae_fp16.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/vae/hunyuanvideo15_vae_fp16.safetensors
+  - node_id: '12'
+    node_type: UNETLoader
+    name: hunyuanvideo1.5_720p_t2v_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/diffusion_models/hunyuanvideo1.5_720p_t2v_fp16.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

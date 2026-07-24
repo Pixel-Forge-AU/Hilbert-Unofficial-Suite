@@ -1,0 +1,214 @@
+id: studio.image-to-image-qwen-edit
+name: Image to image qwen edit
+version: 2.0.1
+category: image-editing
+description: >
+  Experimental migrated Qwen Image Edit workflow from V1 Studio. The graph now
+  includes the missing Comfy API defaults needed for validation, but Qwen Image
+  Edit is heavy on this machine and should be treated as experimental until a
+  completed output is observed locally.
+status: experimental
+media_type: image
+source:
+  suite: v1
+  path: /home/hilbert/ai-suite-v2/legacy-workflows/image-to-image-qwen-edit.json
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 78.image
+  label: Input image
+  type: file
+  required: false
+  default: image_qwen_image_edit_input_image.png
+  legacy_kind: file
+  node_id: '78'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_3.steps
+  label: Steps
+  type: int
+  required: false
+  default: 4
+  legacy_kind: number
+  node_id: 102_sg_3
+  node_type: KSampler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_3.cfg
+  label: CFG
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 102_sg_3
+  node_type: KSampler
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_3.seed
+  label: Seed
+  type: int
+  required: false
+  default: 344147753686358
+  legacy_kind: number
+  node_id: 102_sg_3
+  node_type: KSampler
+  input: seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 60.filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: ComfyUI
+  legacy_kind: text
+  node_id: '60'
+  node_type: SaveImage
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 93.upscale_method
+  label: ImageScaleToTotalPixels upscale_method
+  type: text
+  required: false
+  default: lanczos
+  legacy_kind: text
+  node_id: '93'
+  node_type: ImageScaleToTotalPixels
+  input: upscale_method
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 93.megapixels
+  label: ImageScaleToTotalPixels megapixels
+  type: float
+  required: false
+  default: 1.5
+  legacy_kind: number
+  node_id: '93'
+  node_type: ImageScaleToTotalPixels
+  input: megapixels
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 93.resolution_steps
+  label: ImageScaleToTotalPixels resolution_steps
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: '93'
+  node_type: ImageScaleToTotalPixels
+  input: resolution_steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_66.shift
+  label: ModelSamplingAuraFlow shift
+  type: int
+  required: false
+  default: 3
+  legacy_kind: number
+  node_id: 102_sg_66
+  node_type: ModelSamplingAuraFlow
+  input: shift
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_76.prompt
+  label: TextEncodeQwenImageEdit prompt
+  type: textarea
+  required: false
+  default: Remove all UI text elements from the image. Keep the feeling that the characters
+    and scene are in water. Also, remove the green UI elements at the bottom.
+  legacy_kind: textarea
+  node_id: 102_sg_76
+  node_type: TextEncodeQwenImageEdit
+  input: prompt
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_89.lora_name
+  label: LoraLoaderModelOnly lora_name
+  type: text
+  required: false
+  default: Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors
+  legacy_kind: text
+  node_id: 102_sg_89
+  node_type: LoraLoaderModelOnly
+  input: lora_name
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_111.value
+  label: PrimitiveBoolean value
+  type: boolean
+  required: false
+  default: false
+  legacy_kind: checkbox
+  node_id: 102_sg_111
+  node_type: PrimitiveBoolean
+  input: value
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_3.denoise
+  label: Denoise
+  type: int
+  required: false
+  default: 1
+  legacy_kind: number
+  node_id: 102_sg_3
+  node_type: KSampler
+  input: denoise
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_109.switch
+  label: ComfySwitchNode switch (ComfySwitchNode 102_sg_109)
+  type: boolean
+  required: false
+  default: false
+  legacy_kind: checkbox
+  node_id: 102_sg_109
+  node_type: ComfySwitchNode
+  input: switch
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_110.switch
+  label: ComfySwitchNode switch (ComfySwitchNode 102_sg_110)
+  type: boolean
+  required: false
+  default: false
+  legacy_kind: checkbox
+  node_id: 102_sg_110
+  node_type: ComfySwitchNode
+  input: switch
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: 102_sg_108.switch
+  label: ComfySwitchNode switch (ComfySwitchNode 102_sg_108)
+  type: boolean
+  required: false
+  default: false
+  legacy_kind: checkbox
+  node_id: 102_sg_108
+  node_type: ComfySwitchNode
+  input: switch
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: image
+  type: image
+  description: Generated image output
+models:
+  required:
+  - node_id: 102_sg_39
+    node_type: VAELoader
+    name: qwen_image_vae.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors
+  - node_id: 102_sg_38
+    node_type: CLIPLoader
+    name: qwen_2.5_vl_7b_fp8_scaled.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+  - node_id: 102_sg_89
+    node_type: LoraLoaderModelOnly
+    name: Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors
+    directory: loras
+    url: https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors
+  - node_id: 102_sg_37
+    node_type: UNETLoader
+    name: qwen_image_edit_fp8_e4m3fn.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false

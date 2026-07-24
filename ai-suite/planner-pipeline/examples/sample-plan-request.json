@@ -1,0 +1,21 @@
+{
+  "title": "Searchable 3D parts library",
+  "brief": "Build a searchable parts library for a 3D printing business.",
+  "constraints": [
+    "Must integrate with WordPress",
+    "Must support more than 5000 parts",
+    "Must work well on mobile"
+  ],
+  "preferences": {
+    "strictness": 9,
+    "creativity": 9,
+    "detailLevel": 10,
+    "targetQualityScore": 92,
+    "maxRevisionCycles": 4
+  },
+  "context": {
+    "existingStack": ["WordPress", "PHP", "JavaScript"],
+    "existingSystems": [],
+    "referenceNotes": []
+  }
+}

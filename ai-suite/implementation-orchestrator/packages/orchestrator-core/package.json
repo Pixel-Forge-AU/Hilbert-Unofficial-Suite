@@ -1,0 +1,30 @@
+{
+  "name": "@implementation-orchestrator/orchestrator-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@implementation-orchestrator/contracts": "workspace:*",
+    "@implementation-orchestrator/database": "workspace:*",
+    "@implementation-orchestrator/workspace-manager": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "testcontainers": "^10.13.2",
+    "@testcontainers/postgresql": "^10.13.2",
+    "vitest": "^2.1.4"
+  }
+}

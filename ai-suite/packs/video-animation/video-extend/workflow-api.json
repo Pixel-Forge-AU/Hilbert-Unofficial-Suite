@@ -1,0 +1,187 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.1_i2v_480p_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "strength_model": 1.0
+    }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "Wan2_1_VAE_bf16.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["3", 0],
+      "text": "The video continues naturally from where it left off, with coherent motion, stable identity, and consistent lighting and camera framing."
+    }
+  },
+  "6": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["5", 0]
+    }
+  },
+  "7": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "smoke-input.mp4"
+    }
+  },
+  "8": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": ["7", 0]
+    }
+  },
+  "9": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "example.wav"
+    }
+  },
+  "10": {
+    "class_type": "AudioConcat",
+    "inputs": {
+      "audio1": ["8", 1],
+      "audio2": ["9", 0],
+      "direction": "after"
+    }
+  },
+  "11": {
+    "class_type": "AudioEncoderLoader",
+    "inputs": {
+      "audio_encoder_name": "wav2vec2-chinese-base_fp16.safetensors"
+    }
+  },
+  "12": {
+    "class_type": "AudioEncoderEncode",
+    "inputs": {
+      "audio_encoder": ["11", 0],
+      "audio": ["10", 0]
+    }
+  },
+  "13": {
+    "class_type": "ModelPatchLoader",
+    "inputs": {
+      "name": "infinitetalk_single.safetensors"
+    }
+  },
+  "14": {
+    "class_type": "WanInfiniteTalkToVideo",
+    "inputs": {
+      "mode": "single_speaker",
+      "model": ["2", 0],
+      "model_patch": ["13", 0],
+      "positive": ["5", 0],
+      "negative": ["6", 0],
+      "vae": ["4", 0],
+      "width": 832,
+      "height": 480,
+      "length": 81,
+      "audio_encoder_output_1": ["12", 0],
+      "motion_frame_count": 9,
+      "audio_scale": 1.0,
+      "previous_frames": ["8", 0]
+    }
+  },
+  "15": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 42
+    }
+  },
+  "16": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": ["14", 0],
+      "positive": ["14", 1],
+      "negative": ["14", 2],
+      "cfg": 1.0
+    }
+  },
+  "17": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "18": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": ["14", 0],
+      "scheduler": "normal",
+      "steps": 4,
+      "denoise": 1.0
+    }
+  },
+  "19": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["15", 0],
+      "guider": ["16", 0],
+      "sampler": ["17", 0],
+      "sigmas": ["18", 0],
+      "latent_image": ["14", 3]
+    }
+  },
+  "20": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["19", 0],
+      "vae": ["4", 0]
+    }
+  },
+  "21": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": ["20", 0],
+      "batch_index": ["14", 4],
+      "length": 4096
+    }
+  },
+  "22": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": ["8", 0],
+      "image2": ["21", 0]
+    }
+  },
+  "23": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["22", 0],
+      "fps": ["8", 2],
+      "audio": ["10", 0],
+      "bit_depth": 8
+    }
+  },
+  "24": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["23", 0],
+      "filename_prefix": "video/wan-video-extend",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}

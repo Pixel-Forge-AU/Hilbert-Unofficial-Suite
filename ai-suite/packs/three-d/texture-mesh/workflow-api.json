@@ -1,0 +1,109 @@
+{
+  "1": {
+    "class_type": "Hy3DUploadMesh",
+    "inputs": {
+      "mesh": "example.glb"
+    }
+  },
+  "2": {
+    "class_type": "Hy3DMeshUVWrap",
+    "inputs": {
+      "trimesh": ["1", 0]
+    }
+  },
+  "3": {
+    "class_type": "Hy3DCameraConfig",
+    "inputs": {
+      "camera_azimuths": "0, 90, 180, 270, 0, 180",
+      "camera_elevations": "0, 0, 0, 0, 90, -90",
+      "view_weights": "1, 0.1, 0.5, 0.1, 0.05, 0.05",
+      "camera_distance": 1.45,
+      "ortho_scale": 1.2
+    }
+  },
+  "4": {
+    "class_type": "Hy3DRenderMultiView",
+    "inputs": {
+      "trimesh": ["2", 0],
+      "render_size": 1024,
+      "texture_size": 1024,
+      "camera_config": ["3", 0],
+      "normal_space": "world"
+    }
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    }
+  },
+  "6": {
+    "class_type": "DownloadAndLoadHy3DDelightModel",
+    "inputs": {
+      "model": "hunyuan3d-delight-v2-0"
+    }
+  },
+  "7": {
+    "class_type": "Hy3DDelightImage",
+    "inputs": {
+      "delight_pipe": ["6", 0],
+      "image": ["5", 0],
+      "steps": 50,
+      "width": 512,
+      "height": 512,
+      "cfg_image": 1.0,
+      "seed": 42
+    }
+  },
+  "8": {
+    "class_type": "DownloadAndLoadHy3DPaintModel",
+    "inputs": {
+      "model": "hunyuan3d-paint-v2-0"
+    }
+  },
+  "9": {
+    "class_type": "Hy3DSampleMultiView",
+    "inputs": {
+      "pipeline": ["8", 0],
+      "ref_image": ["7", 0],
+      "normal_maps": ["4", 0],
+      "position_maps": ["4", 1],
+      "view_size": 512,
+      "steps": 30,
+      "seed": 0,
+      "camera_config": ["3", 0]
+    }
+  },
+  "10": {
+    "class_type": "Hy3DBakeFromMultiview",
+    "inputs": {
+      "images": ["9", 0],
+      "renderer": ["4", 2],
+      "camera_config": ["3", 0]
+    }
+  },
+  "11": {
+    "class_type": "Hy3DMeshVerticeInpaintTexture",
+    "inputs": {
+      "texture": ["10", 0],
+      "mask": ["10", 1],
+      "renderer": ["10", 2]
+    }
+  },
+  "12": {
+    "class_type": "Hy3DApplyTexture",
+    "inputs": {
+      "texture": ["11", 0],
+      "renderer": ["11", 2]
+    }
+  },
+  "13": {
+    "class_type": "Hy3DExportMesh",
+    "inputs": {
+      "trimesh": ["12", 0],
+      "filename_prefix": "3d/texture-mesh",
+      "file_format": "glb",
+      "save_file": true
+    }
+  }
+}

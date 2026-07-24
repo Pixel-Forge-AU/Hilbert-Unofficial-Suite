@@ -1,0 +1,161 @@
+id: three-d.texture-mesh
+name: Texture Mesh From Image
+version: 1.0.0
+category: three-d
+media_type: model
+description: >
+  Paint a texture onto an existing 3D mesh from a single reference image, using
+  Tencent's Hunyuan3D-2 paint pipeline (kijai's ComfyUI-Hunyuan3DWrapper). The
+  mesh is UV-unwrapped if needed, rendered from six camera angles to get normal
+  and position maps, the reference image is "delighted" (its baked-in lighting
+  removed) and used to condition a multi-view diffusion model, and the
+  generated views are baked back onto the mesh's UV texture and gap-filled
+  before export as a textured GLB. Newly installed on this machine: the
+  custom-node package and its CUDA rasterizer extension had to be compiled
+  from source against ROCm/HIP, since it only ships prebuilt wheels for
+  Windows+CUDA. Requires a ComfyUI restart to pick up the newly installed
+  custom node before this pack will run.
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: mesh
+    label: Source mesh
+    type: file
+    required: true
+    default: example.glb
+    node_id: "1"
+    node_type: Hy3DUploadMesh
+    input: mesh
+    accept: model/gltf-binary,.glb,.gltf,.obj,.ply,.stl,.3mf
+    description: Existing 3D mesh to texture (UVs are generated automatically if missing)
+
+  - id: image
+    label: Reference image
+    type: file
+    required: true
+    default: example.png
+    node_id: "5"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Image whose appearance/style the texture should match
+
+  - id: render_size
+    label: Render size
+    type: int
+    required: false
+    default: 1024
+    minimum: 64
+    maximum: 4096
+    step: 16
+    node_id: "4"
+    node_type: Hy3DRenderMultiView
+    input: render_size
+    description: Resolution used when rendering normal/position maps of the mesh
+
+  - id: texture_size
+    label: Texture size
+    type: int
+    required: false
+    default: 1024
+    minimum: 64
+    maximum: 4096
+    step: 16
+    node_id: "4"
+    node_type: Hy3DRenderMultiView
+    input: texture_size
+    description: Resolution of the baked output texture
+
+  - id: delight_steps
+    label: Delight steps
+    type: int
+    required: false
+    default: 50
+    minimum: 1
+    maximum: 100
+    node_id: "7"
+    node_type: Hy3DDelightImage
+    input: steps
+    description: Steps used to strip existing lighting/shadows from the reference image
+
+  - id: paint_view_size
+    label: Paint view size
+    type: int
+    required: false
+    default: 512
+    minimum: 64
+    maximum: 4096
+    step: 16
+    node_id: "9"
+    node_type: Hy3DSampleMultiView
+    input: view_size
+
+  - id: paint_steps
+    label: Paint steps
+    type: int
+    required: false
+    default: 30
+    minimum: 1
+    maximum: 100
+    node_id: "9"
+    node_type: Hy3DSampleMultiView
+    input: steps
+
+  - id: paint_seed
+    label: Paint seed
+    type: int
+    required: false
+    default: 0
+    minimum: 0
+    maximum: 18446744073709551615
+    node_id: "9"
+    node_type: Hy3DSampleMultiView
+    input: seed
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: 3d/texture-mesh
+    node_id: "13"
+    node_type: Hy3DExportMesh
+    input: filename_prefix
+
+outputs:
+  - id: model
+    type: model
+    description: Textured GLB mesh
+
+models:
+  required:
+    - type: diffusers
+      name: hunyuan3d-delight-v2-0
+      source: tencent/Hunyuan3D-2
+    - type: diffusers
+      name: hunyuan3d-paint-v2-0
+      source: tencent/Hunyuan3D-2
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+    - ComfyUI-Hunyuan3DWrapper
+  optional: []
+
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 16
+  supports_low_vram: false
+  supports_cpu_offload: true
+
+tags:
+  - 3d
+  - texture
+  - hunyuan3d
+  - glb
+  - mesh
+  - retexture

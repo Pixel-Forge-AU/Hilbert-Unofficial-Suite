@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanStatus {
+  queued
+  running
+  awaiting_revision
+  passed
+  failed
+  cancelled
+  paused
+}
+
+enum StageExecutionStatus {
+  pending
+  running
+  completed
+  invalid_output
+  failed
+  superseded
+}
+
+model Plan {
+  id                String     @id
+  title             String
+  brief             String
+  constraintsJson   Json
+  status            PlanStatus @default(queued)
+  preferencesJson   Json
+  contextJson       Json
+  currentStage      String?
+  qualityScore      Float?
+  revisionCycle     Int        @default(0)
+  maxRevisionCycles Int        @default(4)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  completedAt       DateTime?
+  failureCode       String?
+  failureMessage    String?
+
+  implementationTargetJson    Json?
+  implementationWorkflowId    String?
+  implementationPublishStatus String?
+  implementationPublishError  String?
+  implementationPublishedAt   DateTime?
+
+  stages              StageExecution[]
+  critiques           Critique[]
+  planGateEvaluations PlanGateEvaluation[]
+  instructions        PlanInstruction[]
+  artifacts           PlanArtifact[]
+  resolvedIssues      PlanResolvedIssue[]
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model StageExecution {
+  id                    String               @id @default(cuid())
+  planId                String
+  plan                  Plan                 @relation(fields: [planId], references: [id], onDelete: Cascade)
+  stageName             String
+  stageVersion          String
+  status                StageExecutionStatus @default(pending)
+  attempt               Int
+  inputJson             Json
+  rawOutput             String?
+  outputJson            Json?
+  summaryJson           Json?
+  modelProfile          String?
+  tokenUsageJson        Json?
+  durationMs            Int?
+  createdAt             DateTime             @default(now())
+  completedAt           DateTime?
+  errorJson             Json?
+  supersedesExecutionId String?
+  supersedesExecution   StageExecution?      @relation("StageSupersession", fields: [supersedesExecutionId], references: [id])
+  supersededBy          StageExecution[]     @relation("StageSupersession")
+
+  @@index([planId, stageName, status])
+  @@index([planId, createdAt])
+}
+
+model Critique {
+  id                 String   @id @default(cuid())
+  planId             String
+  plan               Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  revisionCycle      Int
+  overallScore       Float
+  categoryScoresJson Json
+  passed             Boolean
+  outputJson         Json
+  createdAt          DateTime @default(now())
+
+  @@index([planId, revisionCycle])
+}
+
+model PlanGateEvaluation {
+  id            String   @id @default(cuid())
+  planId        String
+  plan          Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  revisionCycle Int
+  decision      String
+  errorCount    Int
+  warningCount  Int
+  noticeCount   Int
+  outputJson    Json
+  createdAt     DateTime @default(now())
+
+  @@index([planId, revisionCycle])
+}
+
+model PlanInstruction {
+  id             String   @id @default(cuid())
+  planId         String
+  plan           Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  instruction    String
+  rerunFromStage String
+  createdAt      DateTime @default(now())
+}
+
+/**
+ * Every revision request ever raised for this plan (from plan_critic or plan_gate),
+ * regardless of whether it's still "current". Patch mode already guarantees a stage's
+ * untouched fields survive a revision byte-for-byte, but it does nothing for a field that
+ * genuinely gets touched again later for an unrelated reason - this ledger is what lets a
+ * future prompt for the same stage be reminded "this was already flagged and fixed, don't
+ * silently reintroduce it," rather than relying on the model to remember on its own.
+ */
+model PlanResolvedIssue {
+  id               String   @id @default(cuid())
+  planId           String
+  plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  section          String
+  problem          String
+  requiredChange   String
+  responsibleStage String
+  revisionCycle    Int
+  createdAt        DateTime @default(now())
+
+  @@index([planId, responsibleStage, createdAt])
+}
+
+model PlanArtifact {
+  id           String   @id @default(cuid())
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  artifactType String
+  format       String
+  content      String
+  version      Int
+  createdAt    DateTime @default(now())
+
+  @@index([planId, artifactType, version])
+}

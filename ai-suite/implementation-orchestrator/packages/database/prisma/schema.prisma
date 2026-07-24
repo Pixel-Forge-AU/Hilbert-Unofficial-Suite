@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkflowStatus {
+  created
+  validating_manifest
+  inspecting_repository
+  compiling_tasks
+  validating_task_graph
+  preparing_workspace
+  running
+  verifying
+  remediating
+  release_gate
+  completed
+  failed
+  cancelled
+}
+
+enum TaskStatus {
+  pending
+  blocked
+  ready
+  leased
+  running
+  builder_completed
+  verifying
+  verification_failed
+  remediation_required
+  accepted
+  retry_scheduled
+  failed
+  cancelled
+}
+
+enum TaskDependencyType {
+  hard
+  soft
+  verification
+  artifact
+}
+
+enum TaskAttemptType {
+  initial
+  retry
+  remediation
+}
+
+enum FailureClass {
+  transient
+  builder
+  verification
+  environment
+  manifest
+  policy
+  internal
+}
+
+enum LeaseStatus {
+  active
+  expired
+  released
+  cancelled
+}
+
+enum PolicyViolationSeverity {
+  warning
+  blocking
+}
+
+model Workflow {
+  id                    String         @id @default(cuid())
+  name                  String
+  status                WorkflowStatus @default(created)
+  manifestVersion       String
+  manifestHash          String
+  manifestJson          Json
+  repositoryConfigJson  Json
+  repositoryProfileJson Json?
+  policyProfileId       String
+  builderProfileId      String
+  baseCommitSha         String?
+  workflowBranch        String?
+  workspacePath         String?
+  compilerVersion       String?
+  graphVersion          String?
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  cancelledAt DateTime?
+
+  failureCode    String?
+  failureMessage String?
+  failureDetailsJson     Json?
+  completionSummaryJson  Json?
+
+  tasks            Task[]
+  dependencies     TaskDependency[]
+  events           WorkflowEvent[]
+  artifacts        Artifact[]
+  policyViolations PolicyViolation[]
+
+  @@index([status])
+  @@map("workflows")
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  workflowId     String
+  externalTaskId String
+  status         TaskStatus @default(pending)
+  phaseId        String
+  phaseOrder     Int        @default(0)
+  title          String
+  objective      String
+  category       String
+  priority       String
+  builderProfile String
+  contractJson   Json
+
+  readyAt    DateTime?
+  acceptedAt DateTime?
+  failedAt   DateTime?
+
+  retryEligibleAt            DateTime?
+  remediationInstructionJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflow          Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  attempts          TaskAttempt[]
+  leases            TaskLease[]
+  verificationRuns  VerificationRun[]
+  policyViolations  PolicyViolation[]
+  dependenciesFrom  TaskDependency[]   @relation("DependencyFrom")
+  dependenciesTo    TaskDependency[]   @relation("DependencyTo")
+
+  @@unique([workflowId, externalTaskId])
+  @@index([workflowId, status])
+  @@map("tasks")
+}
+
+model TaskDependency {
+  id             String             @id @default(cuid())
+  workflowId     String
+  fromTaskId     String
+  toTaskId       String
+  dependencyType TaskDependencyType
+  reason         String
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromTask Task     @relation("DependencyFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+  toTask   Task     @relation("DependencyTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTaskId, toTaskId, dependencyType])
+  @@index([workflowId])
+  @@map("task_dependencies")
+}
+
+model TaskAttempt {
+  id              String          @id @default(cuid())
+  taskId          String
+  attemptNumber   Int
+  attemptType     TaskAttemptType
+  status          TaskStatus
+  builderId       String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  failureClass    FailureClass?
+  failureCode     String?
+  failureMessage  String?
+  builderResultJson Json?
+
+  createdAt DateTime @default(now())
+
+  task             Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  leases           TaskLease[]
+  verificationRuns VerificationRun[]
+
+  @@unique([taskId, attemptNumber])
+  @@index([taskId])
+  @@map("task_attempts")
+}
+
+model TaskLease {
+  id               String      @id @default(cuid())
+  taskId           String
+  attemptId        String?
+  builderId        String
+  status           LeaseStatus @default(active)
+  acquiredAt       DateTime    @default(now())
+  expiresAt        DateTime
+  lastHeartbeatAt  DateTime    @default(now())
+  releasedAt       DateTime?
+
+  task    Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  attempt TaskAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, status])
+  @@map("task_leases")
+}
+
+model VerificationRun {
+  id          String   @id @default(cuid())
+  taskId      String
+  attemptId   String
+  status      String
+  passed      Boolean
+  resultJson  Json
+  startedAt   DateTime
+  completedAt DateTime
+
+  task    Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  attempt TaskAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("verification_runs")
+}
+
+model WorkflowEvent {
+  id          String   @id
+  workflowId  String
+  taskId      String?
+  attemptId   String?
+  eventType   String
+  source      String
+  payloadJson Json
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, occurredAt])
+  @@index([workflowId, eventType])
+  @@map("workflow_events")
+}
+
+model Artifact {
+  id               String   @id @default(cuid())
+  workflowId       String
+  taskId           String?
+  attemptId        String?
+  artifactType     String
+  storageProvider  String
+  storageKey       String
+  contentHash      String
+  sizeBytes        Int
+  metadataJson     Json?
+  createdAt        DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([taskId])
+  @@map("artifacts")
+}
+
+model PolicyViolation {
+  id           String                   @id @default(cuid())
+  workflowId   String
+  taskId       String?
+  ruleId       String
+  severity     PolicyViolationSeverity
+  path         String?
+  message      String
+  evidenceJson Json?
+  createdAt    DateTime                 @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  task     Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+  @@map("policy_violations")
+}

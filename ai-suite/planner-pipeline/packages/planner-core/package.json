@@ -1,0 +1,26 @@
+{
+  "name": "@planner/planner-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:example": "tsx scripts/generate-example-manifest.ts"
+  },
+  "dependencies": {
+    "@planner/contracts": "workspace:*",
+    "@planner/database": "workspace:*",
+    "@planner/llm": "workspace:*",
+    "@planner/observability": "workspace:*",
+    "@planner/prompts": "workspace:*",
+    "pino": "^9.6.0",
+    "yaml": "^2.6.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.0.4",
+    "testcontainers": "^12.0.4"
+  }
+}

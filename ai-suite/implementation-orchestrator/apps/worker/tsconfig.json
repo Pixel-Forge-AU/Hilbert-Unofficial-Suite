@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "noEmit": false
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/orchestrator-core" },
+    { "path": "../../packages/workspace-manager" },
+    { "path": "../../packages/repository-inspector" },
+    { "path": "../../packages/task-compiler" },
+    { "path": "../../packages/builder-gateway" },
+    { "path": "../../packages/verification-runner" },
+    { "path": "../../packages/observability" }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "smoke-input.mp4"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": ["1", 0]
+    }
+  },
+  "3": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "example.wav"
+    }
+  },
+  "4": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["2", 0],
+      "fps": ["2", 2],
+      "audio": ["3", 0],
+      "bit_depth": 8
+    }
+  },
+  "5": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["4", 0],
+      "filename_prefix": "video/video-mux",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}
