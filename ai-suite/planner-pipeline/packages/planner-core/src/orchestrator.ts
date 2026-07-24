@@ -619,8 +619,8 @@ export class PlannerOrchestrator {
    * plan_critic at the end of the pipeline. This is what catches things like a dangling
    * feature reference or a circular dependency at the stage that introduced them, rather than
    * 5+ stages later - which is when the previous design first noticed them, forcing a full
-   * revision cycle back through everything in between (see [[project_ftl_babylonjs_pipeline_run]]
-   * for the run whose repeated large-cascade oscillation motivated this).
+   * revision cycle back through everything in between (motivated by a real run whose repeated
+   * large-cascade oscillation made this worth fixing).
    *
    * Only findings that (a) survive attemptAutoRepair - the same free, deterministic fix-up
    * plan_gate already applies at the end, so there's no point spending an LLM call on

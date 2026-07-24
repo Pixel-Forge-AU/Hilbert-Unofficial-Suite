@@ -9,8 +9,7 @@ import { STAGE_ORDER } from "./registry.js";
  * "earliest responsible stage through the end of the pipeline" cascade, which forced full
  * regeneration of every downstream stage even when most of them had no flagged issues at
  * all - wasting LLM calls and, worse, introducing fresh unrelated regressions into content
- * that was already fine (see [[project_ftl_babylonjs_pipeline_run]] for the run that
- * surfaced this).
+ * that was already fine.
  *
  * plan_gate is a special case: it validates the compiled manifest deterministically and
  * isn't part of the prompt-context dependency table (it has no prompt), but it always needs

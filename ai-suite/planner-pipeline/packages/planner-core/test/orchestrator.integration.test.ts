@@ -244,9 +244,9 @@ describe("PlannerOrchestrator integration (real Postgres via Testcontainers)", (
     const provider = new FakeLlmProvider();
     provider.script("plan_critic", [{ response: { kind: "value", value: failingCritique } }]);
     // Simulate the patch call exhausting its repair budget and throwing (e.g. the model keeps
-    // returning array items missing required fields, as qwen3-coder-next did in production on
-    // 2026-07-18 - see [[project_ftl_babylonjs_pipeline_run]]) - the fallback should catch this
-    // and retry via a full regeneration instead of failing the stage/plan outright.
+    // returning array items missing required fields, as qwen3-coder-next did in production) -
+    // the fallback should catch this and retry via a full regeneration instead of failing the
+    // stage/plan outright.
     provider.script("art_director_patch", [{ response: { kind: "error", error: new Error("schema repair exhausted") } }]);
     const correctedVisualDirection = cloneFixture(VALID_STAGE_OUTPUTS.art_director as VisualDirection);
     correctedVisualDirection.motionSystem.personality = "Corrected via full regeneration fallback.";

@@ -124,7 +124,7 @@ describe("buildStagePrompt edge_case_hunter category minimums", () => {
     // "findings: array, min 1 item", with no per-category counts at all. Without this text,
     // a model has no way to learn the real requirement exists (this was a real production
     // failure: a model produced 20 well-formed "behaviour" findings and stopped, never
-    // attempting the other six categories - see [[project_ftl_babylonjs_pipeline_run]]).
+    // attempting the other six categories).
     const prompt = buildStagePrompt("edge_case_hunter", { plan: {}, previousOutputs: {} }).prompt;
 
     for (const [category, minimum] of Object.entries(EDGE_CASE_MINIMUMS)) {

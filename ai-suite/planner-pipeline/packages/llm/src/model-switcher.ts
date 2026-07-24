@@ -20,10 +20,9 @@ export interface ManagedModel {
 /**
  * Known models this pipeline has actually exercised successfully, keyed by a short id used
  * in PLANNER_PRECISION_STAGES/PLANNER_GENERAL_MODEL/PLANNER_PRECISION_MODEL. Deliberately
- * limited to models with a real track record in this pipeline (see
- * [[project_ftl_babylonjs_pipeline_run]]) rather than the full ai-suite catalog - untested,
- * slow, or not-yet-tuned models (e.g. the 120B/284B entries) are a stability risk to
- * introduce into the critical path of an unattended run.
+ * limited to models with a real track record in this pipeline rather than the full
+ * ai-suite catalog - untested, slow, or not-yet-tuned models (e.g. the 120B/284B entries)
+ * are a stability risk to introduce into the critical path of an unattended run.
  */
 export const MANAGED_MODELS: Record<string, ManagedModel> = {
   "qwen3.6-35b-a3b-heretic": {

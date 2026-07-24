@@ -59,9 +59,8 @@ export class OpenAICompatibleProvider implements LlmProvider {
           // occasionally restarts/reloads models is exactly the scenario where a pooled
           // socket can go stale (killed server-side without the client's pool noticing) and
           // surface as a generic, hard-to-diagnose "fetch failed" on the next reuse (observed
-          // repeatedly in production - see [[project_ftl_babylonjs_pipeline_run]]). A brand
-          // new connection per request costs a TCP/TLS handshake, negligible next to these
-          // requests' multi-second-to-minute durations.
+          // repeatedly in production). A brand new connection per request costs a TCP/TLS
+          // handshake, negligible next to these requests' multi-second-to-minute durations.
           connection: "close",
           ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {})
         },

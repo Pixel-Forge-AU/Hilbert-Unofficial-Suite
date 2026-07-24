@@ -196,8 +196,7 @@ export function buildStagePrompt(stageName: PlannerStageName, context: PromptCon
  * comes out the same as before, so unrelated content can silently drift or regress. Patch
  * mode instead asks the model for only the top-level field(s) that must change; the caller
  * merges those onto the existing output, so every field not named in the patch is guaranteed
- * byte-identical to what it was, not just "hopefully preserved" (see
- * [[project_ftl_babylonjs_pipeline_run]] for the run that motivated this).
+ * byte-identical to what it was, not just "hopefully preserved".
  */
 function buildPatchPrompt(
   stageName: PlannerStageName,
