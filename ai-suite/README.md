@@ -1,4 +1,4 @@
-# AI Suite V2
+# AI Suite
 
 A local, offline-first AI workstation: a coding LLM, an uncensored "Heretic"
 LLM, ComfyUI (image/video/3D/audio generation) and a browser automation
