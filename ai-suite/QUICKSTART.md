@@ -112,7 +112,7 @@ pip install -r requirements.txt
 ```
 
 **Issue: "ComfyUI not connected"**
-- Ensure ComfyUI is running on port 8188 (or update config/suite.yaml)
+- Ensure ComfyUI is running on port 39003 (or update config/suite.yaml)
 - Or use workflows that don't require ComfyUI
 
 **Issue: Out of memory**

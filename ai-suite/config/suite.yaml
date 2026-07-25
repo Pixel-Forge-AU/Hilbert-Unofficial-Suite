@@ -30,12 +30,12 @@ settings:
   
   # ComfyUI connection
   comfyui_host: "127.0.0.1"
-  comfyui_port: 8188
+  comfyui_port: 39003
   comfyui_timeout: 300
   
   # Launcher settings
   launcher_host: "127.0.0.1"
-  launcher_port: 8000
+  launcher_port: 39000
   
   # Feature flags
   enable_batch_processing: true

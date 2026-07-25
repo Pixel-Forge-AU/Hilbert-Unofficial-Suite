@@ -79,7 +79,7 @@ low quality, worst quality, lowres, blurry, text, watermark, logo, signature, cr
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/video.image-to-video/run \
+curl -X POST http://localhost:39000/workflows/video.image-to-video/run \
   -H "Content-Type: application/json" \
   -d '{
     "image": "base64_encoded_image_data",

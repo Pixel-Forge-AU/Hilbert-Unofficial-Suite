@@ -79,7 +79,7 @@ Supports multiple LLM models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/llm.workflow-router/run \
+curl -X POST http://localhost:39000/workflows/llm.workflow-router/run \
   -H "Content-Type: application/json" \
   -d '{
     "input_text": "Critique this generated image",

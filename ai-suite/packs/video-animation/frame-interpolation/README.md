@@ -82,7 +82,7 @@ Supports multiple interpolation models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/video.frame-interpolation/run \
+curl -X POST http://localhost:39000/workflows/video.frame-interpolation/run \
   -H "Content-Type: application/json" \
   -d '{
     "video": "base64_encoded_video_data",
