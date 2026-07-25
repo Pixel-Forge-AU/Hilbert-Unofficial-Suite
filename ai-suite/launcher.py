@@ -116,10 +116,10 @@ class ConfigManager:
                         'default_scheduler': 'normal',
                         'default_batch_size': 1,
                         'comfyui_host': '127.0.0.1',
-                        'comfyui_port': 8188,
+                        'comfyui_port': 39003,
                         'comfyui_timeout': 300,
                         'launcher_host': '127.0.0.1',
-                        'launcher_port': 8000,
+                        'launcher_port': 39000,
                         'enable_batch_processing': True,
                         'enable_dependency_check': True,
                         'enable_quality_control': True,
@@ -176,10 +176,10 @@ class ConfigManager:
                 'default_scheduler': 'normal',
                 'default_batch_size': 1,
                 'comfyui_host': '127.0.0.1',
-                'comfyui_port': 8188,
+                'comfyui_port': 39003,
                 'comfyui_timeout': 300,
                 'launcher_host': '127.0.0.1',
-                'launcher_port': 8000,
+                'launcher_port': 39000,
                 'enable_batch_processing': True,
                 'enable_dependency_check': True,
                 'enable_quality_control': True,
@@ -219,7 +219,7 @@ class ConfigManager:
         settings = self.config.get('settings', {})
         return {
             'host': settings.get('comfyui_host', '127.0.0.1'),
-            'port': settings.get('comfyui_port', 8188),
+            'port': settings.get('comfyui_port', 39003),
             'timeout': settings.get('comfyui_timeout', 300)
         }
 
@@ -228,7 +228,7 @@ class ConfigManager:
         settings = self.config.get('settings', {})
         return {
             'host': settings.get('launcher_host', '127.0.0.1'),
-            'port': settings.get('launcher_port', 8000)
+            'port': settings.get('launcher_port', 39000)
         }
 
 
@@ -1263,13 +1263,13 @@ class WorkflowManager:
         sidecar_model = requested_model or runtime_config.get('QWEN_SIDECAR_ALIAS') or 'qwen-sidecar'
         candidates.append({
             'name': 'qwen-sidecar',
-            'url': chat_url(f"http://{connect_host(runtime_config.get('QWEN_SIDECAR_HOST', '127.0.0.1'))}:{runtime_config.get('QWEN_SIDECAR_PORT', '8081')}"),
+            'url': chat_url(f"http://{connect_host(runtime_config.get('QWEN_SIDECAR_HOST', '127.0.0.1'))}:{runtime_config.get('QWEN_SIDECAR_PORT', '39002')}"),
             'model': str(sidecar_model),
         })
         main_model = requested_model or runtime_config.get('LLAMA_ALIAS') or 'local-llama'
         candidates.append({
             'name': 'llama',
-            'url': chat_url(f"http://{connect_host(runtime_config.get('LLAMA_HOST', '127.0.0.1'))}:{runtime_config.get('LLAMA_PORT', '8080')}"),
+            'url': chat_url(f"http://{connect_host(runtime_config.get('LLAMA_HOST', '127.0.0.1'))}:{runtime_config.get('LLAMA_PORT', '39001')}"),
             'model': str(main_model),
         })
         ollama_model = requested_model or runtime_config.get('OLLAMA_MODEL') or ''
@@ -2834,7 +2834,7 @@ def _chat_runtime() -> Dict[str, str]:
     runtime = _runtime_config()
     return {
         'host': _connect_host(runtime.get('LLAMA_HOST', '127.0.0.1')),
-        'port': str(runtime.get('LLAMA_PORT', '8080')),
+        'port': str(runtime.get('LLAMA_PORT', '39001')),
         'model': str(runtime.get('LLAMA_ALIAS') or 'local-llama'),
     }
 
@@ -2856,7 +2856,7 @@ def _chat_endpoint_candidates(model: str = '') -> List[Dict[str, str]]:
     return [
         {
             'name': 'llama',
-            'url': f"http://{connect_host(runtime.get('LLAMA_HOST', '127.0.0.1'))}:{runtime.get('LLAMA_PORT', '8080')}/v1/chat/completions",
+            'url': f"http://{connect_host(runtime.get('LLAMA_HOST', '127.0.0.1'))}:{runtime.get('LLAMA_PORT', '39001')}/v1/chat/completions",
             'model': str(model or runtime.get('LLAMA_ALIAS') or 'local-llama'),
         },
         {
@@ -4891,8 +4891,8 @@ Examples:
     parser.add_argument(
         '--port', '-p',
         type=int,
-        default=8000,
-        help='Port to bind to (default: 8000)'
+        default=39000,
+        help='Port to bind to (default: 39000)'
     )
     parser.add_argument(
         '--debug', '-d',

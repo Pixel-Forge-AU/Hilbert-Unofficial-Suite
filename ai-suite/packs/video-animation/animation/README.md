@@ -83,7 +83,7 @@ Supports multiple animation models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/video.animation/run \
+curl -X POST http://localhost:39000/workflows/video.animation/run \
   -H "Content-Type: application/json" \
   -d '{
     "image": "base64_encoded_image_data",

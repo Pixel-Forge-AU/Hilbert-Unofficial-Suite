@@ -336,7 +336,7 @@ def generate_workflow_readme(
     readme.append("import requests")
     readme.append("")
     readme.append("response = requests.post(")
-    readme.append(f"    \"http://localhost:8188/workflows/{workflow_id}\",")
+    readme.append(f"    \"http://localhost:39000/workflows/{workflow_id}\",")
     readme.append("    json={")
     readme.append("        \"inputs\": {")
     readme.append("            # Add your inputs here")

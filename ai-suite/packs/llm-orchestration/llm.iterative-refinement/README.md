@@ -97,7 +97,7 @@ Supports multiple LLM models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/llm.iterative-refinement/run \
+curl -X POST http://localhost:39000/workflows/llm.iterative-refinement/run \
   -H "Content-Type: application/json" \
   -d '{
     "initial_content": "a landscape photo",

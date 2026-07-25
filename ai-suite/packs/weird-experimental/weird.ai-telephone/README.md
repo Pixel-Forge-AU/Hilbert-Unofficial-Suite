@@ -27,7 +27,7 @@ This workflow implements the classic telephone game concept with AI: start with 
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/weird.ai-telephone/run \
+curl -X POST http://localhost:39000/workflows/weird.ai-telephone/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A beautiful landscape",

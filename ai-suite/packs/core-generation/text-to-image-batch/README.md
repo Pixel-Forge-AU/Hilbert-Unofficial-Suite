@@ -82,7 +82,7 @@ low quality, worst quality, normal quality, lowres, blurry, text, watermark, log
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/core.text-to-image-batch/run \
+curl -X POST http://localhost:39000/workflows/core.text-to-image-batch/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A beautiful sunset over the ocean",

@@ -75,7 +75,7 @@ Supports multiple enhancement models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/video.video-to-video/run \
+curl -X POST http://localhost:39000/workflows/video.video-to-video/run \
   -H "Content-Type: application/json" \
   -d '{
     "video": "base64_encoded_video_data",

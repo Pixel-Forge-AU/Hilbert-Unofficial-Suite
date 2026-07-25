@@ -79,7 +79,7 @@ low quality, worst quality, normal quality, lowres, blurry, text, watermark, log
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/core.text-to-image-low-vram/run \
+curl -X POST http://localhost:39000/workflows/core.text-to-image-low-vram/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A peaceful forest path with sunlight filtering through trees",

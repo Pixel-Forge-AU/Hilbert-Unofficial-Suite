@@ -796,7 +796,7 @@ def playwright_search(query, limit):
         host = config.get("PLAYWRIGHT_HOST", "127.0.0.1")
         if host in ("0.0.0.0", "::"):
             host = "127.0.0.1"
-        url = f"http://{host}:{config.get('PLAYWRIGHT_PORT', '8092')}/api/search"
+        url = f"http://{host}:{config.get('PLAYWRIGHT_PORT', '39005')}/api/search"
         body = json.dumps({"query": query, "limit": limit}).encode("utf-8")
         request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -1123,9 +1123,9 @@ class HilbertHandler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="LAN chat UI for a local OpenAI-compatible server.")
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8090)
+    parser.add_argument("--port", type=int, default=39004)
     parser.add_argument("--llama-host", default="127.0.0.1")
-    parser.add_argument("--llama-port", type=int, default=8080)
+    parser.add_argument("--llama-port", type=int, default=39001)
     parser.add_argument("--model", default="qwen3-coder-next")
     parser.add_argument("--data-dir", default=str(Path(__file__).resolve().parent / "chat-data"))
     args = parser.parse_args()

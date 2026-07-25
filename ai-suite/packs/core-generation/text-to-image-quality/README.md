@@ -78,7 +78,7 @@ low quality, worst quality, normal quality, lowres, blurry, text, watermark, sig
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/core.text-to-image-quality/run \
+curl -X POST http://localhost:39000/workflows/core.text-to-image-quality/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A beautiful sunset over the mountains",

@@ -612,10 +612,10 @@ def start_studio(config):
         str(python),
         str(ROOT / "launcher.py"),
         "--host", config.get("STUDIO_HOST", "127.0.0.1"),
-        "--port", config.get("STUDIO_PORT", "8000"),
+        "--port", config.get("STUDIO_PORT", "39000"),
     ]
     start_process("studio", cmd, ROOT, base_env(config))
-    url = f"http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '8000')}/"
+    url = f"http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '39000')}/"
     print(f"AI Suite studio starting: {url}")
     wait_http(url)
 
@@ -953,7 +953,7 @@ def diagnostics(config):
     print(f"  ollama: http://{config.get('OLLAMA_HOST', '127.0.0.1')}:{config.get('OLLAMA_PORT', '11434')} ({config.get('OLLAMA_MODEL', 'qwen3:0.6b')})")
     print(f"  comfy:  http://{config['COMFY_HOST']}:{config['COMFY_PORT']}")
     print(f"  chat:   http://{config['CHAT_HOST']}:{config['CHAT_PORT']}")
-    print(f"  studio: http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '8000')}")
+    print(f"  studio: http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '39000')}")
     print(f"  browser: http://{config.get('PLAYWRIGHT_HOST', '127.0.0.1')}:{config.get('PLAYWRIGHT_PORT', '39005')}")
     print(f"  planner: http://{config.get('PLANNER_HOST', '127.0.0.1')}:{config.get('PLANNER_PORT', '39006')} (docs at /docs)")
     print(f"  orchestrator: http://{config.get('ORCHESTRATOR_HOST', '127.0.0.1')}:{config.get('ORCHESTRATOR_PORT', '39007')}")

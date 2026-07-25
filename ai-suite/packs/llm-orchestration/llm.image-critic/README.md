@@ -81,7 +81,7 @@ Supports multiple LLM models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/llm.image-critic/run \
+curl -X POST http://localhost:39000/workflows/llm.image-critic/run \
   -H "Content-Type: application/json" \
   -d '{
     "image": "path/to/generated_image.png",

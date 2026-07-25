@@ -24,7 +24,7 @@ This workflow simulates how memories and dreams fade over time:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/weird.dream-degradation/run \
+curl -X POST http://localhost:39000/workflows/weird.dream-degradation/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A peaceful garden",

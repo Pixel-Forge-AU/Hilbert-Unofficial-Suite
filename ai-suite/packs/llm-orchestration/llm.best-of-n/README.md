@@ -85,7 +85,7 @@ Supports multiple LLM models:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/llm.best-of-n/run \
+curl -X POST http://localhost:39000/workflows/llm.best-of-n/run \
   -H "Content-Type: application/json" \
   -d '{
     "input_prompt": "a beautiful landscape photo",

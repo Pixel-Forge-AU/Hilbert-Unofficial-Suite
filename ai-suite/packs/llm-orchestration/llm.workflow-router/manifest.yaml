@@ -62,7 +62,7 @@ runtime:
   batch_supported: false
   type: llm_service
   service: llama_cpp
-  endpoint: http://127.0.0.1:8080/v1/chat/completions
+  endpoint: http://127.0.0.1:39001/v1/chat/completions
 content:
   themes:
   - llm
