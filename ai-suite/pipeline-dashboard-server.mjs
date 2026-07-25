@@ -81,18 +81,37 @@ function appendLog(key, chunk) {
 }
 
 /**
- * The actual long-lived server (tsx-loaded node.exe) is found directly by matching its
- * command line, rather than trusting a remembered spawn() pid — on Windows, an
- * intermediate shell layer can exit on its own while this real process keeps running
- * independently, which makes pid-based tracking silently wrong after any dashboard restart.
+ * The actual long-lived server (tsx-loaded node process) is found directly by matching its
+ * command line, rather than trusting a remembered spawn() pid — an intermediate shell layer
+ * (`pnpm run ...`, run with shell:true) can exit on its own while this real process keeps
+ * running independently, which makes pid-based tracking silently wrong after any dashboard
+ * restart.
  */
 async function findServicePid(key) {
   const def = SERVICE_DEFS[key];
-  const script = `(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*${def.dirTag}*${def.fileTag}*' } | Select-Object -First 1 -ExpandProperty ProcessId)`;
+  if (process.platform === "win32") {
+    const script = `(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*${def.dirTag}*${def.fileTag}*' } | Select-Object -First 1 -ExpandProperty ProcessId)`;
+    try {
+      const { stdout } = await execAsync(`powershell -NoProfile -Command "${script}"`, { windowsHide: true });
+      const trimmed = stdout.trim();
+      return trimmed ? Number(trimmed) : null;
+    } catch {
+      return null;
+    }
+  }
   try {
-    const { stdout } = await execAsync(`powershell -NoProfile -Command "${script}"`, { windowsHide: true });
-    const trimmed = stdout.trim();
-    return trimmed ? Number(trimmed) : null;
+    const { stdout } = await execAsync("ps -eo pid=,args=");
+    for (const line of stdout.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const spaceIdx = trimmed.indexOf(" ");
+      if (spaceIdx === -1) continue;
+      const args = trimmed.slice(spaceIdx + 1);
+      if (args.includes(def.dirTag) && args.includes(def.fileTag)) {
+        return Number(trimmed.slice(0, spaceIdx));
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -117,7 +136,15 @@ async function startService(key) {
 async function stopService(key) {
   const pid = await findServicePid(key);
   if (!pid) return { ok: true, wasRunning: false };
-  await execAsync(`taskkill /PID ${pid} /T /F`).catch(() => {});
+  if (process.platform === "win32") {
+    await execAsync(`taskkill /PID ${pid} /T /F`).catch(() => {});
+  } else {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch {
+      // already gone
+    }
+  }
   return { ok: true, wasRunning: true };
 }
 
@@ -373,7 +400,8 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/api/openhands-vscode-url" && req.method === "GET") {
       const envText = await readFile(ORCHESTRATOR_ENV, "utf8").catch(() => "");
       const token = parseEnvFile(envText).OPENHANDS_SESSION_API_KEY ?? "";
-      return sendJson(res, 200, { url: `http://localhost:${OPENHANDS_VSCODE_PORT}/?tkn=${encodeURIComponent(token)}` });
+      const requestHost = (req.headers.host ?? "localhost").split(":")[0];
+      return sendJson(res, 200, { url: `http://${requestHost}:${OPENHANDS_VSCODE_PORT}/?tkn=${encodeURIComponent(token)}` });
     }
 
     if (url.pathname === "/api/logs" && req.method === "GET") {
