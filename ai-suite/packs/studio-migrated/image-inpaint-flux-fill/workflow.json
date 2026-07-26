@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 105,
-      "type": "PreviewImage",
+      "type": "SaveImage",
       "pos": [
         560.0000062814186,
         3.30310535616718e-05
@@ -27,18 +27,13 @@
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "PreviewImage",
+        "Node name for S&R": "SaveImage",
         "cnr_id": "comfy-core",
-        "ver": "0.3.59",
-        "enableTabs": false,
-        "tabWidth": 65,
-        "tabXOffset": 10,
-        "hasSecondTab": false,
-        "secondTabText": "Send Back",
-        "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "ver": "0.3.59"
       },
-      "widgets_values": []
+      "widgets_values": [
+        "ComfyUI"
+      ]
     },
     {
       "id": 121,

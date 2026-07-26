@@ -362,10 +362,26 @@ def control_label(node, input_name, fallback_index=0, prompt=None):
     return labels.get(input_name, value if value else f"Node {node_id}")
 
 
+def node_feeds_mask(node):
+    return any(
+        output.get("type") == "MASK" and output.get("links")
+        for output in node.get("outputs", []) or []
+    )
+
+
 def workflow_controls(path, workflow):
     controls = []
-    prompt = workflow_to_api(workflow) if "nodes" in workflow else workflow
-    ui_nodes = {str(node.get("id")): node for node in workflow.get("nodes", [])} if "nodes" in workflow else {}
+    if "nodes" in workflow:
+        prompt = workflow_to_api(workflow)
+        # Use the expanded (subgraph-flattened) node list for title lookups too - inner
+        # subgraph nodes are renamed to "<outer_id>_sg_<inner_id>" during expansion, so
+        # looking titles up against the raw pre-expansion workflow.nodes always misses,
+        # silently dropping author-provided titles like "... (Positive Prompt)" and
+        # falling through to the reachability heuristic below.
+        ui_nodes = {str(node.get("id")): node for node in expand_subgraphs(workflow).get("nodes", [])}
+    else:
+        prompt = workflow
+        ui_nodes = {}
 
     clip_text_count = 0
     for node_id, node in prompt.items():
@@ -401,6 +417,15 @@ def workflow_controls(path, workflow):
             control_id = f"{node_id}.{name}"
             ui_node = ui_nodes.get(str(node_id), {})
             label_node = {"id": node_id, "type": node_type, "title": ui_node.get("title")}
+            # LoadImage-family nodes with a connected MASK output derive that mask from the
+            # uploaded file's alpha channel (ComfyUI's native "open in Mask Editor" on the
+            # node). There is no separate mask control to paint in that case - the Studio
+            # front end needs to know to offer the painter on this same image field instead.
+            alpha_mask = (
+                node_type in ("LoadImage", "LoadImageOutput")
+                and name == "image"
+                and node_feeds_mask(ui_node)
+            )
             controls.append(
                 {
                     "id": control_id,
@@ -411,6 +436,7 @@ def workflow_controls(path, workflow):
                     "accept": "video/mp4,video/webm,video/quicktime,video/x-matroska" if node_type == "LoadVideo" else "image/png,image/jpeg,image/webp,image/bmp",
                     "value": value,
                     "node_type": node_type,
+                    "alpha_mask": alpha_mask,
                 }
             )
 
@@ -885,6 +911,17 @@ def workflow_to_api(workflow):
                 if isinstance(compare_view, dict):
                     compare_view = "Slide"
                 inputs.setdefault("compare_view", compare_view)
+        elif node_type == "FluxGuidance":
+            # Some exports never promote "guidance" to a socket, so it has no
+            # matching entry in node["inputs"] for the generic fallback below
+            # to zip against - without this, ComfyUI drops the whole branch
+            # ("Required input is missing: guidance") instead of running it.
+            if widgets:
+                inputs.setdefault("guidance", widgets[0])
+        elif node_type == "InpaintModelConditioning":
+            # Same issue as FluxGuidance above, for the "noise_mask" widget.
+            if widgets:
+                inputs.setdefault("noise_mask", widgets[0])
         elif node_type == "LoraLoaderModelOnly":
             names = ["lora_name", "strength_model"]
             for name, value in zip(names, widgets):
