@@ -1527,6 +1527,75 @@
             justify-content: flex-end;
         }
 
+        .mask-editor-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            color: #eee;
+            font-size: 0.875rem;
+        }
+
+        .mask-editor-toolbar label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mask-editor-toolbar input[type="range"] {
+            width: 140px;
+        }
+
+        .mask-editor-canvas-wrap {
+            position: relative;
+            width: 100%;
+            max-height: 60vh;
+            overflow: auto;
+            background: repeating-conic-gradient(rgba(255,255,255,0.06) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #maskEditorCanvas {
+            max-width: 100%;
+            max-height: 60vh;
+            touch-action: none;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .mask-editor-empty {
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+        }
+
+        .mask-editor-empty input[type="file"] {
+            margin-top: 0.75rem;
+        }
+
+        .mask-status {
+            font-size: 0.75rem;
+            color: #66bb6a;
+            margin-left: 0.5rem;
+        }
+
+        .field-with-action {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .field-with-action input[type="file"] {
+            flex: 1;
+            min-width: 0;
+        }
+
         .loading {
             display: inline-block;
             width: 16px;
@@ -2691,6 +2760,37 @@
         </div>
     </div>
 
+    <div class="modal" id="maskEditorModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Paint Mask</h2>
+                <button class="close-btn" onclick="closeMaskEditor()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="maskEditorToolbar" class="mask-editor-toolbar" style="display: none;">
+                    <label><input type="checkbox" id="maskEditorErase"> Erase</label>
+                    <label>Brush size
+                        <input type="range" id="maskEditorBrush" min="4" max="200" value="40">
+                    </label>
+                    <button type="button" class="btn btn-secondary" style="flex: 0;" onclick="clearMaskEditor()">Clear</button>
+                    <small style="color: rgba(255,255,255,0.55);">Paint over what should change. Everything left black stays untouched.</small>
+                </div>
+                <div id="maskEditorCanvasWrap" class="mask-editor-canvas-wrap">
+                    <div class="mask-editor-empty" id="maskEditorEmpty">
+                        Pick or upload the source image first, or upload a reference photo here just to paint against.
+                        <br>
+                        <input type="file" id="maskEditorRefUpload" accept="image/png,image/jpeg,image/webp,image/bmp">
+                    </div>
+                    <canvas id="maskEditorCanvas" style="display: none;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeMaskEditor()">Cancel</button>
+                <button class="btn btn-primary" type="button" id="maskEditorUseBtn" onclick="useMaskFromEditor()" disabled>Use this mask</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="false"></div>
 
     <script type="importmap">
@@ -3207,6 +3307,7 @@
 
         async function selectWorkbenchWorkflow(workflowId) {
             workbenchWorkflowId = workflowId;
+            Object.keys(paintedMasks).forEach(function(key) { delete paintedMasks[key]; });
             const summary = workflowsData.find(function(workflow) { return workflow.id === workflowId; });
             document.getElementById('workbenchTitle').textContent = summary?.name || workflowId;
             document.getElementById('workbenchDescription').textContent = summary?.description || 'Loading workflow controls...';
@@ -3460,7 +3561,7 @@
                 const required = input.required ? ' *' : '';
                 const defaultValue = input.default !== undefined ? input.default : '';
                 const label = input.label || input.id;
-                const common = `name="${escapeHtml(input.id)}"`;
+                const common = `name="${escapeHtml(input.id)}"${input.required ? ' data-required="true"' : ''}`;
                 if (input.legacy_kind === 'textarea' || input.id === 'prompt' || input.type === 'textarea') {
                     return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><textarea ${common} rows="5">${escapeHtml(defaultValue)}</textarea></div>`;
                 }
@@ -3476,10 +3577,18 @@
                     `;
                 }
                 if (input.type === 'file') {
+                    const isMaskField = /mask/i.test(input.id) || /mask/i.test(label);
+                    const isAlphaMaskField = !!input.alpha_mask;
+                    const paintButton = (isMaskField || isAlphaMaskField)
+                        ? `<button type="button" class="btn btn-secondary" style="flex: 0;" onclick="openMaskEditor('${escapeHtml(input.id)}', ${isAlphaMaskField})">Paint mask</button><span class="mask-status" id="maskStatus-${escapeHtml(input.id)}"></span>`
+                        : '';
                     return `
                         <div class="form-group">
                             <label>${escapeHtml(label)}${required}</label>
-                            <input ${common} type="file" accept="${escapeHtml(input.accept || '')}">
+                            <div class="field-with-action">
+                                <input ${common} type="file" accept="${escapeHtml(input.accept || '')}">
+                                ${paintButton}
+                            </div>
                             <div class="stored-input-row">
                                 <small>Or reuse a stored input</small>
                                 <select data-stored-input-for="${escapeHtml(input.id)}">
@@ -3522,6 +3631,20 @@
 
         async function submitWorkbenchForm() {
             if (!workbenchWorkflowId) return;
+            const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+            const missingRequired = fields.filter(function(field) {
+                if (field.dataset.required !== 'true' || field.type !== 'file') return false;
+                if (field.files && field.files[0]) return false;
+                const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
+                return !(stored && stored.value);
+            });
+            if (missingRequired.length) {
+                const labels = missingRequired.map(function(field) {
+                    return field.closest('.form-group')?.querySelector('label')?.textContent || field.name;
+                });
+                showToast('Missing required input', `Please provide: ${labels.join(', ')}`, 'error');
+                return;
+            }
             const button = document.getElementById('workbenchRun');
             const status = document.getElementById('workbenchStatus');
             button.disabled = true;
@@ -3530,11 +3653,14 @@
             setEditorProgress('Starting generation...', 5);
             const inputs = {};
             try {
-                const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
                 for (const field of fields) {
                     if (field.type === 'file') {
                         if (field.files && field.files[0]) {
-                            inputs[field.name] = await uploadWorkbenchFile(field.files[0]);
+                            const maskDataUrl = paintedMasks[field.name];
+                            const fileToUpload = maskDataUrl
+                                ? await compositeAlphaMask(field.files[0], maskDataUrl)
+                                : field.files[0];
+                            inputs[field.name] = await uploadWorkbenchFile(fileToUpload);
                         } else {
                             const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
                             if (stored && stored.value) {
@@ -3548,7 +3674,7 @@
                 const response = await fetch(`/api/workflows/${workbenchWorkflowId}/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputs: inputs })
+                    body: JSON.stringify({ inputs: inputs, hold_for_slot: true })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Failed to launch workflow');
@@ -3610,6 +3736,330 @@
             });
             return options.join('');
         }
+
+        // --- On-the-fly mask painter ---------------------------------------------------
+        const maskEditor = {
+            targetFieldName: null,
+            alphaMode: false,
+            baseImage: null,
+            strokeCanvas: null,
+            strokeCtx: null,
+            displayCanvas: null,
+            displayCtx: null,
+            drawing: false,
+            lastPoint: null,
+            dirty: false,
+        };
+
+        // Painted masks for alpha-mode fields, keyed by field name. Kept separate from the
+        // field's actual file so the source image is never mutated - baking the hole
+        // straight into the file meant reopening the painter loaded an already-punched
+        // image as the new "clean" base, so Clear could wipe new strokes but could never
+        // undo a previously-saved mask (it wasn't a stroke anymore, it was the image).
+        // The mask is only composited into the alpha channel once, at upload time.
+        const paintedMasks = {};
+
+        function findSourceImageInput(maskFieldName) {
+            const fileInputs = Array.from(document.querySelectorAll('#workbenchFields input[type="file"]'));
+            const others = fileInputs.filter(function(el) { return el.name !== maskFieldName; });
+            return others.find(function(el) { return el.name === 'image'; }) || others[0] || null;
+        }
+
+        function loadImageFromBlob(blob) {
+            return loadImageFromUrl(URL.createObjectURL(blob));
+        }
+
+        function loadImageFromUrl(url) {
+            return new Promise(function(resolve, reject) {
+                const img = new Image();
+                img.onload = function() { resolve(img); };
+                img.onerror = function() { reject(new Error('Could not read image')); };
+                img.src = url;
+            });
+        }
+
+        async function compositeAlphaMask(file, maskDataUrl) {
+            const baseImg = await loadImageFromBlob(file);
+            const maskImg = await loadImageFromUrl(maskDataUrl);
+            const w = baseImg.naturalWidth;
+            const h = baseImg.naturalHeight;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(baseImg, 0, 0, w, h);
+            const baseData = ctx.getImageData(0, 0, w, h);
+
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = w;
+            maskCanvas.height = h;
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.drawImage(maskImg, 0, 0, w, h);
+            const maskData = maskCtx.getImageData(0, 0, w, h);
+
+            // See useMaskFromEditor: alpha = 255 - paintedAlpha (painted => transparent => edit-this).
+            for (let i = 3; i < baseData.data.length; i += 4) {
+                baseData.data[i] = 255 - maskData.data[i];
+            }
+            ctx.putImageData(baseData, 0, 0);
+            return new Promise(function(resolve) {
+                canvas.toBlob(function(blob) {
+                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '-masked.png', { type: 'image/png' }));
+                }, 'image/png');
+            });
+        }
+
+        async function loadImageFromField(field) {
+            if (!field) return null;
+            if (field.files && field.files[0]) {
+                return loadImageFromBlob(field.files[0]);
+            }
+            const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
+            if (stored && stored.value) {
+                const response = await fetch(`/api/input/${stored.value}`);
+                if (response.ok) {
+                    return loadImageFromBlob(await response.blob());
+                }
+            }
+            return null;
+        }
+
+        async function resolveSourceImageForMask(maskFieldName) {
+            return loadImageFromField(findSourceImageInput(maskFieldName));
+        }
+
+        // Alpha-mask fields paint against and write back into the same image field -
+        // there is no separate mask control, since the mask is that image's alpha channel.
+        async function resolveSelfImageForMask(fieldName) {
+            return loadImageFromField(document.querySelector(`#workbenchFields [name="${CSS.escape(fieldName)}"]`));
+        }
+
+        function setupMaskCanvases(image) {
+            const canvas = document.getElementById('maskEditorCanvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            maskEditor.baseImage = image;
+            maskEditor.displayCanvas = canvas;
+            maskEditor.displayCtx = canvas.getContext('2d');
+            const stroke = document.createElement('canvas');
+            stroke.width = image.naturalWidth;
+            stroke.height = image.naturalHeight;
+            maskEditor.strokeCanvas = stroke;
+            maskEditor.strokeCtx = stroke.getContext('2d');
+            document.getElementById('maskEditorEmpty').style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('maskEditorToolbar').style.display = 'flex';
+            document.getElementById('maskEditorUseBtn').disabled = false;
+            redrawMaskDisplay();
+        }
+
+        function redrawMaskDisplay() {
+            const ctx = maskEditor.displayCtx;
+            if (!ctx) return;
+            const canvas = maskEditor.displayCanvas;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(maskEditor.baseImage, 0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.globalAlpha = 0.55;
+            ctx.drawImage(maskEditor.strokeCanvas, 0, 0);
+            ctx.restore();
+        }
+
+        function scheduleMaskRedraw() {
+            if (maskEditor.dirty) return;
+            maskEditor.dirty = true;
+            requestAnimationFrame(function() {
+                maskEditor.dirty = false;
+                redrawMaskDisplay();
+            });
+        }
+
+        function maskCanvasPoint(e) {
+            const canvas = maskEditor.displayCanvas;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
+            };
+        }
+
+        function maskPointerDown(e) {
+            if (!maskEditor.strokeCtx) return;
+            e.preventDefault();
+            maskEditor.drawing = true;
+            maskEditor.displayCanvas.setPointerCapture(e.pointerId);
+            const point = maskCanvasPoint(e);
+            maskEditor.lastPoint = point;
+            strokeDot(point);
+            scheduleMaskRedraw();
+        }
+
+        function maskPointerMove(e) {
+            if (!maskEditor.drawing) return;
+            e.preventDefault();
+            const point = maskCanvasPoint(e);
+            strokeLine(maskEditor.lastPoint, point);
+            maskEditor.lastPoint = point;
+            scheduleMaskRedraw();
+        }
+
+        function maskPointerUp(e) {
+            maskEditor.drawing = false;
+            maskEditor.lastPoint = null;
+        }
+
+        function currentBrushSize() {
+            return Number(document.getElementById('maskEditorBrush').value || 40);
+        }
+
+        function isErasing() {
+            return document.getElementById('maskEditorErase').checked;
+        }
+
+        function strokeDot(point) {
+            const ctx = maskEditor.strokeCtx;
+            ctx.globalCompositeOperation = isErasing() ? 'destination-out' : 'source-over';
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, currentBrushSize() / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function strokeLine(from, to) {
+            const ctx = maskEditor.strokeCtx;
+            ctx.globalCompositeOperation = isErasing() ? 'destination-out' : 'source-over';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = currentBrushSize();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+        }
+
+        function clearMaskEditor() {
+            if (!maskEditor.strokeCtx) return;
+            maskEditor.strokeCtx.clearRect(0, 0, maskEditor.strokeCanvas.width, maskEditor.strokeCanvas.height);
+            redrawMaskDisplay();
+        }
+
+        async function openMaskEditor(fieldName, alphaMode) {
+            maskEditor.targetFieldName = fieldName;
+            maskEditor.alphaMode = !!alphaMode;
+            document.getElementById('maskEditorModal').classList.add('active');
+            document.getElementById('maskEditorEmpty').style.display = 'block';
+            document.getElementById('maskEditorCanvas').style.display = 'none';
+            document.getElementById('maskEditorToolbar').style.display = 'none';
+            document.getElementById('maskEditorUseBtn').disabled = true;
+            document.getElementById('maskEditorErase').checked = false;
+            document.getElementById('maskEditorRefUpload').value = '';
+            maskEditor.baseImage = null;
+            maskEditor.strokeCanvas = null;
+            try {
+                const image = maskEditor.alphaMode
+                    ? await resolveSelfImageForMask(fieldName)
+                    : await resolveSourceImageForMask(fieldName);
+                if (image) {
+                    setupMaskCanvases(image);
+                    const savedMask = maskEditor.alphaMode && paintedMasks[fieldName];
+                    if (savedMask) {
+                        const maskImg = await loadImageFromUrl(savedMask);
+                        maskEditor.strokeCtx.drawImage(maskImg, 0, 0, maskEditor.strokeCanvas.width, maskEditor.strokeCanvas.height);
+                        redrawMaskDisplay();
+                    }
+                }
+            } catch (err) {
+                showToast('Could not load source image', err.message, 'error');
+            }
+        }
+
+        function closeMaskEditor() {
+            document.getElementById('maskEditorModal').classList.remove('active');
+            maskEditor.drawing = false;
+        }
+
+        async function handleMaskEditorRefUpload(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const image = await loadImageFromBlob(file);
+            setupMaskCanvases(image);
+            const targetField = maskEditor.alphaMode
+                ? document.querySelector(`#workbenchFields [name="${CSS.escape(maskEditor.targetFieldName)}"]`)
+                : findSourceImageInput(maskEditor.targetFieldName);
+            if (targetField) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                targetField.files = dt.files;
+            }
+        }
+
+        function useMaskFromEditor() {
+            if (!maskEditor.strokeCanvas || !maskEditor.targetFieldName) return;
+            const status = document.getElementById(`maskStatus-${maskEditor.targetFieldName}`);
+
+            if (maskEditor.alphaMode) {
+                // Store the raw stroke layer (transparent except opaque-white where
+                // painted) rather than baking it into the source image now. Keeping the
+                // field's file pristine is what lets reopening the painter - and Clear -
+                // keep working: the source is composited with this mask only once, right
+                // before upload (see compositeAlphaMask / submitWorkbenchForm).
+                paintedMasks[maskEditor.targetFieldName] = maskEditor.strokeCanvas.toDataURL('image/png');
+                if (status) status.textContent = 'Mask painted';
+                closeMaskEditor();
+                return;
+            }
+
+            const w = maskEditor.strokeCanvas.width;
+            const h = maskEditor.strokeCanvas.height;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = w;
+            exportCanvas.height = h;
+            const ctx = exportCanvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(maskEditor.strokeCanvas, 0, 0);
+            exportCanvas.toBlob(function(blob) {
+                const file = new File([blob], 'painted-mask.png', { type: 'image/png' });
+                const field = document.querySelector(`#workbenchFields [name="${CSS.escape(maskEditor.targetFieldName)}"]`);
+                if (field) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    field.files = dt.files;
+                    field.dispatchEvent(new Event('change'));
+                }
+                if (status) status.textContent = 'Mask painted';
+                closeMaskEditor();
+            }, 'image/png');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('maskEditorCanvas');
+            if (canvas) {
+                canvas.addEventListener('pointerdown', maskPointerDown);
+                canvas.addEventListener('pointermove', maskPointerMove);
+                window.addEventListener('pointerup', maskPointerUp);
+            }
+            const refUpload = document.getElementById('maskEditorRefUpload');
+            if (refUpload) refUpload.addEventListener('change', handleMaskEditorRefUpload);
+
+            // A saved mask is only valid for the image it was painted against - if the
+            // user manually swaps the source file, drop it rather than compositing it
+            // onto a mismatched image at upload time.
+            const workbenchFields = document.getElementById('workbenchFields');
+            if (workbenchFields) {
+                workbenchFields.addEventListener('change', function(e) {
+                    const field = e.target;
+                    if (field && field.type === 'file' && paintedMasks[field.name]) {
+                        delete paintedMasks[field.name];
+                        const status = document.getElementById(`maskStatus-${field.name}`);
+                        if (status) status.textContent = '';
+                    }
+                });
+            }
+        });
 
         async function refreshWorkbenchOutputs() {
             const type = mediaTypeForWorkflow(workbenchWorkflowDetails || workflowsData.find(function(workflow) {
@@ -4794,7 +5244,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 const response = await fetch(`/api/workflows/${currentWorkflowId}/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputs: inputs })
+                    body: JSON.stringify({ inputs: inputs, hold_for_slot: true })
                 });
 
                 const data = await response.json();

@@ -53,6 +53,12 @@ except ImportError:
     PIL_AVAILABLE = False
 
 try:
+    import websocket  # websocket-client; used to track live ComfyUI sampling progress
+    WEBSOCKET_AVAILABLE = True
+except ImportError:
+    WEBSOCKET_AVAILABLE = False
+
+try:
     from hilbert_chat import (
         ChatStore,
         USERS as CHAT_USERS,
@@ -127,6 +133,7 @@ class ConfigManager:
                         'enable_preset_system': True,
                         'max_queue_size': 50,
                         'max_history_size': 100,
+                        'queue_release_progress': 90,
                         'output_format': 'webp',
                         'output_quality': 90
                     },
@@ -187,6 +194,7 @@ class ConfigManager:
                 'enable_preset_system': True,
                 'max_queue_size': 50,
                 'max_history_size': 100,
+                'queue_release_progress': 90,
                 'output_format': 'webp',
                 'output_quality': 90
             },
@@ -717,6 +725,99 @@ class JobQueue:
             return count
 
 
+# ComfyUI only targets "progress" websocket events at the client_id that
+# submitted the prompt (see ComfyUI's execution.py hijack_progress /
+# send_sync(..., sid=client_id)), so the launcher submits every prompt under
+# this one fixed id and keeps a single websocket open under the same id to
+# receive them all.
+COMFY_WS_CLIENT_ID = str(uuid.uuid4())
+
+
+class ComfyProgressMonitor:
+    """Tracks live per-prompt sampling progress from ComfyUI's websocket feed.
+
+    ComfyUI's REST /history endpoint only exposes coarse states (queued,
+    running, done) - there's no percentage in it. Real "90% of the way
+    through this render" requires listening for the websocket `progress`
+    events ComfyUI emits while a sampler node is stepping through a prompt.
+    """
+
+    def __init__(self) -> None:
+        self._percent_by_prompt: Dict[str, int] = {}
+        self._lock = threading.Lock()
+        self._thread: Optional[threading.Thread] = None
+        self._stop = False
+
+    def start(self, comfyui_config: Dict[str, Any]) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop = False
+        self._thread = threading.Thread(
+            target=self._run, args=(comfyui_config,), daemon=True
+        )
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def percent_for(self, prompt_id: str) -> Optional[int]:
+        with self._lock:
+            return self._percent_by_prompt.get(prompt_id)
+
+    def clear(self, prompt_id: str) -> None:
+        with self._lock:
+            self._percent_by_prompt.pop(prompt_id, None)
+
+    def _run(self, comfyui_config: Dict[str, Any]) -> None:
+        host = comfyui_config.get('host', '127.0.0.1')
+        port = comfyui_config.get('port', 39003)
+        url = f"ws://{host}:{port}/ws?clientId={COMFY_WS_CLIENT_ID}"
+        backoff = 1
+        while not self._stop:
+            ws = None
+            try:
+                ws = websocket.create_connection(url, timeout=10)
+                ws.settimeout(None)  # only the initial connect should time out; idle recv() should block
+                backoff = 1
+                while not self._stop:
+                    raw = ws.recv()
+                    if isinstance(raw, str):
+                        self._handle_message(raw)
+            except Exception:
+                pass
+            finally:
+                if ws is not None:
+                    try:
+                        ws.close()
+                    except Exception:
+                        pass
+            if self._stop:
+                return
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 30)
+
+    def _handle_message(self, raw: str) -> None:
+        try:
+            message = json.loads(raw)
+        except ValueError:
+            return
+        if message.get('type') != 'progress':
+            return
+        data = message.get('data') or {}
+        prompt_id = data.get('prompt_id')
+        value = data.get('value')
+        max_value = data.get('max')
+        if not prompt_id or not max_value:
+            return
+        try:
+            percent = round(float(value) / float(max_value) * 100)
+        except (TypeError, ZeroDivisionError):
+            return
+        percent = max(0, min(100, percent))
+        with self._lock:
+            self._percent_by_prompt[prompt_id] = percent
+
+
 class WorkflowManager:
     """Manages workflow loading and execution."""
 
@@ -1112,7 +1213,7 @@ class WorkflowManager:
                 prompt = self._build_comfy_prompt(workflow_data, effective_inputs)
                 response = requests.post(
                     f"http://{comfyui_config['host']}:{comfyui_config['port']}/prompt",
-                    json={'prompt': prompt, 'client_id': str(uuid.uuid4())},
+                    json={'prompt': prompt, 'client_id': COMFY_WS_CLIENT_ID},
                     timeout=comfyui_config['timeout'],
                 )
                 if response.status_code != 200:
@@ -1969,6 +2070,7 @@ hardware_manager: Optional[HardwareManager] = None
 dependency_manager: Optional[DependencyManager] = None
 job_queue: Optional[JobQueue] = None
 workflow_manager: Optional[WorkflowManager] = None
+progress_monitor: Optional[ComfyProgressMonitor] = None
 chat_store: Optional[Any] = None
 
 
@@ -2090,7 +2192,7 @@ def check_llm_endpoint(endpoint: Dict[str, str]) -> Dict[str, Any]:
 
 def initialize_app() -> None:
     """Initialize the application components."""
-    global config_manager, registry_manager, model_manager, hardware_manager, dependency_manager, job_queue, workflow_manager, chat_store
+    global config_manager, registry_manager, model_manager, hardware_manager, dependency_manager, job_queue, workflow_manager, progress_monitor, chat_store
 
     # Initialize configuration manager
     config_manager = ConfigManager()
@@ -2111,6 +2213,11 @@ def initialize_app() -> None:
     job_queue = JobQueue(
         max_size=config_manager.get_setting('max_queue_size', 50)
     )
+
+    # Initialize ComfyUI progress monitor (live sampling progress via websocket)
+    progress_monitor = ComfyProgressMonitor()
+    if WEBSOCKET_AVAILABLE:
+        progress_monitor.start(config_manager.get_comfyui_config())
 
     # Initialize workflow manager
     workflow_manager = WorkflowManager(
@@ -2218,54 +2325,96 @@ def api_workflow_dependencies(workflow_id: str) -> jsonify:
 
 @app.route('/api/workflows/<workflow_id>/run', methods=['POST'])
 def api_run_workflow(workflow_id: str) -> jsonify:
-    """Run a workflow."""
+    """Run a workflow.
+
+    Pass `hold_for_slot: true` in the JSON body to let this job sit in the
+    launcher's local queue instead of being submitted to ComfyUI right away,
+    if an earlier job is still running there below the release threshold
+    (see _release_queued_jobs). Internal multi-stage pipelines that need a
+    prompt_id back immediately should omit this flag to keep today's
+    submit-right-away behavior.
+    """
     if not workflow_manager:
         return jsonify({'error': 'Workflow manager not initialized'}), 500
 
     data = request.get_json() or {}
+    inputs = data.get('inputs', {})
+    hold_for_slot = bool(data.get('hold_for_slot'))
 
     try:
-        job_id = job_queue.add_job(
-            workflow_id=workflow_id,
-            inputs=data.get('inputs', {})
-        )
-        job_queue.start_job(job_id)
-        success, result = workflow_manager.run_workflow(
-            workflow_id=workflow_id,
-            inputs=data.get('inputs', {})
-        )
-
-        error_message = None
-        if success and result.get('prompt_id'):
-            # ComfyUI has only ACCEPTED the prompt into its queue here, not
-            # finished rendering it. Leave the job "running" (set by start_job
-            # above) with the prompt_id attached; _reconcile_running_jobs()
-            # flips it to "completed" once ComfyUI actually finishes, the next
-            # time /api/jobs or /api/jobs/<id> is polled.
-            job_queue.update_job(job_id, progress=10, result=result)
-            response_status = 'running'
-        elif success:
-            # Non-ComfyUI workflows (e.g. LLM orchestration) return their real
-            # result synchronously, so "completed" is accurate immediately.
-            job_queue.update_job(job_id, status='completed', progress=100, result=result)
-            response_status = 'completed'
-        else:
-            error_message = result.get('error', 'Workflow failed')
-            job_queue.update_job(job_id, status='failed', progress=0, result=None, error=error_message)
-            response_status = 'failed'
-
-        response = {
-            'job_id': job_id,
-            'status': response_status,
-            'workflow_id': workflow_id,
-            'result': result
-        }
-        if response_status == 'failed':
-            response['error'] = error_message
-        return jsonify(response), 200 if success else 400
-
+        job_id = job_queue.add_job(workflow_id=workflow_id, inputs=inputs)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+
+    _reconcile_running_jobs()
+    if hold_for_slot:
+        _release_queued_jobs()
+    else:
+        _dispatch_job(job_id, workflow_id, inputs)
+
+    job = job_queue.get_job(job_id) or {}
+    status = job.get('status', 'queued')
+    response = {
+        'job_id': job_id,
+        'status': status,
+        'workflow_id': workflow_id,
+        'result': job.get('result')
+    }
+    if status == 'failed':
+        response['error'] = job.get('error')
+    return jsonify(response), 400 if status == 'failed' else 200
+
+
+def _dispatch_job(job_id: str, workflow_id: str, inputs: Dict[str, Any]) -> None:
+    """Hand a job to ComfyUI (or run it synchronously for non-ComfyUI
+    workflows) and record the outcome on the job queue."""
+    job_queue.start_job(job_id)
+    success, result = workflow_manager.run_workflow(workflow_id=workflow_id, inputs=inputs)
+
+    if success and result.get('prompt_id'):
+        # ComfyUI has only ACCEPTED the prompt into its queue here, not
+        # finished rendering it. Leave the job "running" (set by start_job
+        # above) with the prompt_id attached; _reconcile_running_jobs()
+        # flips it to "completed" once ComfyUI actually finishes, the next
+        # time /api/jobs or /api/jobs/<id> is polled.
+        job_queue.update_job(job_id, progress=10, result=result)
+    elif success:
+        # Non-ComfyUI workflows (e.g. LLM orchestration) return their real
+        # result synchronously, so "completed" is accurate immediately.
+        job_queue.update_job(job_id, status='completed', progress=100, result=result)
+    else:
+        job_queue.update_job(
+            job_id, status='failed', progress=0, result=None,
+            error=result.get('error', 'Workflow failed')
+        )
+
+
+def _release_queued_jobs() -> None:
+    """Dispatch the next locally queued job to ComfyUI once no in-flight job
+    is still below the configured release threshold.
+
+    Without this, queuing several jobs would hand them all to ComfyUI's own
+    queue at once. Instead each waits its turn in the launcher until the
+    running job's sampling progress is nearly done, so a not-yet-submitted
+    job can still be reordered or cancelled from the Studio queue view right
+    up until the moment it's released.
+    """
+    if not job_queue or not workflow_manager:
+        return
+    threshold = config_manager.get_setting('queue_release_progress', 90) if config_manager else 90
+
+    while True:
+        blocking = any(
+            (job.get('result') or {}).get('prompt_id') and (job.get('progress') or 0) < threshold
+            for job in job_queue.get_running()
+        )
+        if blocking:
+            return
+        queued = job_queue.get_queue()
+        if not queued:
+            return
+        next_job = queued[0]
+        _dispatch_job(next_job['job_id'], next_job['workflow_id'], next_job['inputs'])
 
 
 def _reconcile_running_jobs() -> None:
@@ -2296,9 +2445,17 @@ def _reconcile_running_jobs() -> None:
         state = payload.get('state')
         if state == 'cancelled':
             job_queue.update_job(job['job_id'], status='cancelled', progress=0)
+            if progress_monitor:
+                progress_monitor.clear(prompt_id)
             continue
         if not payload.get('completed'):
-            job_queue.update_job(job['job_id'], progress=progress_by_state.get(state, job.get('progress') or 10))
+            # Prefer the live per-step sampling percent from ComfyUI's
+            # websocket feed over the coarse REST state, when we have one -
+            # that's what actually lets the 90% release gate mean something.
+            live_percent = progress_monitor.percent_for(prompt_id) if progress_monitor else None
+            fallback = progress_by_state.get(state, job.get('progress') or 10)
+            progress_value = max(fallback, live_percent) if live_percent is not None else fallback
+            job_queue.update_job(job['job_id'], progress=progress_value)
             continue
         outputs = [_rewrite_media_url(dict(o)) for o in (payload.get('outputs') or [])]
         new_result = dict(result)
@@ -2306,6 +2463,8 @@ def _reconcile_running_jobs() -> None:
         if not outputs:
             new_result['message'] = f"Finished ({payload.get('status', 'done')}), but no matching output file was found."
         job_queue.update_job(job['job_id'], status='completed', progress=100, result=new_result)
+        if progress_monitor:
+            progress_monitor.clear(prompt_id)
 
 
 @app.route('/api/jobs')
@@ -2316,6 +2475,7 @@ def api_jobs() -> jsonify:
     except ValueError:
         limit = 50
     _reconcile_running_jobs()
+    _release_queued_jobs()
     completed = job_queue.get_completed(limit=limit)
     for job in completed:
         _enrich_job_outputs(job)
@@ -2330,6 +2490,7 @@ def api_jobs() -> jsonify:
 def api_job_status(job_id: str) -> jsonify:
     """Get job status by ID."""
     _reconcile_running_jobs()
+    _release_queued_jobs()
     job = job_queue.get_job(job_id)
 
     if not job:

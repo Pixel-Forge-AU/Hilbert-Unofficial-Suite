@@ -1,0 +1,176 @@
+id: editing.inpaint-flexible
+name: Flexible Inpaint (Uncensored)
+version: 1.0.0
+category: image-editing
+media_type: image
+description: >
+  Mask-based inpainting for when the Juggernaut XL-based object-removal/repair workflows refuse a
+  prompt. Paint the area to edit as a white region on a black mask image, describe what should
+  appear there, and this graph encodes only that region, samples it, and composites the result back
+  onto the untouched source pixels. Defaults to the Reed XXX Illustrious checkpoint (an uncensored
+  SDXL finetune already used by the community-models pack) instead of Juggernaut XL, but the
+  checkpoint field can be swapped to any installed SDXL checkpoint.
+status: experimental
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: checkpoint
+  label: Checkpoint
+  type: model
+  required: false
+  default: reedXXXIllustrious_v150.safetensors
+  node_id: '1'
+  node_type: CheckpointLoaderSimple
+  input: ckpt_name
+  description: SDXL checkpoint to sample with. Swap this if a given finetune still refuses a prompt.
+- id: image
+  label: Source image
+  type: file
+  required: true
+  default: example.png
+  node_id: '4'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Full photo to edit
+- id: mask_image
+  label: Mask image
+  type: file
+  required: true
+  default: example_mask.png
+  node_id: '6'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Black/white mask (paint the edit region white, everything else black)
+- id: prompt
+  label: Prompt
+  type: textarea
+  required: false
+  default: masterpiece, best quality, highly detailed, seamlessly blended edit, natural lighting and texture matching the surrounding photo
+  node_id: '2'
+  node_type: CLIPTextEncode
+  input: text
+  description: Describe what should appear in the masked region
+- id: negative_prompt
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: visible seam, mismatched lighting, blurry, low quality, watermark, extra limbs, bad anatomy
+  node_id: '3'
+  node_type: CLIPTextEncode
+  input: text
+  description: Things to avoid
+- id: width
+  label: Width
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '5'
+  node_type: ImageScale
+  input: width
+- id: height
+  label: Height
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  step: 64
+  node_id: '5'
+  node_type: ImageScale
+  input: height
+- id: mask_feather
+  label: Mask feather (px)
+  type: int
+  required: false
+  default: 6
+  minimum: 0
+  maximum: 64
+  step: 1
+  node_id: '9'
+  node_type: GrowMask
+  input: expand
+  description: Grows/softens the mask edge so the composite blends in
+- id: denoise
+  label: Denoise
+  type: float
+  required: false
+  default: 0.85
+  minimum: 0.1
+  maximum: 1.0
+  step: 0.01
+  node_id: '11'
+  node_type: KSampler
+  input: denoise
+  description: How strongly to redraw the masked region (1.0 = ignore the source content entirely)
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 24
+  minimum: 1
+  maximum: 100
+  step: 1
+  node_id: '11'
+  node_type: KSampler
+  input: steps
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 6.0
+  minimum: 1.0
+  maximum: 20.0
+  step: 0.5
+  node_id: '11'
+  node_type: KSampler
+  input: cfg
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  minimum: -1
+  maximum: 1152921504606846975
+  node_id: '11'
+  node_type: KSampler
+  input: seed
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: ai-suite/inpaint-flexible
+  node_id: '14'
+  node_type: SaveImage
+  input: filename_prefix
+outputs:
+- id: image
+  type: image
+  description: Source image with only the masked region redrawn
+models:
+  required:
+  - type: checkpoints
+    name: reedXXXIllustrious_v150.safetensors
+    url: ''
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: medium
+  batch_supported: false
+tags:
+- inpainting
+- img2img
+- mask
+- uncensored

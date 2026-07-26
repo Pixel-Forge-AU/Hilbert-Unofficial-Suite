@@ -47,6 +47,10 @@ settings:
   # Storage
   max_queue_size: 50
   max_history_size: 100
+  # Hold locally queued jobs back from ComfyUI until the currently running
+  # job's sampling progress reaches this percentage, so only one job is ever
+  # "in flight" on ComfyUI's own queue at a time.
+  queue_release_progress: 90
   output_format: "webp"
   output_quality: 90
 

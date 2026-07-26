@@ -19,3 +19,21 @@ Thumbs.db
 
 # Archives
 *.tar.gz
+
+# Build output / caches
+dist/
+*.tsbuildinfo
+
+# Local runtime data, logs, and model weights (not source)
+ai-suite/.pids/
+ai-suite/.venv-playwright/
+ai-suite/archive/
+ai-suite/chat-data/
+ai-suite/logs/
+ai-suite/models/
+ai-suite/open-hands/
+ai-suite/playwright-artifacts/
+ai-suite/repos/
+ai-suite/safetensors/
+ai-suite/storyboards/
+ai-suite/disk_check.txt
