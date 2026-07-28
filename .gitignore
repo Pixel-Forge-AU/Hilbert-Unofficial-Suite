@@ -31,6 +31,7 @@ ai-suite/archive/
 ai-suite/chat-data/
 ai-suite/logs/
 ai-suite/models/
+ai-suite/state/
 ai-suite/open-hands/
 ai-suite/playwright-artifacts/
 ai-suite/repos/

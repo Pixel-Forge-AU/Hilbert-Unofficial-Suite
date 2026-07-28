@@ -142,7 +142,7 @@ GET /api/v1/workflows/{workflow_id}
 ```json
 {
   "id": "character.character-sheet",
-  "name": "Character Character Sheet",
+  "name": "Character Sheet",
   "version": "1.0.0",
   "category": "character",
   "subcategory": "character-sheet",

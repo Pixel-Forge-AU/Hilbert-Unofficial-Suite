@@ -25,9 +25,9 @@ inputs:
     description: Positive prompt describing the character portrait
     
   - id: negative_prompt
-    type: text
+    type: textarea
     required: false
-    default: ""
+    default: "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, extra fingers, extra digits, mutated hands"
     description: Negative prompt for undesirable elements
     
   - id: width
@@ -81,8 +81,10 @@ inputs:
     description: Checkpoint model to use
     
   - id: reference_image
-    type: image
+    label: Reference image
+    type: file
     required: false
+    accept: image/png,image/jpeg,image/webp,image/bmp
     description: Reference image for character consistency
 
 outputs:

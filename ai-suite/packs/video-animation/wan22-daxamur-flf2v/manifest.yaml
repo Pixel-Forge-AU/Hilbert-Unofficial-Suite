@@ -1,0 +1,223 @@
+id: video.wan22-daxamur-flf2v
+name: Daxamur WAN 2.2 FLF2V (v12.1)
+version: 1.0.0
+category: video-animation
+subcategory: wan22
+description: >
+  Imported from a user-authored ComfyUI export (daxamursWAN22WorkflowsV121FLF2VT2V_flf2vV121.zip /
+  Daxamur_WAN22_FLF2V_12.1.json), preserved as-is: a first-last-frame-to-video Wan 2.2 14B pipeline with
+  a two-pass "motion" + "detail" KSamplerAdvanced chain, NAG (Normalized Attention Guidance) and CFG
+  Zero Star conditioning, SageAttention patching, optional RealESRGAN upscale and RIFE frame
+  interpolation stages (each individually bypassable via rgthree Fast Groups Bypasser), all wired
+  through rgthree Set/Get nodes instead of direct links. The two UNETLoaders pointed at Kijai's
+  repackaged Wan2_2-I2V-A14B-HIGH/LOW_fp8_e4m3fn_scaled_KJ.safetensors, which aren't installed under
+  those names in this suite - repointed to this suite's wan2.2_i2v_high/low_noise_14B_fp8_scaled.safetensors,
+  which are the same underlying models. Both LoraLoaderModelOnly nodes referenced the same
+  Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors for the high- and low-noise passes -
+  repointed to the installed lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors, which is the
+  same lightx2v cfg-step-distillation LoRA and preserves the source graph's one-file-for-both-passes
+  design. Two models could not be resolved to an installed equivalent and are left pointing at their
+  original filenames with a download url in this manifest: the CLIPVisionLoader's
+  clip-vit-large-patch14.safetensors (OpenAI CLIP ViT-L/14 vision encoder feeding the FLF2V image
+  conditioning - substituting the installed sigclip/dino_v3 vision encoders would silently break it, since
+  they use different embedding dimensions) and the UpscaleModelLoader's RealESRGAN_x2plus.pth (the
+  installed RealESRGAN_x4plus.safetensors is a 4x model, not the 2x model the graph's resolution-multiplier
+  math is built around, so it isn't a safe drop-in - the optional upscale stage is bypassed by default via
+  the Fast Groups Bypasser). Beyond core ComfyUI, this graph depends on ComfyUI-KJNodes
+  (PathchSageAttentionKJ, CFGZeroStarAndInit, WanVideoNAG, SomethingToString), rgthree-comfy (Set/Get
+  Node, Power Lora Loader, Fast Groups Bypasser), ComfyUI_essentials (ImageRemoveAlpha+),
+  ComfyUI-Frame-Interpolation (RIFE VFI), ComfyUI-Easy-Use (easy int/easy seed/easy mathInt), and
+  M1kep/ComfyLiterals (the plain Int/Float literal nodes used throughout for FPS/steps/CFG math) - none
+  of which were installed, so they were cloned from their well-known upstream GitHub repos following the
+  same deps-in-workflow resolution approach as the other imported packs. It also uses Daxamur/DaxNodes
+  (the workflow author's own small utility pack, also cloned) for ResolutionPickerFLF2V. One remaining
+  gap: a "String to Float" utility node (used only for internal FPS display-string math, not for anything
+  model-related) has cnr_id "cg-image-filter" in the export, but that pack's current release registers the
+  equivalent node as "cg_String to Float" rather than "String to Float" - an upstream rename since this
+  workflow was authored. cg-image-filter is installed, but ComfyUI may still list this one node as missing
+  until it's manually swapped for the pack's current "cg_String to Float" node.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 48.value
+    label: Prompt
+    type: textarea
+    required: false
+    default: An anime-style girl with long auburn hair tied in a high ponytail, held with a red ribbon, wears a glossy red and black futuristic plugsuit marked with the number "02." She stands in profile, focused intently on a red handheld device connected by a cable. Her blue eyes scan the screen as her gloved fingers tap and swipe. Light reflects off the smooth surfaces of her plugsuit, emphasizing its curves and mechanical details. Her hair shifts gently as if in a faint breeze, and the device screen glows softly, casting a faint light onto her face and gloves. The plain gray background keeps full attention on her and her focused posture.
+    node_id: '48'
+    node_type: PrimitiveStringMultiline
+    input: value
+  - id: 51.value
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: 色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走,
+    node_id: '51'
+    node_type: PrimitiveStringMultiline
+    input: value
+  - id: 189.image
+    label: First frame image
+    type: image
+    required: false
+    default: ''
+    node_id: '189'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 295.image
+    label: Last frame image
+    type: image
+    required: false
+    default: ''
+    node_id: '295'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 246.value
+    label: Video length (seconds)
+    type: int
+    required: false
+    default: 5
+    minimum: 1
+    maximum: 30
+    node_id: '246'
+    node_type: easy int
+    input: value
+  - id: 244.Number
+    label: FPS
+    type: int
+    required: false
+    default: 16
+    minimum: 1
+    maximum: 60
+    node_id: '244'
+    node_type: Int
+    input: Number
+  - id: 252.Number
+    label: Steps (per sampler, high/low)
+    type: int
+    required: false
+    default: 8
+    minimum: 1
+    maximum: 50
+    node_id: '252'
+    node_type: Int
+    input: Number
+  - id: 242.Number
+    label: Motion pass steps
+    type: int
+    required: false
+    default: 2
+    minimum: 0
+    maximum: 20
+    node_id: '242'
+    node_type: Int
+    input: Number
+  - id: 248.Number
+    label: CFG
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0
+    maximum: 20
+    node_id: '248'
+    node_type: Float
+    input: Number
+  - id: 250.Number
+    label: Motion CFG
+    type: float
+    required: false
+    default: 3
+    minimum: 0
+    maximum: 20
+    node_id: '250'
+    node_type: Float
+    input: Number
+  - id: 251.seed
+    label: Seed
+    type: int
+    required: false
+    default: 141277555614252
+    node_id: '251'
+    node_type: easy seed
+    input: seed
+  - id: 219.strength_model
+    label: High-noise lightx2v LoRA strength
+    type: float
+    required: false
+    default: 1
+    minimum: -2
+    maximum: 3
+    node_id: '219'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 217.strength_model
+    label: Low-noise lightx2v LoRA strength
+    type: float
+    required: false
+    default: 1
+    minimum: -2
+    maximum: 3
+    node_id: '217'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '2'
+    node_type: UNETLoader
+    name: wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '3'
+    node_type: UNETLoader
+    name: wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '27'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '29'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  - node_id: '219'
+    node_type: LoraLoaderModelOnly
+    name: lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+    directory: loras
+  - node_id: '217'
+    node_type: LoraLoaderModelOnly
+    name: lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+    directory: loras
+  optional:
+  - node_id: '194'
+    node_type: CLIPVisionLoader
+    name: clip-vit-large-patch14.safetensors
+    directory: clip_vision
+    url: https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/model.safetensors
+  - node_id: '165'
+    node_type: UpscaleModelLoader
+    name: RealESRGAN_x2plus.pth
+    directory: upscale_models
+    url: https://huggingface.co/ai-forever/Real-ESRGAN/resolve/main/RealESRGAN_x2.pth
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-kjnodes
+  - rgthree-comfy
+  - comfyui_essentials
+  - comfyui-frame-interpolation
+  - comfyui-easy-use
+  - comfyliterals
+  - daxnodes
+  optional:
+  - cg-image-filter
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true
