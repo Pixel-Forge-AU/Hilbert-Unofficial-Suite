@@ -1,0 +1,187 @@
+id: video.bernini-multimodal-video
+name: Bernini Multimodal Video (Edit + Identity)
+version: 1.0.0
+category: video-animation
+subcategory: wan22
+description: >
+  Imported from a user-authored ComfyUI export (Bernini Multimodal Video Generation in ComfyUI Video
+  Edit + Identity.json). Reference-image-driven video editing/identity-transfer pipeline on the Wan 2.2
+  Bernini finetune. The source graph pointed at Bernini_HIGH/LOW_fp8_e4m3fn_scaled.safetensors and
+  wan_2.1_vae_Comfy-Org.safetensors, which weren't installed under those exact names - repointed to this
+  suite's wan2.2_bernini_r_high/low_noise_fp8_scaled.safetensors and wan_2.1_vae.safetensors, which are
+  the same models. Its two 4-step Lightning T2V LoRAs weren't installed either and have been repointed
+  to the installed wan2.2_i2v_lightx2v_4steps_lora_v1 high/low pair as a same-role substitute. Beyond
+  core ComfyUI, this graph needs ComfyUI-VideoHelperSuite (VHS_LoadVideo/VHS_VideoCombine),
+  ComfyUI-RH-Bernini (BerniniConditioning/BerniniPromptEnhancer), RES4LYF (the SamplerCustom/
+  BasicScheduler sampling chain), ComfyUI-KJNodes, ComfyUI_Swwan, and ComfyUI-Jjk-Nodes (JjkText) - all
+  resolved via ComfyUI-Manager's deps-in-workflow against this file and installed. The
+  BerniniPromptEnhancer branch needs a local vision-chat GGUF via ComfyUI-llama-cpp_vlm
+  (lihaoyun6/ComfyUI-llama-cpp_vlm, installed) - its exact node schema (llama_cpp_model_loader,
+  llama_cpp_parameters, llama_cpp_instruct_adv) had drifted from what the export was authored against,
+  so those three nodes' input bindings were rebuilt to match the installed version. That node package
+  requires the JamePeng/llama-cpp-python fork (built from source here for Qwen3-VL chat-handler
+  support; the PyPI release doesn't have it) and reads models from ComfyUI/models/LLM. The workflow
+  originally pointed at Qwen3.5-27B-heretic.Q4_K_M.gguf, Built as a CPU backend (no ROCm/Vulkan wheel exists for this fork), so
+  expect the auto-caption step to be slow and to need ~20GB+ system RAM to load the 27B GGUF; the
+  core video pipeline (prompt, image, sampling) still does not depend on it.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 3.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: Replace the person in the video using the reference image
+    node_id: '3'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 4.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: bad video
+    node_id: '4'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 31.image
+    label: Input image
+    type: image
+    required: false
+    default: ''
+    node_id: '31'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 34.width
+    label: Width
+    type: int
+    required: false
+    default: 720
+    minimum: 256
+    maximum: 1920
+    node_id: '34'
+    node_type: BerniniConditioning
+    input: width
+  - id: 34.height
+    label: Height
+    type: int
+    required: false
+    default: 1280
+    minimum: 256
+    maximum: 1920
+    node_id: '34'
+    node_type: BerniniConditioning
+    input: height
+  - id: 34.length
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    node_id: '34'
+    node_type: BerniniConditioning
+    input: length
+  - id: 18.steps
+    label: Steps
+    type: int
+    required: false
+    default: 6
+    minimum: 1
+    maximum: 50
+    node_id: '18'
+    node_type: BasicScheduler
+    input: steps
+  - id: 19.noise_seed
+    label: Seed (high-noise expert)
+    type: int
+    required: false
+    default: 1015816449789172
+    node_id: '19'
+    node_type: SamplerCustom
+    input: noise_seed
+  - id: 15.noise_seed
+    label: Seed (low-noise expert)
+    type: int
+    required: false
+    default: 413532359003415
+    node_id: '15'
+    node_type: SamplerCustom
+    input: noise_seed
+  - id: 11.strength_model
+    label: High-noise LoRA strength
+    type: float
+    required: false
+    default: 3
+    minimum: -2
+    maximum: 4
+    node_id: '11'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 29.strength_model
+    label: Low-noise LoRA strength
+    type: float
+    required: false
+    default: 1.5
+    minimum: -2
+    maximum: 4
+    node_id: '29'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '5'
+    node_type: UNETLoader
+    name: wan2.2_bernini_r_high_noise_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '12'
+    node_type: UNETLoader
+    name: wan2.2_bernini_r_low_noise_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '9'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '7'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  - node_id: '11'
+    node_type: LoraLoaderModelOnly
+    name: wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+    directory: loras
+  - node_id: '29'
+    node_type: LoraLoaderModelOnly
+    name: wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+    directory: loras
+  - node_id: '93'
+    node_type: llama_cpp_model_loader
+    name: Qwen3.5-27B-heretic.Q4_K_M.gguf
+    directory: LLM
+  - node_id: '93'
+    node_type: llama_cpp_model_loader
+    name: Qwen3.5-27B-heretic.mmproj-f16.gguf
+    directory: LLM
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-videohelpersuite
+  - comfyui-rh-bernini
+  - res4lyf
+  - comfyui-kjnodes
+  - comfyui_swwan
+  - comfyui-jjk-nodes
+  - comfyui-llama-cpp_vlm
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

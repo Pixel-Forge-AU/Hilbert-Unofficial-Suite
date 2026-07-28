@@ -562,8 +562,18 @@ class DependencyManager:
         return True
 
 
+JOBS_STATE_PATH = Path(__file__).resolve().parent / 'state' / 'jobs.json'
+
+
 class JobQueue:
-    """Manages the workflow job queue."""
+    """Manages the workflow job queue.
+
+    Jobs are mirrored to JOBS_STATE_PATH on every mutation so a launcher
+    restart (crash, redeploy, manual bounce) doesn't silently drop jobs that
+    were still queued or running - those get reloaded into running_jobs and
+    picked up again by _reconcile_running_jobs() against ComfyUI's own
+    history, instead of just vanishing from the in-memory dicts.
+    """
 
     def __init__(self, max_size: int = 50):
         """Initialize job queue."""
@@ -572,7 +582,33 @@ class JobQueue:
         self.running_jobs: Dict[str, Dict[str, Any]] = {}
         self.completed_jobs: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
+        self._load()
         self._cleanup_completed()
+
+    def _load(self) -> None:
+        try:
+            raw = json.loads(JOBS_STATE_PATH.read_text())
+        except (FileNotFoundError, ValueError):
+            return
+        self.queued_jobs = raw.get('queued_jobs', {})
+        # Anything that was "running" when the process last wrote state gets
+        # restored as running too - _reconcile_running_jobs() will re-poll
+        # ComfyUI by prompt_id and resolve it to completed/failed/stalled.
+        self.running_jobs = raw.get('running_jobs', {})
+        self.completed_jobs = raw.get('completed_jobs', {})
+
+    def _save(self) -> None:
+        try:
+            JOBS_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = JOBS_STATE_PATH.with_suffix('.tmp')
+            tmp_path.write_text(json.dumps({
+                'queued_jobs': self.queued_jobs,
+                'running_jobs': self.running_jobs,
+                'completed_jobs': self.completed_jobs,
+            }))
+            tmp_path.replace(JOBS_STATE_PATH)
+        except OSError:
+            pass
 
     def _cleanup_completed(self) -> None:
         """Cleanup old completed jobs."""
@@ -618,6 +654,7 @@ class JobQueue:
             }
 
             self.queued_jobs[job_id] = job
+            self._save()
             return job_id
 
     def start_job(self, job_id: str) -> bool:
@@ -630,6 +667,7 @@ class JobQueue:
             job['status'] = 'running'
             job['started_at'] = datetime.now().isoformat()
             self.running_jobs[job_id] = job
+            self._save()
             return True
 
     def update_job(
@@ -656,11 +694,12 @@ class JobQueue:
             if error:
                 job['error'] = error
 
-            if status in ['completed', 'failed', 'cancelled']:
+            if status in ['completed', 'failed', 'cancelled', 'stalled']:
                 job['completed_at'] = datetime.now().isoformat()
                 self.completed_jobs[job_id] = job
                 del self.running_jobs[job_id]
 
+            self._save()
             return True
 
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -699,8 +738,21 @@ class JobQueue:
                 item = items.pop(current_index)
                 items.insert(new_index, item)
                 self.queued_jobs = dict(items)
+                self._save()
 
             return new_index + 1
+
+    def cancel_queued_job(self, job_id: str) -> bool:
+        """Remove a not-yet-dispatched job from the queue and mark it cancelled."""
+        with self.lock:
+            if job_id not in self.queued_jobs:
+                return False
+            job = self.queued_jobs.pop(job_id)
+            job['status'] = 'cancelled'
+            job['completed_at'] = datetime.now().isoformat()
+            self.completed_jobs[job_id] = job
+            self._save()
+            return True
 
     def get_running(self) -> List[Dict[str, Any]]:
         """Get all running jobs."""
@@ -722,6 +774,7 @@ class JobQueue:
         with self.lock:
             count = len(self.completed_jobs)
             self.completed_jobs.clear()
+            self._save()
             return count
 
 
@@ -816,6 +869,94 @@ class ComfyProgressMonitor:
         percent = max(0, min(100, percent))
         with self._lock:
             self._percent_by_prompt[prompt_id] = percent
+
+
+# A job stuck "running" this long while ComfyUI is unresponsive gets marked
+# stalled instead of sitting as "running" forever with no way to retry it -
+# see ComfyHealthMonitor and its use in _reconcile_running_jobs().
+COMFY_STALE_AFTER_SECONDS = 180
+
+
+class ComfyHealthMonitor:
+    """Polls ComfyUI's lightweight /system_stats endpoint on a background
+    thread so the rest of the app can tell "ComfyUI is wedged" apart from
+    "this particular job is just slow" without every request paying a
+    multi-second timeout to find out.
+
+    Grew out of an incident where ComfyUI hung under swap pressure: its
+    process kept running (high CPU, GPU idle) but stopped answering HTTP
+    requests entirely, so a finished render never got marked "completed" in
+    the job list and looked like it silently vanished, even though the file
+    was already safely on disk.
+    """
+
+    def __init__(self, check_interval: float = 20.0, timeout: float = 5.0) -> None:
+        self.check_interval = check_interval
+        self.timeout = timeout
+        self._lock = threading.Lock()
+        self._status = 'unknown'
+        self._last_ok_at: Optional[str] = None
+        self._last_error: Optional[str] = None
+        self._consecutive_failures = 0
+        self._down_since: Optional[str] = None
+        self._thread: Optional[threading.Thread] = None
+        self._stop = False
+
+    def start(self, comfyui_config: Dict[str, Any]) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop = False
+        self._thread = threading.Thread(target=self._run, args=(comfyui_config,), daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def _run(self, comfyui_config: Dict[str, Any]) -> None:
+        from comfy_studio import comfy_base_url, http_json
+        config = {'COMFY_HOST': comfyui_config.get('host', '127.0.0.1'), 'COMFY_PORT': comfyui_config.get('port', 39003)}
+        while not self._stop:
+            try:
+                http_json(f"{comfy_base_url(config)}/system_stats", timeout=self.timeout)
+                with self._lock:
+                    self._status = 'ok'
+                    self._last_ok_at = datetime.now().isoformat()
+                    self._last_error = None
+                    self._consecutive_failures = 0
+                    self._down_since = None
+            except Exception as exc:
+                with self._lock:
+                    self._consecutive_failures += 1
+                    self._last_error = str(exc)
+                    if self._down_since is None:
+                        self._down_since = datetime.now().isoformat()
+                    # A single missed check is treated as a blip, not a hang.
+                    self._status = 'down' if self._consecutive_failures >= 3 else 'degraded'
+            for _ in range(int(self.check_interval)):
+                if self._stop:
+                    return
+                time.sleep(1)
+
+    def snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                'status': self._status,
+                'last_ok_at': self._last_ok_at,
+                'last_error': self._last_error,
+                'consecutive_failures': self._consecutive_failures,
+                'down_since': self._down_since,
+            }
+
+    def down_seconds(self) -> float:
+        with self._lock:
+            down_since = self._down_since
+            status = self._status
+        if status != 'down' or not down_since:
+            return 0.0
+        try:
+            return (datetime.now() - datetime.fromisoformat(down_since)).total_seconds()
+        except ValueError:
+            return 0.0
 
 
 class WorkflowManager:
@@ -966,10 +1107,11 @@ class WorkflowManager:
             except Exception:
                 node_types = []
         elif 'nodes' in workflow:
-            from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES
+            from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES, expand_subgraphs
+            expanded = expand_subgraphs(workflow)
             node_types = [
                 node.get('type')
-                for node in workflow.get('nodes', [])
+                for node in expanded.get('nodes', [])
                 if node.get('type') not in PRIMITIVE_NODE_TYPES
                 and node.get('type') not in SKIP_NODE_TYPES
             ]
@@ -1115,14 +1257,19 @@ class WorkflowManager:
         preset_names = manifest.get('presets') or []
         preset_paths: List[Path] = []
         if presets_dir.exists():
-            if preset_names:
-                for name in preset_names:
-                    for candidate in (presets_dir / f'{name}.yaml', presets_dir / f'{name}.yml'):
-                        if candidate.exists():
-                            preset_paths.append(candidate)
-                            break
-            else:
-                preset_paths = sorted(list(presets_dir.glob('*.yaml')) + list(presets_dir.glob('*.yml')))
+            seen: set = set()
+            for name in preset_names:
+                for candidate in (presets_dir / f'{name}.yaml', presets_dir / f'{name}.yml'):
+                    if candidate.exists():
+                        preset_paths.append(candidate)
+                        seen.add(candidate)
+                        break
+            # Union in anything else sitting in presets/ (e.g. user-saved presets from
+            # save_preset()) that isn't already named in the manifest's curated list.
+            for candidate in sorted(list(presets_dir.glob('*.yaml')) + list(presets_dir.glob('*.yml'))):
+                if candidate not in seen:
+                    preset_paths.append(candidate)
+                    seen.add(candidate)
 
         presets = []
         for path in preset_paths:
@@ -1170,6 +1317,39 @@ class WorkflowManager:
 
         walk('', data)
         return values
+
+    def save_preset(self, workflow_id: str, name: str, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Persist the given input values as a new named preset for a workflow pack."""
+        workflow_data = self.workflows.get(workflow_id)
+        if not workflow_data:
+            raise ValueError('Workflow not found')
+
+        title = (name or '').strip()
+        if not title:
+            raise ValueError('Preset name is required')
+
+        slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-') or 'preset'
+        workflow_dir = Path(workflow_data.get('workflow_dir') or '')
+        presets_dir = workflow_dir / 'presets'
+        presets_dir.mkdir(parents=True, exist_ok=True)
+
+        path = presets_dir / f'{slug}.yaml'
+        suffix = 2
+        while path.exists():
+            path = presets_dir / f'{slug}-{suffix}.yaml'
+            suffix += 1
+
+        data: Dict[str, Any] = {'name': title, 'description': 'Saved from the Studio workbench.'}
+        data.update(values)
+        with open(path, 'w') as f:
+            yaml.safe_dump(data, f, sort_keys=False)
+
+        return {
+            'id': path.stem,
+            'name': title,
+            'description': data['description'],
+            'values': self._flatten_preset_values(data),
+        }
 
     def run_workflow(
         self,
@@ -1494,11 +1674,14 @@ class WorkflowManager:
         if not workflow or 'nodes' not in workflow:
             raise ValueError('Workflow JSON is missing or unsupported')
 
-        from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES
+        from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES, expand_subgraphs, effective_link_map
 
+        workflow = expand_subgraphs(workflow)
         prompt: Dict[str, Any] = {}
-        link_map: Dict[Tuple[int, int], List[Any]] = {}
-        link_id_map: Dict[int, List[Any]] = {}
+        # Resolves through subgraph instances, bypassed nodes, and passthrough
+        # node types (e.g. Reroute) so a downstream input never ends up
+        # pointing at a node id that got skipped out of the final prompt.
+        resolved_links = effective_link_map(workflow)
         primitive_values: Dict[str, Any] = {}
 
         for node in workflow.get('nodes', []):
@@ -1508,31 +1691,15 @@ class WorkflowManager:
                     primitive_values[str(node.get('id'))] = values[0]
 
         for node in workflow.get('nodes', []):
-            for slot, output_def in enumerate(node.get('outputs', []) or []):
-                for link_id in output_def.get('links') or []:
-                    if link_id is not None:
-                        link_id_map[int(link_id)] = [str(node.get('id')), int(slot)]
-
-        for link in workflow.get('links', []):
-            if isinstance(link, list) and len(link) >= 5:
-                link_id, origin_id, origin_slot, target_id, target_slot = link[:5]
-                if not isinstance(target_id, int):
-                    continue
-                link_value = [str(origin_id), int(origin_slot)]
-                link_map[(int(target_id), int(target_slot))] = link_value
-                link_id_map[int(link_id)] = link_value
-
-        for node in workflow.get('nodes', []):
             class_type = node.get('type')
             if class_type in PRIMITIVE_NODE_TYPES or class_type in SKIP_NODE_TYPES:
                 continue
             node_id = str(node.get('id'))
             node_inputs: Dict[str, Any] = {}
 
-            for index, input_def in enumerate(node.get('inputs', []) or []):
-                link_value = link_map.get((int(node['id']), index))
-                if link_value is None and input_def.get('link') is not None:
-                    link_value = link_id_map.get(int(input_def['link']))
+            for input_def in node.get('inputs', []) or []:
+                link_id = input_def.get('link')
+                link_value = resolved_links.get(int(link_id)) if link_id is not None else None
                 if link_value is not None:
                     origin_id = link_value[0]
                     if origin_id in primitive_values:
@@ -1551,7 +1718,11 @@ class WorkflowManager:
                     if name and name not in node_inputs:
                         node_inputs[name] = value
 
-            node_inputs.update(self._widget_inputs_for_node(class_type, node, inputs))
+            # setdefault, not update: a name that's already populated came from
+            # a real link (or a primitive value substituted for one) and must
+            # win over a generic widgets_values-derived default.
+            for name, value in self._widget_inputs_for_node(class_type, node, inputs).items():
+                node_inputs.setdefault(name, value)
             prompt[node_id] = {
                 'class_type': class_type,
                 'inputs': node_inputs,
@@ -1929,6 +2100,74 @@ class WorkflowManager:
         elif class_type == 'ImageScaleBy':
             values['upscale_method'] = inputs.get('upscale_method') or (widgets[0] if len(widgets) > 0 else 'lanczos')
             values['scale_by'] = float(inputs.get('scale_by', widgets[1] if len(widgets) > 1 else 2.0))
+        elif class_type == 'ImageToMask':
+            values['channel'] = widgets[0] if len(widgets) > 0 else 'red'
+        elif class_type == 'GrowMask':
+            values['expand'] = int(inputs.get('mask_feather', widgets[0] if len(widgets) > 0 else 0))
+            values['tapered_corners'] = widgets[1] if len(widgets) > 1 else True
+        elif class_type == 'VAEEncodeForInpaint':
+            values['grow_mask_by'] = int(widgets[0] if len(widgets) > 0 else 6)
+        elif class_type == 'ImageCompositeMasked':
+            values['x'] = int(widgets[0] if len(widgets) > 0 else 0)
+            values['y'] = int(widgets[1] if len(widgets) > 1 else 0)
+            values['resize_source'] = bool(widgets[2] if len(widgets) > 2 else False)
+        elif class_type == 'ImageBlend':
+            values['blend_mode'] = widgets[1] if len(widgets) > 1 else 'normal'
+        elif class_type == 'UNETLoader':
+            values['unet_name'] = widgets[0] if len(widgets) > 0 else ''
+            values['weight_dtype'] = widgets[1] if len(widgets) > 1 else 'default'
+        elif class_type == 'CLIPLoader':
+            values['clip_name'] = widgets[0] if len(widgets) > 0 else ''
+            values['type'] = widgets[1] if len(widgets) > 1 else 'stable_diffusion'
+        elif class_type == 'VAELoader':
+            values['vae_name'] = widgets[0] if len(widgets) > 0 else ''
+        elif class_type == 'LoraLoaderModelOnly':
+            values['lora_name'] = widgets[0] if len(widgets) > 0 else 'None'
+            values['strength_model'] = float(widgets[1] if len(widgets) > 1 else 1.0)
+        elif class_type == 'Lora Loader Stack (rgthree)':
+            names = ['lora_01', 'strength_01', 'lora_02', 'strength_02', 'lora_03', 'strength_03', 'lora_04', 'strength_04']
+            defaults = ['None', 1.0, 'None', 1.0, 'None', 1.0, 'None', 1.0]
+            for index, name in enumerate(names):
+                value = widgets[index] if len(widgets) > index else defaults[index]
+                values[name] = float(value) if 'strength' in name else value
+        elif class_type == 'ColorMatchV2':
+            values['method'] = widgets[0] if len(widgets) > 0 else 'mkl'
+            values['multithread'] = bool(widgets[2] if len(widgets) > 2 else True)
+        elif class_type == 'DifferentialDiffusionAdvanced':
+            values['multiplier'] = float(widgets[0] if len(widgets) > 0 else 1.0)
+        elif class_type == 'GrowMaskWithBlur':
+            names = ['expand', 'incremental_expandrate', 'tapered_corners', 'flip_input', 'blur_radius', 'lerp_alpha', 'decay_factor', 'fill_holes']
+            defaults = [0, 0.0, True, False, 0.0, 1.0, 1.0, False]
+            for index, name in enumerate(names):
+                if len(widgets) > index:
+                    values[name] = widgets[index]
+                elif index < 7:
+                    values[name] = defaults[index]
+        elif class_type == 'Cut By Mask':
+            values['force_resize_width'] = int(widgets[0] if len(widgets) > 0 else 0)
+            values['force_resize_height'] = int(widgets[1] if len(widgets) > 1 else 0)
+        elif class_type == 'Inpaint Segments':
+            names = [
+                'force_resize_width', 'force_resize_height', 'kind', 'padding', 'constraints',
+                'constraint_x', 'constraint_y', 'min_width', 'min_height', 'batch_behavior',
+            ]
+            defaults = [1024, 1024, 'mask', 3, 'keep_ratio', 64, 64, 0, 0, 'match_ratio']
+            for index, name in enumerate(names):
+                values[name] = widgets[index] if len(widgets) > index else defaults[index]
+        elif class_type == 'Combine and Paste':
+            names = ['color_xfer_factor', 'op', 'clamp_result', 'round_result', 'resize_behavior']
+            defaults = [1.0, 'union (max)', 'yes', 'no', 'resize']
+            for index, name in enumerate(names):
+                values[name] = widgets[index] if len(widgets) > index else defaults[index]
+        elif class_type == 'CR Color Panel':
+            values['fill_color'] = widgets[2] if len(widgets) > 2 else 'black'
+            if len(widgets) > 3:
+                values['fill_color_hex'] = widgets[3]
+        elif class_type == 'ApplyCosmosReferenceLatent':
+            # No ref-latent slots are wired in this graph - the node falls back
+            # to its plain "latent" input (handled generically via the link),
+            # but the "ref_latents" container is still a required key.
+            values['ref_latents'] = {}
         elif class_type == 'ImageCompare':
             if widgets:
                 compare_view = widgets[0]
@@ -2071,6 +2310,7 @@ dependency_manager: Optional[DependencyManager] = None
 job_queue: Optional[JobQueue] = None
 workflow_manager: Optional[WorkflowManager] = None
 progress_monitor: Optional[ComfyProgressMonitor] = None
+comfy_health_monitor: Optional[ComfyHealthMonitor] = None
 chat_store: Optional[Any] = None
 
 
@@ -2079,6 +2319,8 @@ SERVICE_COMMANDS = {
     'llama-restart',
     'llama-heretic',
     'llama-heretic-restart',
+    'llama-heretic27',
+    'llama-heretic27-restart',
     'llama-small',
     'qwen-sidecar',
     'qwen-sidecar-stop',
@@ -2104,6 +2346,7 @@ SERVICE_COMMANDS = {
     'pipeline-dashboard-stop',
     'hilbert',
     'hilbert-heretic',
+    'hilbert-heretic27',
     'hilbert-small',
     'hilbert-ollama',
     'comfy',
@@ -2192,7 +2435,7 @@ def check_llm_endpoint(endpoint: Dict[str, str]) -> Dict[str, Any]:
 
 def initialize_app() -> None:
     """Initialize the application components."""
-    global config_manager, registry_manager, model_manager, hardware_manager, dependency_manager, job_queue, workflow_manager, progress_monitor, chat_store
+    global config_manager, registry_manager, model_manager, hardware_manager, dependency_manager, job_queue, workflow_manager, progress_monitor, comfy_health_monitor, chat_store
 
     # Initialize configuration manager
     config_manager = ConfigManager()
@@ -2218,6 +2461,10 @@ def initialize_app() -> None:
     progress_monitor = ComfyProgressMonitor()
     if WEBSOCKET_AVAILABLE:
         progress_monitor.start(config_manager.get_comfyui_config())
+
+    # Initialize ComfyUI health watchdog (detects a wedged/unresponsive server)
+    comfy_health_monitor = ComfyHealthMonitor()
+    comfy_health_monitor.start(config_manager.get_comfyui_config())
 
     # Initialize workflow manager
     workflow_manager = WorkflowManager(
@@ -2321,6 +2568,21 @@ def api_workflow_dependencies(workflow_id: str) -> jsonify:
         'errors': errors,
         'warnings': warnings
     })
+
+
+@app.route('/api/workflows/<workflow_id>/presets', methods=['POST'])
+def api_save_workflow_preset(workflow_id: str) -> jsonify:
+    """Save the current Studio workbench form values as a new named preset."""
+    if not workflow_manager:
+        return jsonify({'error': 'Workflow manager not initialized'}), 500
+
+    data = request.get_json(silent=True) or {}
+    try:
+        preset = workflow_manager.save_preset(workflow_id, data.get('name', ''), data.get('values') or {})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    return jsonify({'preset': preset, 'presets': workflow_manager.get_presets(workflow_id)})
 
 
 @app.route('/api/workflows/<workflow_id>/run', methods=['POST'])
@@ -2431,6 +2693,24 @@ def _reconcile_running_jobs() -> None:
     from ai_manager import load_config
     from comfy_studio import progress as comfy_progress
 
+    # If ComfyUI itself has been unreachable for a while, don't bother
+    # polling per-job (each call would just eat its own timeout) - mark
+    # every in-flight job stalled at once so it shows up as retryable
+    # instead of sitting labeled "running" forever with no explanation.
+    # This is what would have surfaced this morning's wedged-ComfyUI
+    # incident in the UI instead of the job silently looking stuck.
+    if comfy_health_monitor and comfy_health_monitor.down_seconds() >= COMFY_STALE_AFTER_SECONDS:
+        health = comfy_health_monitor.snapshot()
+        for job in job_queue.get_running():
+            if (job.get('result') or {}).get('prompt_id'):
+                job_queue.update_job(
+                    job['job_id'], status='stalled', progress=job.get('progress') or 0,
+                    error=f"ComfyUI stopped responding (unreachable since {health.get('down_since')}). "
+                          "The render may have finished on disk even though tracking lost it - check "
+                          "the outputs list, or use Retry to resubmit.",
+                )
+        return
+
     config = load_config()
     progress_by_state = {'waiting': 10, 'queued': 15, 'running': 60, 'history': 80}
     for job in job_queue.get_running():
@@ -2482,7 +2762,8 @@ def api_jobs() -> jsonify:
     return jsonify({
         'queued': job_queue.get_queue(),
         'running': job_queue.get_running(),
-        'completed': completed
+        'completed': completed,
+        'comfy_health': comfy_health_monitor.snapshot() if comfy_health_monitor else None
     })
 
 
@@ -2523,6 +2804,72 @@ def api_move_queued_job(job_id: str) -> jsonify:
         'job_id': job_id,
         'position': position,
         'queued': job_queue.get_queue()
+    })
+
+
+@app.route('/api/jobs/<job_id>/cancel', methods=['POST'])
+def api_cancel_job(job_id: str) -> jsonify:
+    """Cancel a queued or running job."""
+    if not job_queue:
+        return jsonify({'error': 'Job queue not initialized'}), 500
+
+    job = job_queue.get_job(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+    status = job.get('status')
+
+    if status == 'queued':
+        job_queue.cancel_queued_job(job_id)
+        return jsonify({'job_id': job_id, 'cancelled': True, 'queued': job_queue.get_queue()})
+
+    if status == 'running':
+        prompt_id = (job.get('result') or {}).get('prompt_id')
+        if prompt_id:
+            from ai_manager import load_config
+            from comfy_studio import cancel_prompt
+            try:
+                cancel_prompt(load_config(), prompt_id)
+            except Exception as exc:
+                return jsonify({'error': f'Could not cancel ComfyUI job: {exc}'}), 502
+            if progress_monitor:
+                progress_monitor.clear(prompt_id)
+        job_queue.update_job(job_id, status='cancelled', progress=0)
+        return jsonify({'job_id': job_id, 'cancelled': True})
+
+    return jsonify({'error': f"Only queued or running jobs can be cancelled. This job is {status}."}), 409
+
+
+@app.route('/api/jobs/<job_id>/retry', methods=['POST'])
+def api_retry_job(job_id: str) -> jsonify:
+    """Resubmit a failed/stalled/cancelled job's original workflow_id + inputs
+    as a brand new job.
+
+    Jobs already carry everything needed to rebuild the exact ComfyUI prompt
+    graph (workflow_manager.run_workflow rebuilds it from these two fields),
+    so retrying doesn't need its own separate storage - it just re-runs
+    add_job/_dispatch_job with the same inputs under a new job_id.
+    """
+    if not job_queue or not workflow_manager:
+        return jsonify({'error': 'Job queue not initialized'}), 500
+
+    job = job_queue.get_job(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+    if job.get('status') not in ('failed', 'stalled', 'cancelled'):
+        return jsonify({'error': f"Only failed, stalled, or cancelled jobs can be retried. This job is {job.get('status')}."}), 409
+
+    try:
+        new_job_id = job_queue.add_job(workflow_id=job['workflow_id'], inputs=job.get('inputs') or {})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    _dispatch_job(new_job_id, job['workflow_id'], job.get('inputs') or {})
+    new_job = job_queue.get_job(new_job_id) or {}
+    return jsonify({
+        'job_id': new_job_id,
+        'retried_from': job_id,
+        'status': new_job.get('status', 'queued'),
+        'workflow_id': job['workflow_id'],
     })
 
 
@@ -2743,6 +3090,18 @@ def api_comfy_progress(prompt_id: str) -> jsonify:
     for output in payload.get('outputs') or []:
         _rewrite_media_url(output)
     return jsonify(payload)
+
+
+@app.route('/api/comfy/models')
+def api_comfy_models() -> jsonify:
+    """List available checkpoint/LoRA/VAE/CLIP model filenames from ComfyUI, for populating model-picker dropdowns."""
+    from ai_manager import load_config
+    from comfy_studio import available_model_options, comfy_available
+
+    config = load_config()
+    if not comfy_available(config):
+        return jsonify({'error': 'ComfyUI is not running'}), 503
+    return jsonify(available_model_options(config))
 
 
 @app.route('/api/comfy-free', methods=['POST'])
@@ -4178,6 +4537,14 @@ def model_tuning_status() -> Dict[str, Any]:
             'gpu_layers_key': 'LLAMA_HERETIC_GPU_LAYERS',
             'extra_args_key': 'LLAMA_HERETIC_EXTRA_ARGS',
         },
+        'heretic27': {
+            'label': 'Heretic LLM (27B)',
+            'model_key': 'LLAMA_HERETIC27_MODEL',
+            'alias_key': 'LLAMA_HERETIC27_ALIAS',
+            'ctx_key': 'LLAMA_HERETIC27_CTX',
+            'gpu_layers_key': 'LLAMA_HERETIC27_GPU_LAYERS',
+            'extra_args_key': 'LLAMA_HERETIC27_EXTRA_ARGS',
+        },
         'sidecar': {
             'label': 'Sidecar LLM',
             'model_key': 'QWEN_SIDECAR_MODEL',
@@ -4204,7 +4571,7 @@ def model_tuning_status() -> Dict[str, Any]:
         'known_tuned_models': known_tuned_model_catalog(models),
         'task_profiles': _task_profiles_for_models(models, runtime),
         'slots': slot_data,
-        'slot_order': ['main', 'heretic', 'sidecar'],
+        'slot_order': ['main', 'heretic', 'heretic27', 'sidecar'],
         'presets': [
             {
                 'id': 'speed',
@@ -4261,6 +4628,14 @@ MODEL_SLOT_SPECS = {
         'gpu_layers_key': 'LLAMA_HERETIC_GPU_LAYERS',
         'extra_args_key': 'LLAMA_HERETIC_EXTRA_ARGS',
         'restart_command': 'llama-heretic-restart',
+    },
+    'heretic27': {
+        'model_key': 'LLAMA_HERETIC27_MODEL',
+        'alias_key': 'LLAMA_HERETIC27_ALIAS',
+        'ctx_key': 'LLAMA_HERETIC27_CTX',
+        'gpu_layers_key': 'LLAMA_HERETIC27_GPU_LAYERS',
+        'extra_args_key': 'LLAMA_HERETIC27_EXTRA_ARGS',
+        'restart_command': 'llama-heretic27-restart',
     },
     'sidecar': {
         'model_key': 'QWEN_SIDECAR_MODEL',
@@ -4622,6 +4997,7 @@ def api_performance_models_optimize_active() -> jsonify:
     active_paths = {
         'main': runtime.get('LLAMA_MODEL', ''),
         'heretic': runtime.get('LLAMA_HERETIC_MODEL', ''),
+        'heretic27': runtime.get('LLAMA_HERETIC27_MODEL', ''),
         'sidecar': runtime.get('QWEN_SIDECAR_MODEL', ''),
     }
     for slot, model_path in active_paths.items():

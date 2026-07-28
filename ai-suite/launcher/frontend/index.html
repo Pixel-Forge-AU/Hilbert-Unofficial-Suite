@@ -432,6 +432,17 @@
             letter-spacing: 0.04em;
         }
 
+        .studio-side-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .studio-side-section-header h4 {
+            margin: 0;
+        }
+
         .workbench-nav-item {
             width: 100%;
             text-align: left;
@@ -1132,6 +1143,12 @@
             opacity: 0.4;
         }
 
+        .job-cancel-btn:hover:not(:disabled) {
+            border-color: #ef5350;
+            color: #ffffff;
+            background: rgba(239, 83, 80, 0.18);
+        }
+
         .queue-note {
             padding: 0.65rem 0.75rem;
             border: 1px solid rgba(79, 195, 247, 0.18);
@@ -1149,6 +1166,36 @@
         .composer-fields {
             display: grid;
             gap: 0.875rem;
+        }
+
+        .composer-project {
+            display: grid;
+            gap: 0.7rem;
+            padding: 0.85rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(79, 195, 247, 0.28);
+            border-radius: 8px;
+            background: rgba(79, 195, 247, 0.06);
+        }
+
+        .composer-project-heading {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .composer-project-hint {
+            margin: 0;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .composer-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
         }
 
         .composer-row {
@@ -1279,6 +1326,10 @@
 
         .composer-clip.vocal {
             background: rgba(255, 193, 7, 0.2);
+        }
+
+        .composer-clip.fx {
+            background: rgba(129, 199, 132, 0.22);
         }
 
         .composer-clip small {
@@ -1591,7 +1642,8 @@
             flex-wrap: wrap;
         }
 
-        .field-with-action input[type="file"] {
+        .field-with-action input[type="file"],
+        .field-with-action input[type="number"] {
             flex: 1;
             min-width: 0;
         }
@@ -1969,10 +2021,13 @@
 
         <section class="tab-panel active" id="tab-runtime">
         <section class="service-panel">
-            <h3>Runtime Services</h3>
+            <h3>Runtime Services
+                <span id="comfyHealthBadge" class="status-badge status-legacy" style="margin-left: 0.5rem; vertical-align: middle;" title="ComfyUI connectivity, checked every 20s">ComfyUI: checking...</span>
+            </h3>
             <div class="service-actions">
                 <button class="btn btn-primary" onclick="runServiceCommand('llama')">Coding LLM</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic')">Heretic LLM</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic27')">Heretic LLM (27B)</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('comfy')">ComfyUI</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('studio')">Studio</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('chat')">Chat</button>
@@ -2300,7 +2355,10 @@
                         <div class="workbench-nav-list" id="workbenchHistory"></div>
                     </div>
                     <div class="studio-side-section">
-                        <h4>Presets</h4>
+                        <div class="studio-side-section-header">
+                            <h4>Presets</h4>
+                            <button class="job-move-btn" type="button" id="workbenchSavePreset" title="Save the current settings as a new preset">Save as preset</button>
+                        </div>
                         <div class="workbench-nav-list" id="workbenchPresets"></div>
                     </div>
                     <div class="studio-side-section">
@@ -2378,9 +2436,56 @@
                     <div class="workbench-heading">
                         <div>
                             <h3>Composer</h3>
-                            <p>Generate rhythm beds and short vocal parts, then place them on a live timeline.</p>
+                            <p>Generate rhythm beds, vocal parts, and FX/foley, then place them on a live timeline.</p>
                         </div>
                         <span class="media-badge">Audio</span>
+                    </div>
+
+                    <div class="composer-project">
+                        <div class="composer-project-heading">Project continuity</div>
+                        <div class="form-group">
+                            <label for="composerTags">Style / instrumentation (shared across clips)</label>
+                            <input id="composerTags" type="text" placeholder="e.g. warm analog synths, driving four-on-the-floor, tape saturation">
+                        </div>
+                        <div class="composer-row">
+                            <div class="form-group">
+                                <label for="composerKey">Key (Ace)</label>
+                                <select id="composerKey">
+                                    <option>C major</option><option>C minor</option>
+                                    <option>C# major</option><option>C# minor</option>
+                                    <option>D major</option><option>D minor</option>
+                                    <option>D# major</option><option>D# minor</option>
+                                    <option>E major</option><option selected>E minor</option>
+                                    <option>F major</option><option>F minor</option>
+                                    <option>F# major</option><option>F# minor</option>
+                                    <option>G major</option><option>G minor</option>
+                                    <option>G# major</option><option>G# minor</option>
+                                    <option>A major</option><option>A minor</option>
+                                    <option>A# major</option><option>A# minor</option>
+                                    <option>B major</option><option>B minor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="composerSeedMode">Seed strategy</label>
+                                <select id="composerSeedMode">
+                                    <option value="random" selected>Random each clip</option>
+                                    <option value="evolving">Evolving (subtle drift)</option>
+                                    <option value="fixed">Fixed (identical take)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="composer-row">
+                            <div class="form-group">
+                                <label for="composerBaseSeed">Base seed</label>
+                                <input id="composerBaseSeed" type="number" min="0" max="999999999" step="1" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="composerCrossfade">Crossfade (s)</label>
+                                <input id="composerCrossfade" type="number" min="0" max="4" step="0.1" value="0.6">
+                            </div>
+                        </div>
+                        <label class="composer-checkbox"><input type="checkbox" id="composerLockVoice"> Keep the same vocal voice across takes</label>
+                        <p class="composer-project-hint">These carry into every generation so sections share a palette and drift instead of jumping between unrelated takes.</p>
                     </div>
 
                     <div class="composer-fields">
@@ -2390,6 +2495,7 @@
                                 <select id="composerPart">
                                     <option value="rhythm" selected>Rhythm</option>
                                     <option value="vocal">Vocal</option>
+                                    <option value="fx">FX</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -2397,6 +2503,7 @@
                                 <select id="composerEngine">
                                     <option value="diffrhythm" selected>DiffRhythm</option>
                                     <option value="ace">Ace</option>
+                                    <option value="stableaudio">Stable Audio (SFX)</option>
                                 </select>
                             </div>
                         </div>
@@ -2411,12 +2518,16 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="composerPrompt">Sound prompt</label>
+                            <label for="composerPrompt" id="composerPromptLabel">Sound prompt</label>
                             <textarea id="composerPrompt" rows="4" placeholder="tight industrial percussion, syncopated kick, metallic hats, dry room"></textarea>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="composerLyricsGroup">
                             <label for="composerLyrics">Vocal words</label>
                             <textarea id="composerLyrics" rows="4" placeholder="Short lyric, chant, hook, or spoken phrase"></textarea>
+                        </div>
+                        <div class="form-group" id="composerNegativeGroup">
+                            <label for="composerNegative">Avoid (negative prompt)</label>
+                            <textarea id="composerNegative" rows="2" placeholder="music, melody, tonal"></textarea>
                         </div>
                     </div>
 
@@ -2810,6 +2921,7 @@
         let workflowsData = {{ workflows | tojson | safe }};
         let storedInputs = [];
         let modelTuningData = { models: [], slots: {}, presets: [] };
+        let comfyModelOptions = {};
         let suiteChatState = {
             user: localStorage.getItem('ai-suite:chat-user') || 'Derek',
             sessionId: localStorage.getItem('ai-suite:chat-session') || '',
@@ -2825,7 +2937,17 @@
             clips: [],
             drag: null,
             timers: [],
-            audio: []
+            intervals: [],
+            audio: [],
+            project: {
+                tags: '',
+                key: 'E minor',
+                seedMode: 'random',
+                baseSeed: 0,
+                crossfade: 0.6,
+                lockVoice: false,
+                voiceSeed: -1
+            }
         };
 
         const threeReady = Promise.all([
@@ -2854,6 +2976,7 @@
             initSuiteChat();
             await refreshStoredInputs();
             await refreshModelTuning();
+            await refreshComfyModelOptions();
             initWorkbench();
             initJobMonitor();
             initComposer();
@@ -3276,6 +3399,7 @@
                 if (workbenchWorkflowId) showWorkflowDetails(workbenchWorkflowId);
             });
             document.getElementById('workbenchRefresh').addEventListener('click', refreshWorkbenchOutputs);
+            document.getElementById('workbenchSavePreset').addEventListener('click', saveWorkbenchPreset);
         }
 
         function requestedWorkbenchWorkflow() {
@@ -3319,6 +3443,9 @@
                 const details = await response.json();
                 if (!response.ok) throw new Error(details.error || 'Failed to load workflow');
                 workbenchWorkflowDetails = details;
+                if (!Object.keys(comfyModelOptions).length) {
+                    await refreshComfyModelOptions();
+                }
                 document.getElementById('workbenchTitle').textContent = details.name;
                 document.getElementById('workbenchDescription').textContent = details.description || '';
                 document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(details);
@@ -3598,13 +3725,96 @@
                         </div>
                     `;
                 }
+                if (input.id === 'conditioning_duration') {
+                    // Kept in sync with "duration" at submit time (see submitWorkbenchForm) - the
+                    // model needs both signals equal or it produces truncated/malformed audio, so
+                    // there's no reason to show the user two duration fields to keep in sync by hand.
+                    return `<input type="hidden" ${common} value="${escapeHtml(defaultValue)}">`;
+                }
+                if ((input.id === 'seed' || input.id === 'voice_seed') && input.type === 'int') {
+                    return `
+                        <div class="form-group">
+                            <label>${escapeHtml(label)}${required}</label>
+                            <div class="field-with-action">
+                                <input ${common} type="number" value="${escapeHtml(defaultValue)}" min="${input.minimum ?? ''}" max="${input.maximum ?? ''}" step="${input.step || 1}">
+                                <button type="button" class="btn btn-secondary" style="flex: 0;" onclick="randomizeSeedField(this)">Randomize</button>
+                            </div>
+                        </div>
+                    `;
+                }
                 if (input.type === 'int' || input.type === 'float') {
                     return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="number" value="${escapeHtml(defaultValue)}" min="${input.minimum ?? ''}" max="${input.maximum ?? ''}" step="${input.step || 1}"></div>`;
                 }
                 if (input.type === 'boolean') {
                     return `<div class="form-group"><label><input ${common} type="checkbox" ${defaultValue ? 'checked' : ''}> ${escapeHtml(label)}${required}</label></div>`;
                 }
+                if (input.type === 'select') {
+                    const options = (input.options || []).map(function(option) {
+                        const selected = String(option) === String(defaultValue) ? ' selected' : '';
+                        return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+                    }).join('');
+                    return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><select ${common}>${options}</select></div>`;
+                }
+                if (input.type === 'model') {
+                    const comboName = input.input || (/lora/i.test(input.id + label) ? 'lora_name' : 'ckpt_name');
+                    const listId = `modelOptions-${escapeHtml(input.id)}`;
+                    return `
+                        <div class="form-group">
+                            <label>${escapeHtml(label)}${required}</label>
+                            <input ${common} type="text" list="${listId}" value="${escapeHtml(defaultValue)}" placeholder="${escapeHtml(defaultValue)}">
+                            <datalist id="${listId}">${modelDatalistOptions(comboName)}</datalist>
+                        </div>
+                    `;
+                }
                 return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="text" value="${escapeHtml(defaultValue)}"></div>`;
+            }).join('');
+        }
+
+        function syncConditioningDuration(inputs) {
+            const hasConditioningDuration = (workbenchWorkflowDetails?.inputs || []).some(function(item) {
+                return item.id === 'conditioning_duration';
+            });
+            if (hasConditioningDuration && inputs.duration !== undefined) {
+                inputs.conditioning_duration = inputs.duration;
+            }
+        }
+
+        async function saveWorkbenchPreset() {
+            if (!workbenchWorkflowId) return;
+            const title = prompt('Save as preset');
+            if (!title || !title.trim()) return;
+            const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+            const values = {};
+            fields.forEach(function(field) {
+                if (field.type === 'file') return;
+                values[field.name] = field.type === 'checkbox' ? field.checked : field.value;
+            });
+            syncConditioningDuration(values);
+            try {
+                const response = await fetch(`/api/workflows/${workbenchWorkflowId}/presets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: title.trim(), values: values })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not save preset');
+                renderWorkbenchPresets(data.presets || []);
+                showToast('Preset saved', title.trim(), 'success', 2400);
+            } catch (error) {
+                showToast('Save preset failed', error.message, 'error');
+            }
+        }
+
+        function randomizeSeedField(button) {
+            const input = button.previousElementSibling;
+            if (!input) return;
+            input.value = Math.floor(Math.random() * 1000000000);
+        }
+
+        function modelDatalistOptions(comboName) {
+            const values = comfyModelOptions[comboName] || [];
+            return values.map(function(value) {
+                return `<option value="${escapeHtml(value)}"></option>`;
             }).join('');
         }
 
@@ -3612,6 +3822,7 @@
             const runtimeAliases = [
                 modelTuningData.slots?.main?.alias,
                 modelTuningData.slots?.heretic?.alias,
+                modelTuningData.slots?.heretic27?.alias,
                 modelTuningData.slots?.sidecar?.alias
             ].filter(Boolean);
             const taskAliases = (modelTuningData.task_profiles || [])
@@ -3671,6 +3882,7 @@
                         inputs[field.name] = field.type === 'checkbox' ? field.checked : field.value;
                     }
                 }
+                syncConditioningDuration(inputs);
                 const response = await fetch(`/api/workflows/${workbenchWorkflowId}/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -4475,6 +4687,16 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
+        async function refreshComfyModelOptions() {
+            try {
+                const response = await fetch('/api/comfy/models');
+                const data = await response.json();
+                if (response.ok) comfyModelOptions = data;
+            } catch (error) {
+                // ComfyUI may not be running yet; checkpoint/LoRA fields fall back to a plain text field.
+            }
+        }
+
         async function refreshModelTuning() {
             const forms = document.getElementById('modelSlotForms');
             const inventory = document.getElementById('localModelInventory');
@@ -4599,6 +4821,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function slotHelpText(slot) {
             if (slot === 'main') return 'Use this for your primary coding/chat model. Save & Switch restarts the main LLM API.';
             if (slot === 'heretic') return 'Use this for the alternate Heretic profile. It keeps separate model and tuning settings.';
+            if (slot === 'heretic27') return 'Use this for the smaller 27B Heretic profile, independent from the 35B Heretic slot above.';
             if (slot === 'sidecar') return 'Use this for a small helper model. CPU sidecar settings avoid competing with ComfyUI for the GPU.';
             return 'Choose a model, apply recommended settings, then Save & Switch.';
         }
@@ -5670,6 +5893,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function initComposer() {
             const generate = document.getElementById('composerGenerate');
             if (!generate) return;
+            loadComposerProject();
             generate.addEventListener('click', submitComposerClip);
             document.getElementById('composerClear')?.addEventListener('click', function() {
                 stopComposerTimeline();
@@ -5683,17 +5907,92 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 const part = this.value;
                 const engine = document.getElementById('composerEngine');
                 if (engine && part === 'vocal') engine.value = 'ace';
+                if (engine && part === 'fx') engine.value = 'stableaudio';
+                if (engine && part === 'rhythm' && engine.value === 'stableaudio') engine.value = 'diffrhythm';
+                updateComposerFieldVisibility();
                 updateComposerReadout();
+            });
+            ['composerTags', 'composerKey', 'composerSeedMode', 'composerBaseSeed', 'composerCrossfade', 'composerLockVoice'].forEach(function(id) {
+                document.getElementById(id)?.addEventListener('change', saveComposerProject);
             });
             document.addEventListener('pointermove', dragComposerClip);
             document.addEventListener('pointerup', stopDraggingComposerClip);
             renderComposerBin();
             renderComposerTimeline();
+            updateComposerFieldVisibility();
             updateComposerReadout();
         }
 
+        function loadComposerProject() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('ai-suite:composer-project') || 'null');
+                if (stored) composerState.project = Object.assign({}, composerState.project, stored);
+            } catch (error) {
+                // ignore malformed stored settings
+            }
+            const project = composerState.project;
+            const tags = document.getElementById('composerTags');
+            const key = document.getElementById('composerKey');
+            const seedMode = document.getElementById('composerSeedMode');
+            const baseSeed = document.getElementById('composerBaseSeed');
+            const crossfade = document.getElementById('composerCrossfade');
+            const lockVoice = document.getElementById('composerLockVoice');
+            if (tags) tags.value = project.tags;
+            if (key) key.value = project.key;
+            if (seedMode) seedMode.value = project.seedMode;
+            if (baseSeed) baseSeed.value = project.baseSeed;
+            if (crossfade) crossfade.value = project.crossfade;
+            if (lockVoice) lockVoice.checked = project.lockVoice;
+        }
+
+        function saveComposerProject() {
+            composerState.project = {
+                tags: document.getElementById('composerTags')?.value.trim() || '',
+                key: document.getElementById('composerKey')?.value || 'E minor',
+                seedMode: document.getElementById('composerSeedMode')?.value || 'random',
+                baseSeed: Math.max(0, Number(document.getElementById('composerBaseSeed')?.value || 0)),
+                crossfade: Math.max(0, Math.min(4, Number(document.getElementById('composerCrossfade')?.value || 0))),
+                lockVoice: !!document.getElementById('composerLockVoice')?.checked,
+                voiceSeed: composerState.project.voiceSeed
+            };
+            localStorage.setItem('ai-suite:composer-project', JSON.stringify(composerState.project));
+        }
+
+        function updateComposerFieldVisibility() {
+            const part = document.getElementById('composerPart')?.value || 'rhythm';
+            const promptLabel = document.getElementById('composerPromptLabel');
+            const lyricsGroup = document.getElementById('composerLyricsGroup');
+            const negativeGroup = document.getElementById('composerNegativeGroup');
+            if (promptLabel) promptLabel.textContent = part === 'vocal' ? 'Style / tags' : 'Sound prompt';
+            if (lyricsGroup) lyricsGroup.style.display = part === 'vocal' ? '' : 'none';
+            if (negativeGroup) negativeGroup.style.display = part === 'fx' ? '' : 'none';
+        }
+
         function composerWorkflowId(engine) {
-            return engine === 'ace' ? 'audio.ace-step-1-5' : 'audio.diffrhythm';
+            if (engine === 'ace') return 'audio.ace-step-1-5';
+            if (engine === 'stableaudio') return 'audio.stable-audio-sfx';
+            return 'audio.diffrhythm';
+        }
+
+        function composerResolveSeed(engine, part) {
+            const project = composerState.project;
+            const randomSentinel = engine === 'diffrhythm' ? 0 : -1;
+            if (project.seedMode === 'fixed') return project.baseSeed;
+            if (project.seedMode === 'evolving') {
+                const takeIndex = composerState.bin.filter(function(clip) { return clip.part === part && clip.engine === engine; }).length;
+                return project.baseSeed + takeIndex;
+            }
+            return randomSentinel;
+        }
+
+        function composerResolveVoiceSeed(part) {
+            const project = composerState.project;
+            if (part !== 'vocal' || !project.lockVoice) return -1;
+            if (project.voiceSeed === -1) {
+                project.voiceSeed = Math.floor(Math.random() * 2147483647);
+                localStorage.setItem('ai-suite:composer-project', JSON.stringify(project));
+            }
+            return project.voiceSeed;
         }
 
         function composerWorkflowAvailable(workflowId) {
@@ -5716,31 +6015,51 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             return `Composer/${engine}/${part}/${stamp}-${label}`;
         }
 
-        function composerInputs(engine, part, prompt, lyrics, duration, bpm) {
+        function composerInputs(engine, part, prompt, lyrics, negative, duration, bpm) {
             const filenamePrefix = composerFilenamePrefix(engine, part, prompt, lyrics);
+            const project = composerState.project;
+            const sharedTags = project.tags ? `${project.tags}, ` : '';
+            const seed = composerResolveSeed(engine, part);
+
             if (engine === 'ace') {
                 const words = part === 'vocal' ? lyrics || prompt : prompt || lyrics;
                 const tags = part === 'vocal'
-                    ? `short vocal part, ${prompt || 'clean hook'}, ${bpm} bpm`
-                    : `${prompt || 'short rhythmic music part'}, ${bpm} bpm`;
+                    ? `${sharedTags}short vocal part, ${prompt || 'clean hook'}, ${bpm} bpm`
+                    : `${sharedTags}${prompt || 'short rhythmic music part'}, ${bpm} bpm`;
                 return {
                     prompt: words,
                     tags: tags,
                     duration: String(duration),
                     conditioning_duration: String(duration),
                     bpm: String(bpm),
+                    key: project.key,
+                    seed: String(seed),
+                    voice_seed: String(composerResolveVoiceSeed(part)),
                     steps: '8',
                     filename_prefix: filenamePrefix
                 };
             }
+
+            if (engine === 'stableaudio') {
+                return {
+                    prompt: `${sharedTags}${prompt || 'short foley sound effect, dry room'}`,
+                    negative_prompt: negative || 'music, melody, tonal',
+                    duration: String(duration),
+                    steps: '50',
+                    cfg: '4.98',
+                    seed: String(seed),
+                    filename_prefix: filenamePrefix
+                };
+            }
+
             return {
-                style_prompt: prompt || 'short rhythmic percussion loop, punchy drums, clean mix',
+                style_prompt: `${sharedTags}${prompt || 'short rhythmic percussion loop, punchy drums, clean mix'}`,
                 model: 'cfm_model_v1_2.pt',
                 steps: '30',
                 cfg: '4',
                 quality_or_speed: 'speed',
                 odeint_method: 'euler',
-                seed: '0',
+                seed: String(seed),
                 unload_model: true,
                 filename_prefix: filenamePrefix
             };
@@ -5753,27 +6072,29 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const engine = document.getElementById('composerEngine')?.value || 'diffrhythm';
             const prompt = document.getElementById('composerPrompt')?.value.trim() || '';
             const lyrics = document.getElementById('composerLyrics')?.value.trim() || '';
+            const negative = document.getElementById('composerNegative')?.value.trim() || '';
             const duration = Math.max(2, Math.min(60, Number(document.getElementById('composerDuration')?.value || 8)));
             const bpm = Math.max(40, Math.min(220, Number(document.getElementById('composerBpm')?.value || 120)));
             const workflowId = composerWorkflowId(engine);
+            const engineLabel = { ace: 'Ace', stableaudio: 'Stable Audio' }[engine] || 'DiffRhythm';
 
             if (!composerWorkflowAvailable(workflowId)) {
                 showToast('Composer workflow unavailable', workflowId, 'error');
                 return;
             }
             if (!prompt && !lyrics) {
-                showToast('Add a prompt first', 'Describe the rhythm or vocal part.', 'error');
+                showToast('Add a prompt first', 'Describe the rhythm, vocal, or FX part.', 'error');
                 return;
             }
 
             button.disabled = true;
             setComposerProgress('Starting clip...', 4);
-            if (status) status.textContent = `Submitting ${engine === 'ace' ? 'Ace' : 'DiffRhythm'} clip...`;
+            if (status) status.textContent = `Submitting ${engineLabel} clip...`;
 
             try {
                 const output = await runComfyWorkflow(
                     workflowId,
-                    composerInputs(engine, part, prompt, lyrics, duration, bpm),
+                    composerInputs(engine, part, prompt, lyrics, negative, duration, bpm),
                     'audio',
                     { label: 'Composer clip', progressStart: 4, progressEnd: 100 },
                     setComposerProgress
@@ -5861,7 +6182,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             if (!timeline) return;
             const pxPerSecond = 80;
             const laneOffset = 96;
-            const lanes = ['rhythm', 'vocal'];
+            const lanes = ['rhythm', 'vocal', 'fx'];
             const length = Math.max(12, Math.ceil(composerState.clips.reduce(function(max, clip) {
                 return Math.max(max, clip.start + clip.duration);
             }, 0)));
@@ -5942,19 +6263,46 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             });
         }
 
+        function fadeComposerVolume(audio, from, to, durationMs) {
+            if (durationMs <= 0) {
+                audio.volume = Math.max(0, Math.min(1, to));
+                return;
+            }
+            const stepMs = 50;
+            const steps = Math.max(1, Math.round(durationMs / stepMs));
+            let step = 0;
+            audio.volume = Math.max(0, Math.min(1, from));
+            const interval = setInterval(function() {
+                step++;
+                audio.volume = Math.max(0, Math.min(1, from + (to - from) * (step / steps)));
+                if (step >= steps) clearInterval(interval);
+            }, stepMs);
+            composerState.intervals.push(interval);
+        }
+
         function playComposerTimeline() {
             stopComposerTimeline();
             if (!composerState.clips.length) {
                 showToast('Timeline empty', 'Add or generate a clip first.', 'error');
                 return;
             }
+            const crossfade = Math.max(0, Math.min(4, Number(document.getElementById('composerCrossfade')?.value || 0)));
             composerState.clips.forEach(function(clip) {
+                const fade = Math.min(crossfade, clip.duration / 2);
                 const timer = setTimeout(function() {
                     const audio = new Audio(clip.url);
+                    audio.volume = fade > 0 ? 0 : 1;
                     composerState.audio.push(audio);
                     audio.play().catch(function(error) {
                         showToast('Playback failed', error.message, 'error');
                     });
+                    fadeComposerVolume(audio, 0, 1, fade * 1000);
+                    if (fade > 0) {
+                        const fadeOutTimer = setTimeout(function() {
+                            fadeComposerVolume(audio, 1, 0, fade * 1000);
+                        }, (clip.duration - fade) * 1000);
+                        composerState.timers.push(fadeOutTimer);
+                    }
                 }, clip.start * 1000);
                 composerState.timers.push(timer);
             });
@@ -5964,6 +6312,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function stopComposerTimeline() {
             composerState.timers.forEach(clearTimeout);
             composerState.timers = [];
+            composerState.intervals.forEach(clearInterval);
+            composerState.intervals = [];
             composerState.audio.forEach(function(audio) {
                 audio.pause();
                 audio.currentTime = 0;
@@ -5976,7 +6326,48 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function updateComposerReadout() {
             const engine = document.getElementById('composerEngine')?.value || 'diffrhythm';
             const readout = document.getElementById('composerEngineReadout');
-            if (readout) readout.textContent = engine === 'ace' ? 'Ace' : 'DiffRhythm';
+            const labels = { ace: 'Ace', stableaudio: 'Stable Audio (SFX)' };
+            if (readout) readout.textContent = labels[engine] || 'DiffRhythm';
+        }
+
+        // ComfyUI health badge (Runtime tab) - reuses the same 2s poll as
+        // updateJobList() rather than a separate interval.
+        function renderComfyHealth(health) {
+            const badge = document.getElementById('comfyHealthBadge');
+            if (!badge || !health) return;
+            const byStatus = {
+                ok: { label: 'ComfyUI: OK', cls: 'status-stable' },
+                degraded: { label: 'ComfyUI: slow to respond', cls: 'status-beta' },
+                down: { label: 'ComfyUI: unresponsive', cls: 'status-experimental' },
+                unknown: { label: 'ComfyUI: checking...', cls: 'status-legacy' }
+            };
+            const info = byStatus[health.status] || byStatus.unknown;
+            badge.className = `status-badge ${info.cls}`;
+            let label = info.label;
+            if (health.status === 'down' && health.down_since) {
+                const downSeconds = Math.max(0, Math.round((Date.now() - new Date(health.down_since).getTime()) / 1000));
+                const minutes = Math.floor(downSeconds / 60);
+                label += minutes > 0 ? ` (${minutes}m)` : ` (${downSeconds}s)`;
+            }
+            badge.textContent = label;
+            badge.title = health.last_error
+                ? `Last error: ${health.last_error}`
+                : `Last confirmed OK: ${health.last_ok_at ? new Date(health.last_ok_at).toLocaleTimeString() : 'never'}`;
+        }
+
+        async function retryJob(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/retry`, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) {
+                    showToast('Retry failed', data.error || 'Could not resubmit the job.', 'error');
+                    return;
+                }
+                showToast('Job resubmitted', `Queued as ${data.job_id}.`, 'success');
+                updateJobList();
+            } catch (error) {
+                showToast('Retry failed', error.message, 'error');
+            }
         }
 
         // Update job list
@@ -5990,6 +6381,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 checkForNewlyCompletedJobs(data.completed || []);
                 renderWorkbenchHistory();
                 renderEditorProgress();
+                renderComfyHealth(data.comfy_health);
 
                 const jobList = document.getElementById('jobList');
 
@@ -6024,6 +6416,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                                 <button class="job-move-btn" type="button" title="Move up" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'up')" ${isFirst ? 'disabled' : ''}>Up</button>
                                 <button class="job-move-btn" type="button" title="Move down" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'down')" ${isLast ? 'disabled' : ''}>Down</button>
                                 <button class="job-move-btn" type="button" title="Move to bottom" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'bottom')" ${isLast ? 'disabled' : ''}>Bottom</button>
+                                <button class="job-move-btn job-cancel-btn" type="button" title="Cancel job" onclick="cancelJob('${escapeHtml(job.job_id)}')">Cancel</button>
                             </div>
                         </div>
                     `;
@@ -6048,6 +6441,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Up</button>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Down</button>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Bottom</button>
+                                    <button class="job-move-btn job-cancel-btn" type="button" title="Cancel job" onclick="cancelJob('${escapeHtml(job.job_id)}')">Cancel</button>
                                 </div>
                             </div>
                         </div>
@@ -6069,17 +6463,34 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                         }
                         return `<a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">${escapedName}</a>`;
                     }).join('');
+                    const badgeByStatus = {
+                        cancelled: { label: 'CANCELLED', background: '#616161' },
+                        failed: { label: 'FAILED', background: '#c62828' },
+                        stalled: { label: 'STALLED', background: '#ef6c00' }
+                    };
+                    const badge = badgeByStatus[job.status] || { label: 'DONE', background: '#2e7d32' };
+                    const retryable = job.status === 'failed' || job.status === 'stalled' || job.status === 'cancelled';
+                    const errorHtml = job.error
+                        ? `<div style="color: #ffab91; font-size: 0.75rem; margin-top: 0.25rem;">${escapeHtml(job.error)}</div>`
+                        : '';
+                    const retryHtml = retryable
+                        ? `<button class="job-move-btn" type="button" title="Resubmit with the same inputs" onclick="retryJob('${escapeHtml(job.job_id)}')">Retry</button>`
+                        : '';
                     html += `
                         <div class="job-item">
                             <div class="job-info" style="align-items: flex-start;">
-                                <span class="status-badge status-stable" style="background: #2e7d32; color: #fff;">DONE</span>
+                                <span class="status-badge status-stable" style="background: ${badge.background}; color: #fff;">${badge.label}</span>
                                 <div class="job-title">
                                     <div>${escapeHtml(job.workflow_id)}</div>
                                     <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${escapeHtml(result.prompt_id || job.job_id)}</div>
+                                    ${errorHtml}
                                     <div class="job-thumb-row">${outputHtml || '<span style="color: rgba(255,255,255,0.5);">No output files yet</span>'}</div>
                                 </div>
                             </div>
-                            <span class="job-time">${new Date(job.completed_at).toLocaleString()}</span>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+                                <span class="job-time">${new Date(job.completed_at).toLocaleString()}</span>
+                                ${retryHtml}
+                            </div>
                         </div>
                     `;
                 });
@@ -6109,6 +6520,23 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 await updateJobList();
             } catch (error) {
                 showToast('Queue move failed', error.message, 'error');
+            }
+        }
+
+        async function cancelJob(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Could not cancel job');
+                }
+                showToast('Job cancelled', jobId, 'success', 1600);
+                await updateJobList();
+            } catch (error) {
+                showToast('Cancel failed', error.message, 'error');
             }
         }
 

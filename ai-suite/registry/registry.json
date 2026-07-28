@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-07-26T15:55:29.722423Z",
+  "generated_at": "2026-07-28T10:40:51.945186Z",
   "total_packs": 9,
-  "total_workflows": 53,
+  "total_workflows": 66,
   "categories": [
     "audio",
     "character",
@@ -94,7 +94,17 @@
         "video.frame-interpolation",
         "video.animation",
         "video.mux",
-        "video.extend"
+        "video.extend",
+        "video.wan22-multi-lora-i2v",
+        "video.wan22-fastest-i2v-8step",
+        "video.bernini-multimodal-video",
+        "video.wan22-daxamur-flf2v",
+        "video.ltx2-director-i2v",
+        "video.wan21-vace-causvid-1.3b",
+        "video.wan21-vace-causvid-14b",
+        "video.wan21-jibmix-t2v",
+        "video.wan22-longvideo-6step-gguf-combo",
+        "video.scail2-character-replacement"
       ],
       "default_enabled": true,
       "dependencies": [],
@@ -123,7 +133,8 @@
         "core.outpainting-panorama",
         "core.upscale-simple",
         "core.upscale-high-quality",
-        "core.multi-model-comparison"
+        "core.multi-model-comparison",
+        "core.hidream-i1-dev-gguf"
       ],
       "default_enabled": true,
       "dependencies": [],
@@ -207,7 +218,9 @@
         "editing.perspective-correction",
         "editing.depth-of-field",
         "editing.reflection-removal",
-        "editing.shadow-removal"
+        "editing.shadow-removal",
+        "editing.anima-inpaint-v1-beta",
+        "editing.cocoamix-qwen-image-edit"
       ],
       "default_enabled": true,
       "dependencies": [],
@@ -237,9 +250,9 @@
         },
         {
           "id": "negative_prompt",
-          "type": "text",
+          "type": "textarea",
           "required": false,
-          "default": "",
+          "default": "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, extra fingers, extra digits, mutated hands",
           "description": "Negative prompt for undesirable elements"
         },
         {
@@ -300,8 +313,10 @@
         },
         {
           "id": "reference_image",
-          "type": "image",
+          "label": "Reference image",
+          "type": "file",
           "required": false,
+          "accept": "image/png,image/jpeg,image/webp,image/bmp",
           "description": "Reference image for character consistency"
         }
       ],
@@ -405,7 +420,7 @@
     },
     {
       "id": "character.character-sheet",
-      "name": "Character Character Sheet",
+      "name": "Character Sheet",
       "version": "1.0.0",
       "category": "character",
       "subcategory": "character-sheet",
@@ -2965,6 +2980,249 @@
       "manifest_path": "packs/llm-orchestration/llm.image-critic/manifest.yaml"
     },
     {
+      "id": "video.scail2-character-replacement",
+      "name": "SCAIL-2 Character Replacement (Wan 2.1)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan21",
+      "description": "Rebuilt from scail2MultiRefSegmented_v6.json - despite living in this suite's image-editing staging pile, inspecting its actual node graph shows it's a WAN 2.1 video pipeline, not an image editor: driving-video + reference-image character replacement via zai-org's SCAIL-2 model (SAM3 subject tracking + colored-mask identity binding + WanSCAILToVideo conditioning), wrapped in an elaborate Chinese-language \"WAN ANI Director\" multi-segment queue UI. Those Director/\"SQR\" nodes (WanAniDirector, SQRSCAIL2TransitionToVideo, SQRScail2ReferenceBatchSplit, SQRScail2ColoredMaskAdvanced, WanSQRMultiReference, WanContextWindowsManual) come from the public zere111ai/ComfyUI-WanAni-SQR repo and exist purely to auto-chunk arbitrarily long videos into overlapping segments and stitch them back together - convenience automation, not the core capability. The actual generation core (WanSCAILToVideo, SCAIL2ColoredMask, SAM3_VideoTrack) turned out to already be native ComfyUI nodes in this install (comfy_extras/nodes_scail.py, nodes_sam3.py), so this pack reproduces ComfyUI's own bundled reference template (video_wan21_scail2_character_replacement.json) instead, trimmed to a single segment/pass (the source's \"Base\" subgraph; the segment-chaining \"Extend\" subgraph and the Director's shot-auto-detection were dropped as out of scope for one pack). Of the model list in that template's own notes: umt5_xxl_fp8_e4m3fn_scaled.safetensors, Wan2_1_VAE_bf16.safetensors, sam3.1_multiplex_fp16.safetensors, and the lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors LoRA were all already installed in this suite under those exact names - no substitution needed. The SCAIL-2 base diffusion model itself (wan2.1_14B_SCAIL_2_fp16.safetensors), the DPO refinement LoRA (wan2.1_SCAIL_2_DPO_lora_bf16.safetensors), and clip_vision_h.safetensors are NOT installed under any name in this suite (the staged workflow's own DiffusionModelLoaderKJ pointed at a differently-named int8 quant of the same base model that also isn't present) - all three are flagged below with the official template's own Hugging Face links rather than guessed at or downloaded. Marked experimental until those three land.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "1.file",
+          "label": "Driving video",
+          "type": "file",
+          "required": false,
+          "default": "example_driving.mp4",
+          "node_id": "1",
+          "node_type": "LoadVideo",
+          "input": "file",
+          "accept": "video/mp4,video/webm"
+        },
+        {
+          "id": "3.image",
+          "label": "Reference character image",
+          "type": "file",
+          "required": true,
+          "default": "example_reference.png",
+          "node_id": "3",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "5.text",
+          "label": "SAM3 detection prompt (driving video)",
+          "type": "text",
+          "required": false,
+          "default": "human",
+          "node_id": "5",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "6.text",
+          "label": "SAM3 detection prompt (reference image)",
+          "type": "text",
+          "required": false,
+          "default": "human",
+          "node_id": "6",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "11.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "A person is replaced by the reference character while performing the same motion as the driving video",
+          "node_id": "11",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "12.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "",
+          "node_id": "12",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "20.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 512,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "20",
+          "node_type": "WanSCAILToVideo",
+          "input": "width"
+        },
+        {
+          "id": "20.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 896,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "20",
+          "node_type": "WanSCAILToVideo",
+          "input": "height"
+        },
+        {
+          "id": "20.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 65,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "20",
+          "node_type": "WanSCAILToVideo",
+          "input": "length"
+        },
+        {
+          "id": "17.strength_model",
+          "label": "Lightx2v distill LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 0.8,
+          "minimum": -2,
+          "maximum": 2,
+          "node_id": "17",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "22.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 6,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "22",
+          "node_type": "BasicScheduler",
+          "input": "steps"
+        },
+        {
+          "id": "23.noise_seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "node_id": "23",
+          "node_type": "SamplerCustom",
+          "input": "noise_seed"
+        },
+        {
+          "id": "23.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "23",
+          "node_type": "SamplerCustom",
+          "input": "cfg"
+        },
+        {
+          "id": "26.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "video/SCAIL2",
+          "node_id": "26",
+          "node_type": "SaveVideo",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "4",
+            "node_type": "CheckpointLoaderSimple",
+            "name": "sam3.1_multiplex_fp16.safetensors",
+            "directory": "checkpoints"
+          },
+          {
+            "node_id": "10",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "13",
+            "node_type": "CLIPVisionLoader",
+            "name": "clip_vision_h.safetensors",
+            "directory": "clip_vision",
+            "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+          },
+          {
+            "node_id": "15",
+            "node_type": "UNETLoader",
+            "name": "wan2.1_14B_SCAIL_2_fp16.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/SCAIL-2/resolve/main/diffusion_models/wan2.1_14B_SCAIL_2_fp16.safetensors"
+          },
+          {
+            "node_id": "17",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "18",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "wan2.1_SCAIL_2_DPO_lora_bf16.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/Comfy-Org/SCAIL-2/resolve/main/loras/wan2.1_SCAIL_2_DPO_lora_bf16.safetensors"
+          },
+          {
+            "node_id": "19",
+            "node_type": "VAELoader",
+            "name": "Wan2_1_VAE_bf16.safetensors",
+            "directory": "vae"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/scail2-character-replacement/manifest.yaml",
+      "manifest_path": "packs/video-animation/scail2-character-replacement/manifest.yaml"
+    },
+    {
       "id": "video.video-to-video",
       "name": "Video Upscale",
       "version": "2.0.0",
@@ -3627,6 +3885,707 @@
       "manifest_path": "packs/video-animation/lip-sync/manifest.yaml"
     },
     {
+      "id": "video.ltx2-director-i2v",
+      "name": "LTX-2.3 Director (GGUF Image-to-Video)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "ltx2",
+      "description": "Hand-built from the Q8 GGUF-quantized LTX-2.3 22B diffusion model (ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf, from the \"All You Need Is...\" pack) plus the node graph in ComfyUI's own official \"Image to Video (LTX-2.3)\" blueprint (repos/ComfyUI/blueprints/), rather than importing the \"LTX2.3 All-In-One SFW/NSFW LTX Director\" zip verbatim. That zip contains three exports - LTX23Legacy.json (a pre-Director, manual-timeline-segment editor), LTX23LTXDirector2.json (its own Quick-Start note calls this \"a hot-fix to make the new version of the LTX Director work with this workflow, so not all the new features are available or tested\"), and LTX23LTXDirector13.json (the current, fully-updated Director build, superseding Director2). All three are ~300-500 node mega-templates wiring in a dozen optional side chains (ControlNet preprocessing via comfyui_controlnet_aux, RIFE frame interpolation, MelBandRoFormer voice separation, Nvidia RTX super-resolution, pysssss UI scripts, easy-use pipe nodes) behind rgthree mute/bypass groups - reproducing that exactly would mean installing 6+ more custom node repos of uncertain provenance for features orthogonal to the core video pipeline, so this pack instead wires a clean minimal single-pass T2V/I2V graph using core ComfyUI's native LTXV nodes (added upstream for LTX-2.3 support) plus the GGUF loader. A separate standalone export, videoflowLTX23AllInOneT2VI2VA2V_ltx23AllInOneV30.json, was checked against the zip's contents and is NOT a duplicate - its subgraph names (\"Stage 1/2 Sampler\", \"TalkVid ID-LoRA\", \"Voice Separation\") show it's a different third-party \"VideoFlow\" two-stage-upscale template with talking-head identity LoRA and voice isolation, an even larger and more specialized undertaking; it was left unpacked here as out of scope for this pass. Sampling parameters (9-step manual sigma schedule, euler_ancestral_cfg_pp, cfg 1) are taken from the blueprint's final (non-distilled/\"dev\") decode stage, applied here as a single pass at target resolution instead of the blueprint's base-res-then-spatial-upscale two-stage flow, since the ltx-2.3-spatial-upscaler-x2-1.1.safetensors upscaler model isn't installed either. The GGUF supplies only the quantized diffusion transformer; the video VAE and the \"LTXAVTextEncoderLoader\" CLIP wrapper both need the full ltx-2.3-22b-dev-fp8.safetensors checkpoint (Lightricks/LTX-2.3-fp8 on Hugging Face, ~29GB) which is NOT installed in this suite and was not downloaded - both are flagged with url below. The Gemma-3 12B text encoder side of that wrapper IS covered by the already-installed gemma_3_12B_it_fp8_scaled.safetensors. The bleach-bypass i2v LoRA (a photochemical high-contrast, desaturated color-grading look - the same benign style family as this suite's SD1.5/SDXL bleach-bypass LoRAs) is wired in as an optional-strength LoraLoaderModelOnly slot on the GGUF model. Needs the city96/ComfyUI-GGUF custom node for the UnetLoaderGGUF node (already installed in this suite by the time this pack was built). Marked experimental: without the ltx-2.3-22b-dev-fp8.safetensors checkpoint this graph cannot actually decode a video end to end.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "4.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "cinematic tracking shot, smooth natural motion, coherent detail, high production value",
+          "node_id": "4",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "5.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, jittery, static frame",
+          "node_id": "5",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "6.image",
+          "label": "Input image",
+          "type": "file",
+          "required": false,
+          "default": "example.png",
+          "node_id": "6",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "7.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 768,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "7",
+          "node_type": "EmptyLTXVLatentVideo",
+          "input": "width"
+        },
+        {
+          "id": "7.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 512,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "7",
+          "node_type": "EmptyLTXVLatentVideo",
+          "input": "height"
+        },
+        {
+          "id": "7.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 97,
+          "minimum": 9,
+          "maximum": 257,
+          "node_id": "7",
+          "node_type": "EmptyLTXVLatentVideo",
+          "input": "length"
+        },
+        {
+          "id": "8.strength",
+          "label": "Image conditioning strength",
+          "type": "float",
+          "required": false,
+          "default": 0.9,
+          "minimum": 0,
+          "maximum": 1,
+          "node_id": "8",
+          "node_type": "LTXVImgToVideoInplace",
+          "input": "strength"
+        },
+        {
+          "id": "9.strength_model",
+          "label": "Bleach-bypass LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 0.8,
+          "minimum": -2,
+          "maximum": 2,
+          "node_id": "9",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "10.frame_rate",
+          "label": "Frame rate",
+          "type": "float",
+          "required": false,
+          "default": 25.0,
+          "minimum": 1,
+          "maximum": 60,
+          "node_id": "10",
+          "node_type": "LTXVConditioning",
+          "input": "frame_rate"
+        },
+        {
+          "id": "11.noise_seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "11",
+          "node_type": "RandomNoise",
+          "input": "noise_seed"
+        },
+        {
+          "id": "14.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "14",
+          "node_type": "CFGGuider",
+          "input": "cfg"
+        },
+        {
+          "id": "18.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "video/ltx2-director-i2v",
+          "node_id": "18",
+          "node_type": "SaveVideo",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "1",
+            "node_type": "UnetLoaderGGUF",
+            "name": "ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "2",
+            "node_type": "CheckpointLoaderSimple",
+            "name": "ltx-2.3-22b-dev-fp8.safetensors",
+            "directory": "checkpoints",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors"
+          },
+          {
+            "node_id": "3",
+            "node_type": "LTXAVTextEncoderLoader",
+            "name": "gemma_3_12B_it_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "3",
+            "node_type": "LTXAVTextEncoderLoader",
+            "name": "ltx-2.3-22b-dev-fp8.safetensors",
+            "directory": "checkpoints",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors"
+          },
+          {
+            "node_id": "9",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "ltx23_bleachbypass-i2v-bl34chbyp4ss.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-gguf"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 20,
+        "recommended_vram_gb": 32,
+        "supports_low_vram": false,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/ltx2-director-i2v/manifest.yaml",
+      "manifest_path": "packs/video-animation/ltx2-director-i2v/manifest.yaml"
+    },
+    {
+      "id": "video.wan22-longvideo-6step-gguf-combo",
+      "name": "Wan 2.2 Long-Video 6-Step GGUF Combo (SVI, 4-Clip Chain)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan22",
+      "description": "Imported from a user-authored ComfyUI export (wan22I2vWorkflowForLONGVideos_v30.zip / i2v_WAN22_6step_3Samplers_GGUF_Combo_SVI_v2.json), preserved as-is: a \"Stable Video Infinity\" (SVI) long-video technique built on Wan 2.2 14B I2V, where up to 4 clips are generated in sequence, each one starting from the last frame of the previous clip (via ImageFromBatch + VAEEncode), then optionally upscaled (RealESRGAN-family model + downscale-by), interpolated (RIFE) up to a target frame rate, and finally concatenated (VHS_VideoCombine) into progressively longer combined videos. Each clip runs a 2- or 3-KSamplerAdvanced chain (toggled by a \"Use 2 Samplers?\" boolean and an rgthree Fast Groups Bypasser on the \"Step 2\" group) whose total step count is split across samplers by SimpleMath+ nodes, and the whole thing can switch between regular .safetensors UNETLoaders and quantized UnetLoaderGGUF/ CLIPLoaderGGUF nodes via a \"Use GGUF Models?\" boolean plus LazySwitchKJ routing - hence \"6-step GGUF Combo\" in the source filename. The non-GGUF fallback UNETLoaders pointed at a community \"Dasiwa\" merge (DasiwaWAN22I2V14BV8V1_midnightflirtHigh/LowV7.safetensors) that isn't installed here, but the workflow's own embedded \"Models to download!\" note says explicitly \"choose your favourite, this is what I've been using\" and lists wan2.2_i2v_high/low_noise_14B_fp8_scaled.safetensors as the documented base models - so these were repointed to this suite's installed copies of exactly those files rather than left missing. The installed CLIPLoader/VAELoader targets (umt5_xxl_fp8_e4m3fn_scaled.safetensors, wan_2.1_vae.safetensors) already matched the source graph exactly - no changes needed there either. Several models genuinely have no local equivalent and are left pointing at their original filenames with download urls (mostly lifted directly from the workflow's own embedded documentation note, which is unusually thorough): the two GGUF UNETs (DasiwaWAN22I2V14BTastysinV8_q8High/Low.gguf, a Civitai community GGUF quantization of the same Dasiwa merge - noted here, but a generic non-community alternative also exists at QuantStack/Wan2.2-I2V-A14B-GGUF on HuggingFace if the Civitai model is ever taken down), the GGUF CLIP loader's umt5-xxl-encoder-Q8_0.gguf (city96/umt5-xxl-encoder-gguf), the two \"SVI_v2_PRO_Wan2.2-I2V-A14B_HIGH/LOW_lora_rank_128_fp16.safetensors\" LoRAs that this long-video technique is actually named after and depends on for its per-clip continuity (Kijai/WanVideo_comfy, under LoRAs/Stable-Video-Infinity/v2.0/) - these are required for the SVI behavior itself, not optional - the \"remacri_original.pth\" upscale model used in the (bypassable) upscale stage of each clip, and the \"rife49.pth\" RIFE checkpoint used in the (also bypassable) interpolation stage. The lightning LoRA used in the optional \"Step 2\" pass of each clip (wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors) was already installed under that exact name - no change needed, though it ships disabled (on: false) in the source graph by default. Beyond core ComfyUI, this graph needs ComfyUI-GGUF (UnetLoaderGGUF/CLIPLoaderGGUF), ComfyUI-KJNodes (LazySwitchKJ, INTConstant/BOOLConstant, ImageResizeKJv2, ImageBatchMulti, ImageBatchExtendWithOverlap, WanImageToVideoSVIPro), rgthree-comfy (Power Lora Loader, Reroute, Bookmark, Fast Groups Bypasser), ComfyUI_essentials (SimpleMath+, BatchCount+), cg-use-everywhere (Anything Everywhere - used pervasively instead of direct links to broadcast the loaders/prompts/settings to all 4 clip groups), ComfyUI-Frame-Interpolation (RIFE VFI), ComfyUI-Image-Saver (Width/Height Literal), and ComfyUI-VideoHelperSuite (VHS_VideoCombine) - none of the first six were installed in this suite, so they were cloned from their well-known upstream GitHub repos, matching the approach used for the other imported packs in this batch.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "22.image",
+          "label": "Starting image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "22",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "1.text",
+          "label": "Prompt: Clip 1",
+          "type": "textarea",
+          "required": false,
+          "default": "A pretty girl with blonde hair is sitting in a busy cafe. She turns away and stares into the distance, she has a thoughtful expression.",
+          "node_id": "1",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "244.text",
+          "label": "Prompt: Clip 2",
+          "type": "textarea",
+          "required": false,
+          "default": "She turns to look down at the coffee cup, then gently picks it up with both hands.",
+          "node_id": "244",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "295.text",
+          "label": "Prompt: Clip 3",
+          "type": "textarea",
+          "required": false,
+          "default": "She closes her eyes and gently sips the coffee.",
+          "node_id": "295",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "345.text",
+          "label": "Prompt: Clip 4",
+          "type": "textarea",
+          "required": false,
+          "default": "She puts the coffee on the table and smiles at the camera.",
+          "node_id": "345",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "19.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "Overexposure, static, blurred details, subtitles, paintings, pictures, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, mutilated, redundant fingers, poorly painted hands, poorly painted faces, deformed, disfigured, deformed limbs, fused fingers, cluttered background, three legs, a lot of people in the background, upside down, slow mo, slow movement, slow motion, slow",
+          "node_id": "19",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "89.size",
+          "label": "Video width",
+          "type": "int",
+          "required": false,
+          "default": 480,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "89",
+          "node_type": "Width/Height Literal (Image Saver)",
+          "input": "size"
+        },
+        {
+          "id": "88.size",
+          "label": "Video height",
+          "type": "int",
+          "required": false,
+          "default": 688,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "88",
+          "node_type": "Width/Height Literal (Image Saver)",
+          "input": "size"
+        },
+        {
+          "id": "93.value",
+          "label": "Latent video length (frames per clip)",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "93",
+          "node_type": "INTConstant",
+          "input": "value"
+        },
+        {
+          "id": "101.value",
+          "label": "Total steps (must divide evenly by sampler count)",
+          "type": "int",
+          "required": false,
+          "default": 6,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "101",
+          "node_type": "INTConstant",
+          "input": "value"
+        },
+        {
+          "id": "92.value",
+          "label": "Interpolation multiplier",
+          "type": "int",
+          "required": false,
+          "default": 4,
+          "minimum": 1,
+          "maximum": 8,
+          "node_id": "92",
+          "node_type": "INTConstant",
+          "input": "value"
+        },
+        {
+          "id": "99.value",
+          "label": "Final video frame rate",
+          "type": "float",
+          "required": false,
+          "default": 60,
+          "minimum": 1,
+          "maximum": 120,
+          "node_id": "99",
+          "node_type": "PrimitiveFloat",
+          "input": "value"
+        },
+        {
+          "id": "20.value",
+          "label": "Seed: Clip 1",
+          "type": "int",
+          "required": false,
+          "default": 324537903588012,
+          "node_id": "20",
+          "node_type": "PrimitiveInt",
+          "input": "value"
+        },
+        {
+          "id": "420.value",
+          "label": "Seed: Clip 2",
+          "type": "int",
+          "required": false,
+          "default": 324537903588013,
+          "node_id": "420",
+          "node_type": "PrimitiveInt",
+          "input": "value"
+        },
+        {
+          "id": "422.value",
+          "label": "Seed: Clip 3",
+          "type": "int",
+          "required": false,
+          "default": 324537903588014,
+          "node_id": "422",
+          "node_type": "PrimitiveInt",
+          "input": "value"
+        },
+        {
+          "id": "424.value",
+          "label": "Seed: Clip 4",
+          "type": "int",
+          "required": false,
+          "default": 324537903588015,
+          "node_id": "424",
+          "node_type": "PrimitiveInt",
+          "input": "value"
+        },
+        {
+          "id": "79.value",
+          "label": "Use GGUF models?",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "node_id": "79",
+          "node_type": "BOOLConstant",
+          "input": "value"
+        },
+        {
+          "id": "103.value",
+          "label": "Use 2 samplers (instead of 3)?",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "node_id": "103",
+          "node_type": "BOOLConstant",
+          "input": "value"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output (per clip, plus progressively concatenated combined clips)"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "13",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "14",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "16",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "17",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "24",
+            "node_type": "Power Lora Loader (rgthree)",
+            "name": "SVI_v2_PRO_Wan2.2-I2V-A14B_HIGH_lora_rank_128_fp16.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Stable-Video-Infinity/v2.0/SVI_v2_PRO_Wan2.2-I2V-A14B_HIGH_lora_rank_128_fp16.safetensors"
+          },
+          {
+            "node_id": "26",
+            "node_type": "Power Lora Loader (rgthree)",
+            "name": "SVI_v2_PRO_Wan2.2-I2V-A14B_LOW_lora_rank_128_fp16.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Stable-Video-Infinity/v2.0/SVI_v2_PRO_Wan2.2-I2V-A14B_LOW_lora_rank_128_fp16.safetensors"
+          }
+        ],
+        "optional": [
+          {
+            "node_id": "73",
+            "node_type": "UnetLoaderGGUF",
+            "name": "DasiwaWAN22I2V14BTastysinV8_q8High.gguf",
+            "directory": "diffusion_models",
+            "url": "https://civitai.com/models/2190659?modelVersionId=2466604"
+          },
+          {
+            "node_id": "74",
+            "node_type": "UnetLoaderGGUF",
+            "name": "DasiwaWAN22I2V14BTastysinV8_q8Low.gguf",
+            "directory": "diffusion_models",
+            "url": "https://civitai.com/models/2190659?modelVersionId=2466822"
+          },
+          {
+            "node_id": "405",
+            "node_type": "CLIPLoaderGGUF",
+            "name": "umt5-xxl-encoder-Q8_0.gguf",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/city96/umt5-xxl-encoder-gguf/resolve/main/umt5-xxl-encoder-Q8_0.gguf"
+          },
+          {
+            "node_id": "257",
+            "node_type": "Power Lora Loader (rgthree)",
+            "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "356",
+            "node_type": "UpscaleModelLoader",
+            "name": "remacri_original.pth",
+            "directory": "upscale_models",
+            "url": "https://huggingface.co/Kim2091/Remacri/resolve/main/remacri_original.pth"
+          },
+          {
+            "node_id": "365",
+            "node_type": "RIFE VFI",
+            "name": "rife49.pth",
+            "directory": "frame_interpolation",
+            "url": "https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/rife49.pth"
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-gguf",
+          "comfyui-kjnodes",
+          "rgthree-comfy",
+          "comfyui_essentials",
+          "cg-use-everywhere",
+          "comfyui-frame-interpolation",
+          "comfyui-image-saver",
+          "comfyui-videohelpersuite"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 12,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan22-longvideo-6step-gguf-combo/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan22-longvideo-6step-gguf-combo/manifest.yaml"
+    },
+    {
+      "id": "video.wan21-jibmix-t2v",
+      "name": "JibMix Wan V3 SeeMe (Text-to-Video)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan21",
+      "description": "jibMixWan_v3SeeMe.safetensors was found loose in this suite's staging folder with no accompanying workflow, so it wasn't clear what kind of Wan checkpoint it was or how it should be wired up. Its safetensors header identifies it as a single 14B-scale Wan diffusion UNET (40 transformer blocks, 5120-dim, matching Wan 14B, not the 1.3B/30-block/1536-dim variant), stored fp8_e4m3fn (no scale_weight tensors, so it's a plain fp8 cast rather than ComfyUI's \"_scaled\" fp8 format) - its embedded metadata even includes the ComfyUI graph that produced it, a bare UNETLoader -> ModelSave pair that re-saved \"Jib_Mix_Wan_V3_A_00001_.safetensors\" as this file, consistent with \"JibMix\" being a merged/finetuned checkpoint (in the tradition of the SD/SDXL \"JibMix\" merge line) rather than an official Wan release. Critically, its patch_embedding.weight is [5120, 16, 1, 2, 2] (16 input channels) and it has no img/k_img/v_img cross-attention tensors and no vace_blocks - i.e. it's architecturally a plain T2V UNET, not the 36-channel I2V architecture (compare wan2.1_i2v_480p_14B_fp8_scaled.safetensors, which has a 36-channel patch embedding plus per-block k_img/v_img tensors) and not a VACE-patched checkpoint either (compare the wan2.1_vace_1.3B/14B checkpoints referenced by this suite's causvid packs). So despite living in the wan21ImageToVideo_v30.zip staging bundle, it is not a safe drop-in for an I2V (WanImageToVideo-with-start_image) or VACE (WanVaceToVideo) pipeline. It was moved to models/diffusion_models/jibMixWan_v3SeeMe.safetensors and given this minimal from-scratch text-to-video workflow instead: UNETLoader -> ModelSamplingSD3 -> KSampler, conditioned by two CLIPTextEncode nodes off the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors text encoder, with WanImageToVideo used purely as an empty-latent generator (its start_image input is left unconnected, which the node's own code path treats as plain text-to-video - it only builds the 36-channel image-conditioning concat when an image is supplied), decoded with the installed wan_2.1_vae.safetensors and packaged into an MP4 via the core CreateVideo/SaveVideo nodes. All models referenced here are already installed; no substitutions or missing dependencies. This pack uses only core ComfyUI nodes.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "5.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "a woman walking through a neon-lit city street at night, cinematic lighting, gentle camera pan",
+          "node_id": "5",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "6.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "overexposed, static, blurred details, subtitles, worst quality, low quality",
+          "node_id": "6",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "7.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 832,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "7",
+          "node_type": "WanImageToVideo",
+          "input": "width"
+        },
+        {
+          "id": "7.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 480,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "7",
+          "node_type": "WanImageToVideo",
+          "input": "height"
+        },
+        {
+          "id": "7.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "7",
+          "node_type": "WanImageToVideo",
+          "input": "length"
+        },
+        {
+          "id": "8.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 0,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "8.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "8.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 6.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "10.fps",
+          "label": "FPS",
+          "type": "int",
+          "required": false,
+          "default": 16,
+          "minimum": 1,
+          "maximum": 60,
+          "node_id": "10",
+          "node_type": "CreateVideo",
+          "input": "fps"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "3",
+            "node_type": "UNETLoader",
+            "name": "jibMixWan_v3SeeMe.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "1",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "2",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan21-jibmix-t2v/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan21-jibmix-t2v/manifest.yaml"
+    },
+    {
       "id": "video.extend",
       "name": "Extend Video",
       "version": "1.0.0",
@@ -3899,6 +4858,200 @@
       "manifest_path": "packs/video-animation/video-extend/manifest.yaml"
     },
     {
+      "id": "video.wan21-vace-causvid-14b",
+      "name": "Wan 2.1 VACE 14B + CausVid (Reference-to-Video)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan21",
+      "description": "Imported from a user-authored ComfyUI export (wan21ImageToVideo_v30.zip / wan-vace-causvid-tomgoodnoise/wan-vace-causvid-14b-tomgoodnoise.json), preserved as-is: the 14B variant of the official ComfyUI \"Wan Vace Reference to Video\" template workflow, higher quality than the 1.3B version and (per the workflow's own note) capable of 720p in addition to 480p. Same structure as this suite's video.wan21-vace-causvid-1.3b pack - a single reference image plus a text prompt through WanVaceToVideo, accelerated with Kijai's extracted 14B CausVid LoRA (2-4 step distillation instead of the default 20 steps/cfg 6.0), followed by RIFE frame interpolation from 16fps to 32fps. Per readme.txt in the source zip, this technique and workflow originate from Tom Goodnoise (tomgoodnoise.de). The UNETLoader points at wan2.1_vace_14B_fp16.safetensors and the LoraLoader at Wan21_CausVid_14B_T2V_lora_rank32.safetensors - neither is installed in this suite (this is a VACE-patched checkpoint, architecturally distinct from the plain T2V/I2V Wan 2.1 checkpoints already installed here, so there's no safe local substitute) - both are left pointing at their original filenames with download urls taken directly from the workflow's own embedded documentation notes. Note that jibMixWan_v3SeeMe.safetensors (also imported in this batch, see video.wan21-jibmix-t2v) was considered as a substitute here since it's also a 14B Wan checkpoint, but its tensor layout is a plain T2V UNET (16-channel patch embedding, no vace_blocks/vace patch-embed tensors) rather than a VACE-patched one, so it is not compatible with WanVaceToVideo and was not used in this pack. The CLIPLoader pointed at umt5_xxl_fp16.safetensors, which also isn't installed, but the workflow's own notes explicitly say fp16 or fp8 both work - repointed to the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors. The VAELoader (wan_2.1_vae.safetensors) was already installed under that exact name - no change needed. Beyond core ComfyUI, this graph needs ComfyUI-KJNodes (LoadAndResizeImage), ComfyUI-Frame-Interpolation (RIFE VFI), and ComfyUI-VideoHelperSuite (VHS_VideoCombine) - all already installed in this suite. The RIFE VFI node's own rife47.pth checkpoint isn't installed under models/frame_interpolation (the files installed there use a different naming/format, rife_v4.25.safetensors etc., from a different loader) - noted as an optional model with a download url; the base video generation does not depend on it, only the final 16fps-to-32fps smoothing pass.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "105.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "the cat grabs the beer and drinks it, camera s moving out, bubbles in the beerglass,",
+          "node_id": "105",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "107.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly",
+          "node_id": "107",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "164.image",
+          "label": "Reference image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "164",
+          "node_type": "LoadAndResizeImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "158.value",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 848,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "158",
+          "node_type": "PrimitiveNode",
+          "input": "value"
+        },
+        {
+          "id": "159.value",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 480,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "159",
+          "node_type": "PrimitiveNode",
+          "input": "value"
+        },
+        {
+          "id": "109.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "109",
+          "node_type": "WanVaceToVideo",
+          "input": "length"
+        },
+        {
+          "id": "108.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 1001261027954396,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "108.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 4,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "108.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "115.strength_model",
+          "label": "CausVid LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "node_id": "115",
+          "node_type": "LoraLoader",
+          "input": "strength_model"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "113",
+            "node_type": "UNETLoader",
+            "name": "wan2.1_vace_14B_fp16.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_vace_14B_fp16.safetensors"
+          },
+          {
+            "node_id": "127",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "114",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "115",
+            "node_type": "LoraLoader",
+            "name": "Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors"
+          }
+        ],
+        "optional": [
+          {
+            "node_id": "179",
+            "node_type": "RIFE VFI",
+            "name": "rife47.pth",
+            "directory": "frame_interpolation",
+            "url": "https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/rife47.pth"
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-kjnodes",
+          "comfyui-frame-interpolation",
+          "comfyui-videohelpersuite"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan21-vace-causvid-14b/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan21-vace-causvid-14b/manifest.yaml"
+    },
+    {
       "id": "video.mux",
       "name": "Combine Video & Audio",
       "version": "1.0.0",
@@ -4110,6 +5263,200 @@
       "manifest_path": "packs/video-animation/keyframe-video-fast/manifest.yaml"
     },
     {
+      "id": "video.wan21-vace-causvid-1.3b",
+      "name": "Wan 2.1 VACE 1.3B + CausVid (Reference-to-Video)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan21",
+      "description": "Imported from a user-authored ComfyUI export (wan21ImageToVideo_v30.zip / wan-vace-causvid-tomgoodnoise/wan-vace-1.3b-causvid-tomgoodnoise.json), preserved as-is: the official ComfyUI \"Wan Vace Reference to Video\" template workflow (1.3B variant), which turns a single reference image plus a text prompt into a short video via WanVaceToVideo, accelerated with Kijai's extracted CausVid LoRA (2-4 step distillation instead of the default 20 steps/cfg 6.0), followed by RIFE frame interpolation from 16fps to 32fps for smoother motion (per the workflow's own note, since 16fps visibly stutters). Per readme.txt in the source zip, this technique and workflow originate from Tom Goodnoise (tomgoodnoise.de). The UNETLoader points at wan2.1_vace_1.3B_fp16.safetensors and the LoraLoader at Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors - neither is installed in this suite (this is a VACE-patched checkpoint, architecturally distinct from the plain T2V/I2V Wan 2.1 checkpoints already installed here, so there's no safe local substitute) - both are left pointing at their original filenames with download urls taken directly from the workflow's own embedded documentation notes. The CLIPLoader pointed at umt5_xxl_fp16.safetensors, which also isn't installed, but the workflow's own notes explicitly say fp16 or fp8 both work (\"You can choose between fp16 of fp8\") - repointed to the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors. The VAELoader (wan_2.1_vae.safetensors) was already installed under that exact name - no change needed. Beyond core ComfyUI, this graph needs ComfyUI-KJNodes (LoadAndResizeImage), ComfyUI-Frame-Interpolation (RIFE VFI), and ComfyUI-VideoHelperSuite (VHS_VideoCombine) - all already installed in this suite. The RIFE VFI node's own rife47.pth checkpoint isn't installed under models/frame_interpolation (the files installed there use a different naming/format, rife_v4.25.safetensors etc., from a different loader) - noted as an optional model with a download url; the base video generation does not depend on it, only the final 16fps-to-32fps smoothing pass.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "105.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "the cat grabs the beer and drinks it, camera s moving out, bubbles in the beerglass,",
+          "node_id": "105",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "107.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly",
+          "node_id": "107",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "164.image",
+          "label": "Reference image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "164",
+          "node_type": "LoadAndResizeImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "158.value",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 848,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "158",
+          "node_type": "PrimitiveNode",
+          "input": "value"
+        },
+        {
+          "id": "159.value",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 480,
+          "minimum": 64,
+          "maximum": 1920,
+          "node_id": "159",
+          "node_type": "PrimitiveNode",
+          "input": "value"
+        },
+        {
+          "id": "109.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "109",
+          "node_type": "WanVaceToVideo",
+          "input": "length"
+        },
+        {
+          "id": "108.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 1001261027954396,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "108.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 4,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "108.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "108",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "115.strength_model",
+          "label": "CausVid LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "node_id": "115",
+          "node_type": "LoraLoader",
+          "input": "strength_model"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "113",
+            "node_type": "UNETLoader",
+            "name": "wan2.1_vace_1.3B_fp16.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_vace_1.3B_fp16.safetensors"
+          },
+          {
+            "node_id": "127",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "114",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "115",
+            "node_type": "LoraLoader",
+            "name": "Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors"
+          }
+        ],
+        "optional": [
+          {
+            "node_id": "179",
+            "node_type": "RIFE VFI",
+            "name": "rife47.pth",
+            "directory": "frame_interpolation",
+            "url": "https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/rife47.pth"
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-kjnodes",
+          "comfyui-frame-interpolation",
+          "comfyui-videohelpersuite"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan21-vace-causvid-1.3b/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan21-vace-causvid-1.3b/manifest.yaml"
+    },
+    {
       "id": "video.animation",
       "name": "Image Animation",
       "version": "2.0.0",
@@ -4302,6 +5649,851 @@
       "presets": [],
       "relative_path": "video-animation/animation/manifest.yaml",
       "manifest_path": "packs/video-animation/animation/manifest.yaml"
+    },
+    {
+      "id": "video.wan22-daxamur-flf2v",
+      "name": "Daxamur WAN 2.2 FLF2V (v12.1)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan22",
+      "description": "Imported from a user-authored ComfyUI export (daxamursWAN22WorkflowsV121FLF2VT2V_flf2vV121.zip / Daxamur_WAN22_FLF2V_12.1.json), preserved as-is: a first-last-frame-to-video Wan 2.2 14B pipeline with a two-pass \"motion\" + \"detail\" KSamplerAdvanced chain, NAG (Normalized Attention Guidance) and CFG Zero Star conditioning, SageAttention patching, optional RealESRGAN upscale and RIFE frame interpolation stages (each individually bypassable via rgthree Fast Groups Bypasser), all wired through rgthree Set/Get nodes instead of direct links. The two UNETLoaders pointed at Kijai's repackaged Wan2_2-I2V-A14B-HIGH/LOW_fp8_e4m3fn_scaled_KJ.safetensors, which aren't installed under those names in this suite - repointed to this suite's wan2.2_i2v_high/low_noise_14B_fp8_scaled.safetensors, which are the same underlying models. Both LoraLoaderModelOnly nodes referenced the same Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors for the high- and low-noise passes - repointed to the installed lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors, which is the same lightx2v cfg-step-distillation LoRA and preserves the source graph's one-file-for-both-passes design. Two models could not be resolved to an installed equivalent and are left pointing at their original filenames with a download url in this manifest: the CLIPVisionLoader's clip-vit-large-patch14.safetensors (OpenAI CLIP ViT-L/14 vision encoder feeding the FLF2V image conditioning - substituting the installed sigclip/dino_v3 vision encoders would silently break it, since they use different embedding dimensions) and the UpscaleModelLoader's RealESRGAN_x2plus.pth (the installed RealESRGAN_x4plus.safetensors is a 4x model, not the 2x model the graph's resolution-multiplier math is built around, so it isn't a safe drop-in - the optional upscale stage is bypassed by default via the Fast Groups Bypasser). Beyond core ComfyUI, this graph depends on ComfyUI-KJNodes (PathchSageAttentionKJ, CFGZeroStarAndInit, WanVideoNAG, SomethingToString), rgthree-comfy (Set/Get Node, Power Lora Loader, Fast Groups Bypasser), ComfyUI_essentials (ImageRemoveAlpha+), ComfyUI-Frame-Interpolation (RIFE VFI), ComfyUI-Easy-Use (easy int/easy seed/easy mathInt), and M1kep/ComfyLiterals (the plain Int/Float literal nodes used throughout for FPS/steps/CFG math) - none of which were installed, so they were cloned from their well-known upstream GitHub repos following the same deps-in-workflow resolution approach as the other imported packs. It also uses Daxamur/DaxNodes (the workflow author's own small utility pack, also cloned) for ResolutionPickerFLF2V. One remaining gap: a \"String to Float\" utility node (used only for internal FPS display-string math, not for anything model-related) has cnr_id \"cg-image-filter\" in the export, but that pack's current release registers the equivalent node as \"cg_String to Float\" rather than \"String to Float\" - an upstream rename since this workflow was authored. cg-image-filter is installed, but ComfyUI may still list this one node as missing until it's manually swapped for the pack's current \"cg_String to Float\" node.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "48.value",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "An anime-style girl with long auburn hair tied in a high ponytail, held with a red ribbon, wears a glossy red and black futuristic plugsuit marked with the number \"02.\" She stands in profile, focused intently on a red handheld device connected by a cable. Her blue eyes scan the screen as her gloved fingers tap and swipe. Light reflects off the smooth surfaces of her plugsuit, emphasizing its curves and mechanical details. Her hair shifts gently as if in a faint breeze, and the device screen glows softly, casting a faint light onto her face and gloves. The plain gray background keeps full attention on her and her focused posture.",
+          "node_id": "48",
+          "node_type": "PrimitiveStringMultiline",
+          "input": "value"
+        },
+        {
+          "id": "51.value",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "\u8272\u8c03\u8273\u4e3d\uff0c\u8fc7\u66dd\uff0c\u9759\u6001\uff0c\u7ec6\u8282\u6a21\u7cca\u4e0d\u6e05\uff0c\u5b57\u5e55\uff0c\u98ce\u683c\uff0c\u4f5c\u54c1\uff0c\u753b\u4f5c\uff0c\u753b\u9762\uff0c\u9759\u6b62\uff0c\u6574\u4f53\u53d1\u7070\uff0c\u6700\u5dee\u8d28\u91cf\uff0c\u4f4e\u8d28\u91cf\uff0cJPEG\u538b\u7f29\u6b8b\u7559\uff0c\u4e11\u964b\u7684\uff0c\u6b8b\u7f3a\u7684\uff0c\u591a\u4f59\u7684\u624b\u6307\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u624b\u90e8\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u8138\u90e8\uff0c\u7578\u5f62\u7684\uff0c\u6bc1\u5bb9\u7684\uff0c\u5f62\u6001\u7578\u5f62\u7684\u80a2\u4f53\uff0c\u624b\u6307\u878d\u5408\uff0c\u9759\u6b62\u4e0d\u52a8\u7684\u753b\u9762\uff0c\u6742\u4e71\u7684\u80cc\u666f\uff0c\u4e09\u6761\u817f\uff0c\u80cc\u666f\u4eba\u5f88\u591a\uff0c\u5012\u7740\u8d70,",
+          "node_id": "51",
+          "node_type": "PrimitiveStringMultiline",
+          "input": "value"
+        },
+        {
+          "id": "189.image",
+          "label": "First frame image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "189",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "295.image",
+          "label": "Last frame image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "295",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "246.value",
+          "label": "Video length (seconds)",
+          "type": "int",
+          "required": false,
+          "default": 5,
+          "minimum": 1,
+          "maximum": 30,
+          "node_id": "246",
+          "node_type": "easy int",
+          "input": "value"
+        },
+        {
+          "id": "244.Number",
+          "label": "FPS",
+          "type": "int",
+          "required": false,
+          "default": 16,
+          "minimum": 1,
+          "maximum": 60,
+          "node_id": "244",
+          "node_type": "Int",
+          "input": "Number"
+        },
+        {
+          "id": "252.Number",
+          "label": "Steps (per sampler, high/low)",
+          "type": "int",
+          "required": false,
+          "default": 8,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "252",
+          "node_type": "Int",
+          "input": "Number"
+        },
+        {
+          "id": "242.Number",
+          "label": "Motion pass steps",
+          "type": "int",
+          "required": false,
+          "default": 2,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "242",
+          "node_type": "Int",
+          "input": "Number"
+        },
+        {
+          "id": "248.Number",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "248",
+          "node_type": "Float",
+          "input": "Number"
+        },
+        {
+          "id": "250.Number",
+          "label": "Motion CFG",
+          "type": "float",
+          "required": false,
+          "default": 3,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "250",
+          "node_type": "Float",
+          "input": "Number"
+        },
+        {
+          "id": "251.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 141277555614252,
+          "node_id": "251",
+          "node_type": "easy seed",
+          "input": "seed"
+        },
+        {
+          "id": "219.strength_model",
+          "label": "High-noise lightx2v LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 1,
+          "minimum": -2,
+          "maximum": 3,
+          "node_id": "219",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "217.strength_model",
+          "label": "Low-noise lightx2v LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 1,
+          "minimum": -2,
+          "maximum": 3,
+          "node_id": "217",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "2",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "3",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "27",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "29",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "219",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "217",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": [
+          {
+            "node_id": "194",
+            "node_type": "CLIPVisionLoader",
+            "name": "clip-vit-large-patch14.safetensors",
+            "directory": "clip_vision",
+            "url": "https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/model.safetensors"
+          },
+          {
+            "node_id": "165",
+            "node_type": "UpscaleModelLoader",
+            "name": "RealESRGAN_x2plus.pth",
+            "directory": "upscale_models",
+            "url": "https://huggingface.co/ai-forever/Real-ESRGAN/resolve/main/RealESRGAN_x2.pth"
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-kjnodes",
+          "rgthree-comfy",
+          "comfyui_essentials",
+          "comfyui-frame-interpolation",
+          "comfyui-easy-use",
+          "comfyliterals",
+          "daxnodes"
+        ],
+        "optional": [
+          "cg-image-filter"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan22-daxamur-flf2v/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan22-daxamur-flf2v/manifest.yaml"
+    },
+    {
+      "id": "video.wan22-fastest-i2v-8step",
+      "name": "Wan 2.2 Fastest I2V (8-step, SageAttention)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan22",
+      "description": "Imported from a user-authored ComfyUI export (workflow-wan228150kj-...-openart.ai.json). Dual-expert Wan 2.2 14B image-to-video pipeline tuned for speed via SageAttention patching and VRAM purging between passes. The two 4-step Lightning distillation LoRAs it referenced (Wan2.2-Lightning_T2V-A14B-4steps-lora_HIGH/LOW_fp16) aren't installed in this suite - repointed to the installed wan2.2_i2v_lightx2v_4steps_lora_v1 high/low-noise pair instead, which serves the same step-distillation role for image-to-video. Requires the VideoHelperSuite, KJNodes, and ComfyUI LayerStyle custom node packs (for VHS_VideoCombine, PathchSageAttentionKJ, and LayerUtility: PurgeVRAM respectively) in addition to core ComfyUI.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "70.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "A girl crouched down and picked up a coin from the ground",
+          "node_id": "70",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "51.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "overexposed, static, blurred details, subtitles, worst quality, low quality",
+          "node_id": "51",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "54.image",
+          "label": "Input image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "54",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "74.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 704,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "74",
+          "node_type": "WanImageToVideo",
+          "input": "width"
+        },
+        {
+          "id": "74.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 544,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "74",
+          "node_type": "WanImageToVideo",
+          "input": "height"
+        },
+        {
+          "id": "74.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "74",
+          "node_type": "WanImageToVideo",
+          "input": "length"
+        },
+        {
+          "id": "71.noise_seed",
+          "label": "Seed (high-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 0,
+          "node_id": "71",
+          "node_type": "KSamplerAdvanced",
+          "input": "noise_seed"
+        },
+        {
+          "id": "72.noise_seed",
+          "label": "Seed (low-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 0,
+          "node_id": "72",
+          "node_type": "KSamplerAdvanced",
+          "input": "noise_seed"
+        },
+        {
+          "id": "73.strength_model",
+          "label": "High-noise LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 2.0,
+          "minimum": -2,
+          "maximum": 3,
+          "node_id": "73",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "75.strength_model",
+          "label": "Low-noise LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 2.0,
+          "minimum": -2,
+          "maximum": 3,
+          "node_id": "75",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "58",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "66",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "60",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "52",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "73",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "75",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-videohelpersuite",
+          "comfyui-kjnodes",
+          "comfyui_layerstyle"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan22-fastest-i2v-8step/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan22-fastest-i2v-8step/manifest.yaml"
+    },
+    {
+      "id": "video.bernini-multimodal-video",
+      "name": "Bernini Multimodal Video (Edit + Identity)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan22",
+      "description": "Imported from a user-authored ComfyUI export (Bernini Multimodal Video Generation in ComfyUI Video Edit + Identity.json). Reference-image-driven video editing/identity-transfer pipeline on the Wan 2.2 Bernini finetune. The source graph pointed at Bernini_HIGH/LOW_fp8_e4m3fn_scaled.safetensors and wan_2.1_vae_Comfy-Org.safetensors, which weren't installed under those exact names - repointed to this suite's wan2.2_bernini_r_high/low_noise_fp8_scaled.safetensors and wan_2.1_vae.safetensors, which are the same models. Its two 4-step Lightning T2V LoRAs weren't installed either and have been repointed to the installed wan2.2_i2v_lightx2v_4steps_lora_v1 high/low pair as a same-role substitute. Beyond core ComfyUI, this graph needs ComfyUI-VideoHelperSuite (VHS_LoadVideo/VHS_VideoCombine), ComfyUI-RH-Bernini (BerniniConditioning/BerniniPromptEnhancer), RES4LYF (the SamplerCustom/ BasicScheduler sampling chain), ComfyUI-KJNodes, ComfyUI_Swwan, and ComfyUI-Jjk-Nodes (JjkText) - all resolved via ComfyUI-Manager's deps-in-workflow against this file and installed. The BerniniPromptEnhancer branch needs a local vision-chat GGUF via ComfyUI-llama-cpp_vlm (lihaoyun6/ComfyUI-llama-cpp_vlm, installed) - its exact node schema (llama_cpp_model_loader, llama_cpp_parameters, llama_cpp_instruct_adv) had drifted from what the export was authored against, so those three nodes' input bindings were rebuilt to match the installed version. That node package requires the JamePeng/llama-cpp-python fork (built from source here for Qwen3-VL chat-handler support; the PyPI release doesn't have it) and reads models from ComfyUI/models/LLM. The workflow originally pointed at Qwen3.5-27B-heretic.Q4_K_M.gguf, Built as a CPU backend (no ROCm/Vulkan wheel exists for this fork), so expect the auto-caption step to be slow and to need ~20GB+ system RAM to load the 27B GGUF; the core video pipeline (prompt, image, sampling) still does not depend on it.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "3.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "Replace the person in the video using the reference image",
+          "node_id": "3",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "4.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "bad video",
+          "node_id": "4",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "31.image",
+          "label": "Input image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "31",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "34.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 720,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "34",
+          "node_type": "BerniniConditioning",
+          "input": "width"
+        },
+        {
+          "id": "34.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1280,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "34",
+          "node_type": "BerniniConditioning",
+          "input": "height"
+        },
+        {
+          "id": "34.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "34",
+          "node_type": "BerniniConditioning",
+          "input": "length"
+        },
+        {
+          "id": "18.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 6,
+          "minimum": 1,
+          "maximum": 50,
+          "node_id": "18",
+          "node_type": "BasicScheduler",
+          "input": "steps"
+        },
+        {
+          "id": "19.noise_seed",
+          "label": "Seed (high-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 1015816449789172,
+          "node_id": "19",
+          "node_type": "SamplerCustom",
+          "input": "noise_seed"
+        },
+        {
+          "id": "15.noise_seed",
+          "label": "Seed (low-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 413532359003415,
+          "node_id": "15",
+          "node_type": "SamplerCustom",
+          "input": "noise_seed"
+        },
+        {
+          "id": "11.strength_model",
+          "label": "High-noise LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 3,
+          "minimum": -2,
+          "maximum": 4,
+          "node_id": "11",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "29.strength_model",
+          "label": "Low-noise LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 1.5,
+          "minimum": -2,
+          "maximum": 4,
+          "node_id": "29",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "5",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "12",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "9",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "7",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "11",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "29",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+            "directory": "loras"
+          },
+          {
+            "node_id": "93",
+            "node_type": "llama_cpp_model_loader",
+            "name": "Qwen3.5-27B-heretic.Q4_K_M.gguf",
+            "directory": "LLM"
+          },
+          {
+            "node_id": "93",
+            "node_type": "llama_cpp_model_loader",
+            "name": "Qwen3.5-27B-heretic.mmproj-f16.gguf",
+            "directory": "LLM"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-videohelpersuite",
+          "comfyui-rh-bernini",
+          "res4lyf",
+          "comfyui-kjnodes",
+          "comfyui_swwan",
+          "comfyui-jjk-nodes",
+          "comfyui-llama-cpp_vlm"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/bernini-multimodal-video/manifest.yaml",
+      "manifest_path": "packs/video-animation/bernini-multimodal-video/manifest.yaml"
+    },
+    {
+      "id": "video.wan22-multi-lora-i2v",
+      "name": "Wan 2.2 Multiple LoRAs Template (I2V)",
+      "version": "1.0.0",
+      "category": "video-animation",
+      "subcategory": "wan22",
+      "description": "Imported from a user-authored ComfyUI export (Wan 2.2 Multiple Loras Template.json). Dual-expert (high-noise/low-noise) Wan 2.2 14B image-to-video pipeline with no LoRAs wired in by default (both LoraLoaderModelOnly slots are empty in the source graph) - swap in any installed Wan LoRA. Every referenced model (UNETLoader high/low noise experts, umt5_xxl text encoder, Wan 2.1 VAE) was already installed in this suite - no substitutions were needed.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "93.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "positive prompt here",
+          "node_id": "93",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "89.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "overexposed, static, blurred details, subtitles, worst quality, low quality",
+          "node_id": "89",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "97.image",
+          "label": "Input image",
+          "type": "image",
+          "required": false,
+          "default": "",
+          "node_id": "97",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "98.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 640,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "98",
+          "node_type": "WanImageToVideo",
+          "input": "width"
+        },
+        {
+          "id": "98.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 640,
+          "minimum": 256,
+          "maximum": 1920,
+          "node_id": "98",
+          "node_type": "WanImageToVideo",
+          "input": "height"
+        },
+        {
+          "id": "98.length",
+          "label": "Frames",
+          "type": "int",
+          "required": false,
+          "default": 81,
+          "minimum": 9,
+          "maximum": 200,
+          "node_id": "98",
+          "node_type": "WanImageToVideo",
+          "input": "length"
+        },
+        {
+          "id": "94.fps",
+          "label": "FPS",
+          "type": "int",
+          "required": false,
+          "default": 16,
+          "minimum": 1,
+          "maximum": 60,
+          "node_id": "94",
+          "node_type": "CreateVideo",
+          "input": "fps"
+        },
+        {
+          "id": "86.noise_seed",
+          "label": "Seed (high-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 829822661410591,
+          "node_id": "86",
+          "node_type": "KSamplerAdvanced",
+          "input": "noise_seed"
+        },
+        {
+          "id": "85.noise_seed",
+          "label": "Seed (low-noise expert)",
+          "type": "int",
+          "required": false,
+          "default": 0,
+          "node_id": "85",
+          "node_type": "KSamplerAdvanced",
+          "input": "noise_seed"
+        },
+        {
+          "id": "108.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "video/ComfyUI",
+          "node_id": "108",
+          "node_type": "SaveVideo",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "video",
+          "type": "video",
+          "description": "Generated video output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "95",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "96",
+            "node_type": "UNETLoader",
+            "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "84",
+            "node_type": "CLIPLoader",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "90",
+            "node_type": "VAELoader",
+            "name": "wan_2.1_vae.safetensors",
+            "directory": "vae"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "video-animation/wan22-multi-lora-i2v/manifest.yaml",
+      "manifest_path": "packs/video-animation/wan22-multi-lora-i2v/manifest.yaml"
     },
     {
       "id": "video.keyframe-video",
@@ -5910,6 +8102,189 @@
       "manifest_path": "packs/core-generation/text-to-image-low-vram/manifest.yaml"
     },
     {
+      "id": "core.hidream-i1-dev-gguf",
+      "name": "HiDream-I1 Dev (GGUF)",
+      "version": "1.0.0",
+      "category": "core-generation",
+      "subcategory": "hidream",
+      "description": "Built from the Q8 GGUF-quantized HiDream-I1 Dev diffusion transformer (hiDreamI1Dev_devQ8174GB.gguf), following node-for-node the official \"HiDream-I1\" ComfyUI native template bundled with this install (comfyui_workflow_templates_json/templates/hidream_i1_dev.json) - UnetLoaderGGUF in place of that template's plain UNETLoader, QuadrupleCLIPLoader, ModelSamplingSD3 (shift 6.0, the documented Dev value - Full and Fast use 3.0), EmptySD3LatentImage, KSampler (lcm/normal, 28 steps, cfg 1 per the template's own \"official sampling settings\" note for Dev), VAEDecode, SaveImage. HiDream-I1 shares Flux's VAE/latent format (comfy/supported_models.py: latent_format = latent_formats.Flux) - the installed ae.safetensors is an exact match, no substitution needed. Of QuadrupleCLIPLoader's 4 text encoder slots: t5xxl is covered by the installed t5xxl_fp16.safetensors (a precision/format variant of the same T5-XXL model the template's t5xxl_fp8_e4m3fn_scaled.safetensors calls for - same role, safe substitute); clip_l is pointed at the installed generic clip_l.safetensors as a best-effort stand-in, but this is NOT confirmed identical to the template's clip_l_hidream.safetensors (HiDream reportedly uses a long-context-tuned CLIP-L/G pair) so prompt fidelity may suffer; clip_g_hidream.safetensors and llama_3.1_8b_instruct_fp8_scaled.safetensors are not installed under any name in this suite - the installed llava_llama3_fp8_scaled.safetensors is a vision-tuned LLaVA fork of Llama-3, not the plain instruction-tuned text encoder HiDream expects, so it was deliberately NOT substituted in (risk of shape/tokenizer mismatch or silently wrong conditioning) - both missing files are flagged below with their real download URLs (taken directly from the bundled template's own model-links note, Comfy-Org/ HiDream-I1_ComfyUI on Hugging Face). Needs the city96/ComfyUI-GGUF custom node for UnetLoaderGGUF (already installed in this suite). Marked experimental until the two missing text encoders are in place - the graph will load but CLIP encoding will fail without them.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "4.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "A photograph of an albino woman with white skin and dark hair wearing black in the style of old baroque oil paintings, with soft focus, wearing a pearl necklace, dark background, rosy cheeks",
+          "node_id": "4",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "5.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "bad ugly jpeg artifacts",
+          "node_id": "5",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "6.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "6",
+          "node_type": "EmptySD3LatentImage",
+          "input": "width"
+        },
+        {
+          "id": "6.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "6",
+          "node_type": "EmptySD3LatentImage",
+          "input": "height"
+        },
+        {
+          "id": "2.shift",
+          "label": "Sampling shift",
+          "type": "float",
+          "required": false,
+          "default": 6.0,
+          "minimum": 0,
+          "maximum": 12,
+          "node_id": "2",
+          "node_type": "ModelSamplingSD3",
+          "input": "shift"
+        },
+        {
+          "id": "8.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "8.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 28,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "8.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "8",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "10.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "hidream-i1-dev",
+          "node_id": "10",
+          "node_type": "SaveImage",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "1",
+            "node_type": "UnetLoaderGGUF",
+            "name": "hiDreamI1Dev_devQ8174GB.gguf",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "3",
+            "node_type": "QuadrupleCLIPLoader",
+            "name": "clip_l.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "3",
+            "node_type": "QuadrupleCLIPLoader",
+            "name": "clip_g_hidream.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors"
+          },
+          {
+            "node_id": "3",
+            "node_type": "QuadrupleCLIPLoader",
+            "name": "t5xxl_fp16.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "3",
+            "node_type": "QuadrupleCLIPLoader",
+            "name": "llama_3.1_8b_instruct_fp8_scaled.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors"
+          },
+          {
+            "node_id": "7",
+            "node_type": "VAELoader",
+            "name": "ae.safetensors",
+            "directory": "vae"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "comfyui-gguf"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "core-generation/hidream-i1-dev-gguf/manifest.yaml",
+      "manifest_path": "packs/core-generation/hidream-i1-dev-gguf/manifest.yaml"
+    },
+    {
       "id": "horror.zombie-progression",
       "name": "Zombie Infection Progression",
       "version": "1.0.0",
@@ -7095,7 +9470,7 @@
           "label": "Duration",
           "type": "float",
           "required": false,
-          "default": 120.0,
+          "default": 180.0,
           "legacy_kind": "number",
           "node_id": "98",
           "node_type": "EmptyAceStep1.5LatentAudio",
@@ -7107,7 +9482,7 @@
           "label": "Duration (conditioning)",
           "type": "float",
           "required": false,
-          "default": 120.0,
+          "default": 180.0,
           "legacy_kind": "number",
           "node_id": "60",
           "node_type": "TextEncodeAceStepAudio1.5",
@@ -7129,10 +9504,36 @@
         {
           "id": "key",
           "label": "Key",
-          "type": "text",
+          "type": "select",
           "required": false,
           "default": "E minor",
-          "legacy_kind": "text",
+          "options": [
+            "C major",
+            "C minor",
+            "C# major",
+            "C# minor",
+            "D major",
+            "D minor",
+            "D# major",
+            "D# minor",
+            "E major",
+            "E minor",
+            "F major",
+            "F minor",
+            "F# major",
+            "F# minor",
+            "G major",
+            "G minor",
+            "G# major",
+            "G# minor",
+            "A major",
+            "A minor",
+            "A# major",
+            "A# minor",
+            "B major",
+            "B minor"
+          ],
+          "legacy_kind": "select",
           "node_id": "60",
           "node_type": "TextEncodeAceStepAudio1.5",
           "input": "keyscale",
@@ -8472,6 +10873,151 @@
       "manifest_path": "packs/image-editing/background-removal/manifest.yaml"
     },
     {
+      "id": "editing.cocoamix-qwen-image-edit",
+      "name": "Cocoamix (Qwen-Image-Edit LoRA)",
+      "version": "1.0.0",
+      "category": "image-editing",
+      "subcategory": "qwen-image-edit",
+      "description": "Pairs the cocoamixQIedit.safetensors LoRA with the Qwen-Image-Edit base already installed in this suite (qwen_image_edit_fp8_e4m3fn.safetensors, qwen_2.5_vl_7b_fp8_scaled.safetensors, qwen_image_vae.safetensors - all present under those exact names, no substitutions needed). Built as a clean, minimal graph rather than reusing the legacy studio-migrated qwen-edit pack's flattened subgraph-derived node IDs: LoadImage -> ImageScaleToTotalPixels -> VAEEncode (for the sampler's starting latent) and, in parallel, into TextEncodeQwenImageEdit as the edit-reference image (Qwen-Image-Edit conditions on a reference latent attached to the positive conditioning rather than doing classic partial-denoise img2img, hence full denoise=1 from a real, image-derived latent) -> UNETLoader -> LoraLoaderModelOnly (cocoamix) -> ModelSamplingAuraFlow -> CFGNorm -> KSampler -> VAEDecode -> SaveImage. The ModelSamplingAuraFlow shift (3.0), CFGNorm inclusion, and 20-step/cfg-2.5 sampling settings are taken from ComfyUI's own bundled Qwen-Image-Edit reference template (comfyui_workflow_templates_json/templates/image_qwen_image_edit.json) rather than guessed, using its \"comfy\" (non-lightning-LoRA) settings row since we're loading the cocoamix style LoRA in that slot instead of a speed-distillation LoRA.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "1.image",
+          "label": "Input image",
+          "type": "file",
+          "required": true,
+          "default": "example.png",
+          "node_id": "1",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "7.prompt",
+          "label": "Edit instruction",
+          "type": "textarea",
+          "required": false,
+          "default": "Change the outfit to a red dress",
+          "node_id": "7",
+          "node_type": "TextEncodeQwenImageEdit",
+          "input": "prompt"
+        },
+        {
+          "id": "5.strength_model",
+          "label": "Cocoamix LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "minimum": -2,
+          "maximum": 2,
+          "node_id": "5",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "10.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "10",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "10.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "10",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "10.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 2.5,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "10",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "12.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "cocoamix-qwen-edit",
+          "node_id": "12",
+          "node_type": "SaveImage",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "2",
+            "node_type": "UNETLoader",
+            "name": "qwen_image_edit_fp8_e4m3fn.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "3",
+            "node_type": "CLIPLoader",
+            "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "node_id": "4",
+            "node_type": "VAELoader",
+            "name": "qwen_image_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "5",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "cocoamixQIedit.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-editing/cocoamix-qwen-image-edit/manifest.yaml",
+      "manifest_path": "packs/image-editing/cocoamix-qwen-image-edit/manifest.yaml"
+    },
+    {
       "id": "editing.face-repair",
       "name": "Face Repair",
       "version": "2.0.0",
@@ -9214,6 +11760,161 @@
       "presets": [],
       "relative_path": "image-editing/object-removal/manifest.yaml",
       "manifest_path": "packs/image-editing/object-removal/manifest.yaml"
+    },
+    {
+      "id": "editing.anima-inpaint-v1-beta",
+      "name": "Anima Inpaint (v1 Beta, PotatCats)",
+      "version": "1.0.0",
+      "category": "image-editing",
+      "subcategory": "anima",
+      "description": "Imported from a user-authored ComfyUI export (comfyuiInpaintWorkflow_animaV1Beta/PotatCats-inpaint_ workflow-ANIMA-V1Beta-rel.json), preserved as-is: mask-based segment inpainting over the Anima architecture, with automatic segment cropping, growth/blur, and color-matched compositing back onto the source image. The original UNETLoader pointed at anima-base-v1.0.safetensors, which was never installed in this suite \u2014 repointed to the Anima Aesthetic v1.1 checkpoint used as the default Anima base elsewhere in this suite. Beyond core ComfyUI, rgthree-comfy, and Impact-Pack, this graph depends on ComfyUI-KJNodes (ColorMatchV2), ComfyI2I (Inpaint Segments, GrowMaskWithBlur), Comfyroll CustomNodes (CR Color Panel), masquerade-nodes-comfyui (Cut By Mask, Combine and Paste), and ComfyUI-Cosmos-Reference (ApplyCosmosReferenceLatent) \u2014 all resolved via ComfyUI-Manager's deps-in-workflow against this file and installed.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "36.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "Positive prompt",
+          "node_id": "36",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "37.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "jpeg artifacts, lowres, worst quality, low quality, bad hands",
+          "node_id": "37",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "18.image",
+          "label": "Input image",
+          "type": "file",
+          "required": true,
+          "default": "example.png",
+          "node_id": "18",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp",
+          "alpha_mask": true
+        },
+        {
+          "id": "111.seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 33,
+          "node_id": "111",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "111.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "111",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "111.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 5,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "111",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "111.denoise",
+          "label": "Denoise",
+          "type": "float",
+          "required": false,
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "node_id": "111",
+          "node_type": "KSampler",
+          "input": "denoise"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "118",
+            "node_type": "UNETLoader",
+            "name": "anima_aestheticV11.safetensors",
+            "directory": "diffusion_models"
+          },
+          {
+            "node_id": "119",
+            "node_type": "CLIPLoader",
+            "name": "qwen_3_06b_base.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors"
+          },
+          {
+            "node_id": "120",
+            "node_type": "VAELoader",
+            "name": "qwen_image_vae.safetensors",
+            "directory": "vae"
+          },
+          {
+            "node_id": "171",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "anima/AnimaNo/AnimeEditV2.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "rgthree-comfy",
+          "comfyui-impact-pack",
+          "comfyui-kjnodes",
+          "comfyi2i",
+          "comfyui_comfyroll_customnodes",
+          "masquerade-nodes-comfyui",
+          "comfyui-cosmos-reference",
+          "was-node-suite-comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 12,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-editing/anima-inpaint-v1-beta/manifest.yaml",
+      "manifest_path": "packs/image-editing/anima-inpaint-v1-beta/manifest.yaml"
     }
   ]
 }

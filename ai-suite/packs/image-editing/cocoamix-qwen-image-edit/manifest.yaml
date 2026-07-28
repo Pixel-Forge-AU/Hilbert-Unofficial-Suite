@@ -1,0 +1,120 @@
+id: editing.cocoamix-qwen-image-edit
+name: Cocoamix (Qwen-Image-Edit LoRA)
+version: 1.0.0
+category: image-editing
+subcategory: qwen-image-edit
+description: >
+  Pairs the cocoamixQIedit.safetensors LoRA with the Qwen-Image-Edit base already installed in this
+  suite (qwen_image_edit_fp8_e4m3fn.safetensors, qwen_2.5_vl_7b_fp8_scaled.safetensors,
+  qwen_image_vae.safetensors - all present under those exact names, no substitutions needed). Built as a
+  clean, minimal graph rather than reusing the legacy studio-migrated qwen-edit pack's flattened
+  subgraph-derived node IDs: LoadImage -> ImageScaleToTotalPixels -> VAEEncode (for the sampler's starting
+  latent) and, in parallel, into TextEncodeQwenImageEdit as the edit-reference image (Qwen-Image-Edit
+  conditions on a reference latent attached to the positive conditioning rather than doing classic
+  partial-denoise img2img, hence full denoise=1 from a real, image-derived latent) -> UNETLoader ->
+  LoraLoaderModelOnly (cocoamix) -> ModelSamplingAuraFlow -> CFGNorm -> KSampler -> VAEDecode ->
+  SaveImage. The ModelSamplingAuraFlow shift (3.0), CFGNorm inclusion, and 20-step/cfg-2.5 sampling
+  settings are taken from ComfyUI's own bundled Qwen-Image-Edit reference template
+  (comfyui_workflow_templates_json/templates/image_qwen_image_edit.json) rather than guessed, using its
+  "comfy" (non-lightning-LoRA) settings row since we're loading the cocoamix style LoRA in that slot
+  instead of a speed-distillation LoRA.
+status: experimental
+media_type: image
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 1.image
+    label: Input image
+    type: file
+    required: true
+    default: example.png
+    node_id: '1'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 7.prompt
+    label: Edit instruction
+    type: textarea
+    required: false
+    default: Change the outfit to a red dress
+    node_id: '7'
+    node_type: TextEncodeQwenImageEdit
+    input: prompt
+  - id: 5.strength_model
+    label: Cocoamix LoRA strength
+    type: float
+    required: false
+    default: 1.0
+    minimum: -2
+    maximum: 2
+    node_id: '5'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 10.seed
+    label: Seed
+    type: int
+    required: false
+    default: 42
+    node_id: '10'
+    node_type: KSampler
+    input: seed
+  - id: 10.steps
+    label: Steps
+    type: int
+    required: false
+    default: 20
+    minimum: 1
+    maximum: 100
+    node_id: '10'
+    node_type: KSampler
+    input: steps
+  - id: 10.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 2.5
+    minimum: 0
+    maximum: 20
+    node_id: '10'
+    node_type: KSampler
+    input: cfg
+  - id: 12.filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: cocoamix-qwen-edit
+    node_id: '12'
+    node_type: SaveImage
+    input: filename_prefix
+outputs:
+  - id: image
+    type: image
+    description: Generated image output
+models:
+  required:
+  - node_id: '2'
+    node_type: UNETLoader
+    name: qwen_image_edit_fp8_e4m3fn.safetensors
+    directory: diffusion_models
+  - node_id: '3'
+    node_type: CLIPLoader
+    name: qwen_2.5_vl_7b_fp8_scaled.safetensors
+    directory: text_encoders
+  - node_id: '4'
+    node_type: VAELoader
+    name: qwen_image_vae.safetensors
+    directory: vae
+  - node_id: '5'
+    node_type: LoraLoaderModelOnly
+    name: cocoamixQIedit.safetensors
+    directory: loras
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

@@ -41,7 +41,7 @@ inputs:
     label: Duration
     type: float
     required: false
-    default: 120.0
+    default: 180.0
     legacy_kind: number
     node_id: "98"
     node_type: EmptyAceStep1.5LatentAudio
@@ -52,7 +52,7 @@ inputs:
     label: Duration (conditioning)
     type: float
     required: false
-    default: 120.0
+    default: 180.0
     legacy_kind: number
     node_id: "60"
     node_type: TextEncodeAceStepAudio1.5
@@ -75,10 +75,35 @@ inputs:
 
   - id: key
     label: Key
-    type: text
+    type: select
     required: false
     default: "E minor"
-    legacy_kind: text
+    options:
+      - C major
+      - C minor
+      - C# major
+      - C# minor
+      - D major
+      - D minor
+      - D# major
+      - D# minor
+      - E major
+      - E minor
+      - F major
+      - F minor
+      - F# major
+      - F# minor
+      - G major
+      - G minor
+      - G# major
+      - G# minor
+      - A major
+      - A minor
+      - A# major
+      - A# minor
+      - B major
+      - B minor
+    legacy_kind: select
     node_id: "60"
     node_type: TextEncodeAceStepAudio1.5
     input: keyscale

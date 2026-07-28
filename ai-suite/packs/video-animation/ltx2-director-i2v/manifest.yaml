@@ -1,0 +1,193 @@
+id: video.ltx2-director-i2v
+name: LTX-2.3 Director (GGUF Image-to-Video)
+version: 1.0.0
+category: video-animation
+subcategory: ltx2
+description: >
+  Hand-built from the Q8 GGUF-quantized LTX-2.3 22B diffusion model (ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf,
+  from the "All You Need Is..." pack) plus the node graph in ComfyUI's own official "Image to Video
+  (LTX-2.3)" blueprint (repos/ComfyUI/blueprints/), rather than importing the "LTX2.3 All-In-One SFW/NSFW
+  LTX Director" zip verbatim. That zip contains three exports - LTX23Legacy.json (a pre-Director,
+  manual-timeline-segment editor), LTX23LTXDirector2.json (its own Quick-Start note calls this "a hot-fix
+  to make the new version of the LTX Director work with this workflow, so not all the new features are
+  available or tested"), and LTX23LTXDirector13.json (the current, fully-updated Director build,
+  superseding Director2). All three are ~300-500 node mega-templates wiring in a dozen optional side
+  chains (ControlNet preprocessing via comfyui_controlnet_aux, RIFE frame interpolation, MelBandRoFormer
+  voice separation, Nvidia RTX super-resolution, pysssss UI scripts, easy-use pipe nodes) behind rgthree
+  mute/bypass groups - reproducing that exactly would mean installing 6+ more custom node repos of
+  uncertain provenance for features orthogonal to the core video pipeline, so this pack instead wires a
+  clean minimal single-pass T2V/I2V graph using core ComfyUI's native LTXV nodes (added upstream for
+  LTX-2.3 support) plus the GGUF loader. A separate standalone export,
+  videoflowLTX23AllInOneT2VI2VA2V_ltx23AllInOneV30.json, was checked against the zip's contents and is
+  NOT a duplicate - its subgraph names ("Stage 1/2 Sampler", "TalkVid ID-LoRA", "Voice Separation") show
+  it's a different third-party "VideoFlow" two-stage-upscale template with talking-head identity LoRA and
+  voice isolation, an even larger and more specialized undertaking; it was left unpacked here as out of
+  scope for this pass. Sampling parameters (9-step manual sigma schedule, euler_ancestral_cfg_pp, cfg 1)
+  are taken from the blueprint's final (non-distilled/"dev") decode stage, applied here as a single pass
+  at target resolution instead of the blueprint's base-res-then-spatial-upscale two-stage flow, since the
+  ltx-2.3-spatial-upscaler-x2-1.1.safetensors upscaler model isn't installed either. The GGUF supplies
+  only the quantized diffusion transformer; the video VAE and the "LTXAVTextEncoderLoader" CLIP wrapper
+  both need the full ltx-2.3-22b-dev-fp8.safetensors checkpoint (Lightricks/LTX-2.3-fp8 on Hugging Face,
+  ~29GB) which is NOT installed in this suite and was not downloaded - both are flagged with url below.
+  The Gemma-3 12B text encoder side of that wrapper IS covered by the already-installed
+  gemma_3_12B_it_fp8_scaled.safetensors. The bleach-bypass i2v LoRA (a photochemical high-contrast,
+  desaturated color-grading look - the same benign style family as this suite's SD1.5/SDXL bleach-bypass
+  LoRAs) is wired in as an optional-strength LoraLoaderModelOnly slot on the GGUF model. Needs the
+  city96/ComfyUI-GGUF custom node for the UnetLoaderGGUF node (already installed in this suite by the
+  time this pack was built). Marked experimental: without the ltx-2.3-22b-dev-fp8.safetensors checkpoint
+  this graph cannot actually decode a video end to end.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 4.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: cinematic tracking shot, smooth natural motion, coherent detail, high production value
+    node_id: '4'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 5.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, jittery, static frame
+    node_id: '5'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 6.image
+    label: Input image
+    type: file
+    required: false
+    default: example.png
+    node_id: '6'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 7.width
+    label: Width
+    type: int
+    required: false
+    default: 768
+    minimum: 64
+    maximum: 1920
+    node_id: '7'
+    node_type: EmptyLTXVLatentVideo
+    input: width
+  - id: 7.height
+    label: Height
+    type: int
+    required: false
+    default: 512
+    minimum: 64
+    maximum: 1920
+    node_id: '7'
+    node_type: EmptyLTXVLatentVideo
+    input: height
+  - id: 7.length
+    label: Frames
+    type: int
+    required: false
+    default: 97
+    minimum: 9
+    maximum: 257
+    node_id: '7'
+    node_type: EmptyLTXVLatentVideo
+    input: length
+  - id: 8.strength
+    label: Image conditioning strength
+    type: float
+    required: false
+    default: 0.9
+    minimum: 0
+    maximum: 1
+    node_id: '8'
+    node_type: LTXVImgToVideoInplace
+    input: strength
+  - id: 9.strength_model
+    label: Bleach-bypass LoRA strength
+    type: float
+    required: false
+    default: 0.8
+    minimum: -2
+    maximum: 2
+    node_id: '9'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 10.frame_rate
+    label: Frame rate
+    type: float
+    required: false
+    default: 25.0
+    minimum: 1
+    maximum: 60
+    node_id: '10'
+    node_type: LTXVConditioning
+    input: frame_rate
+  - id: 11.noise_seed
+    label: Seed
+    type: int
+    required: false
+    default: 42
+    node_id: '11'
+    node_type: RandomNoise
+    input: noise_seed
+  - id: 14.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0
+    maximum: 20
+    node_id: '14'
+    node_type: CFGGuider
+    input: cfg
+  - id: 18.filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/ltx2-director-i2v
+    node_id: '18'
+    node_type: SaveVideo
+    input: filename_prefix
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '1'
+    node_type: UnetLoaderGGUF
+    name: ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf
+    directory: diffusion_models
+  - node_id: '2'
+    node_type: CheckpointLoaderSimple
+    name: ltx-2.3-22b-dev-fp8.safetensors
+    directory: checkpoints
+    url: https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors
+  - node_id: '3'
+    node_type: LTXAVTextEncoderLoader
+    name: gemma_3_12B_it_fp8_scaled.safetensors
+    directory: text_encoders
+  - node_id: '3'
+    node_type: LTXAVTextEncoderLoader
+    name: ltx-2.3-22b-dev-fp8.safetensors
+    directory: checkpoints
+    url: https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors
+  - node_id: '9'
+    node_type: LoraLoaderModelOnly
+    name: ltx23_bleachbypass-i2v-bl34chbyp4ss.safetensors
+    directory: loras
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-gguf
+  optional: []
+hardware:
+  minimum_vram_gb: 20
+  recommended_vram_gb: 32
+  supports_low_vram: false
+  supports_cpu_offload: true

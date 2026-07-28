@@ -316,7 +316,7 @@ Every workflow includes a `manifest.yaml` file that defines:
 ```yaml
 # Required fields
 id: character.character-sheet
-name: Character Character Sheet
+name: Character Sheet
 version: "1.0.0"
 category: character
 description: >

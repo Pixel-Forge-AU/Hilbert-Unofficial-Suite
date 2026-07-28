@@ -1,0 +1,168 @@
+id: video.wan21-vace-causvid-1.3b
+name: Wan 2.1 VACE 1.3B + CausVid (Reference-to-Video)
+version: 1.0.0
+category: video-animation
+subcategory: wan21
+description: >
+  Imported from a user-authored ComfyUI export (wan21ImageToVideo_v30.zip /
+  wan-vace-causvid-tomgoodnoise/wan-vace-1.3b-causvid-tomgoodnoise.json), preserved as-is: the official
+  ComfyUI "Wan Vace Reference to Video" template workflow (1.3B variant), which turns a single reference
+  image plus a text prompt into a short video via WanVaceToVideo, accelerated with Kijai's extracted
+  CausVid LoRA (2-4 step distillation instead of the default 20 steps/cfg 6.0), followed by RIFE frame
+  interpolation from 16fps to 32fps for smoother motion (per the workflow's own note, since 16fps
+  visibly stutters). Per readme.txt in the source zip, this technique and workflow originate from Tom
+  Goodnoise (tomgoodnoise.de). The UNETLoader points at wan2.1_vace_1.3B_fp16.safetensors and the
+  LoraLoader at Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors - neither is installed in this
+  suite (this is a VACE-patched checkpoint, architecturally distinct from the plain T2V/I2V Wan 2.1
+  checkpoints already installed here, so there's no safe local substitute) - both are left pointing at
+  their original filenames with download urls taken directly from the workflow's own embedded
+  documentation notes. The CLIPLoader pointed at umt5_xxl_fp16.safetensors, which also isn't installed,
+  but the workflow's own notes explicitly say fp16 or fp8 both work ("You can choose between fp16 of
+  fp8") - repointed to the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors. The VAELoader
+  (wan_2.1_vae.safetensors) was already installed under that exact name - no change needed. Beyond core
+  ComfyUI, this graph needs ComfyUI-KJNodes (LoadAndResizeImage), ComfyUI-Frame-Interpolation (RIFE
+  VFI), and ComfyUI-VideoHelperSuite (VHS_VideoCombine) - all already installed in this suite. The RIFE
+  VFI node's own rife47.pth checkpoint isn't installed under models/frame_interpolation (the files
+  installed there use a different naming/format, rife_v4.25.safetensors etc., from a different loader) -
+  noted as an optional model with a download url; the base video generation does not depend on it, only
+  the final 16fps-to-32fps smoothing pass.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 105.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: the cat grabs the beer and drinks it, camera s moving out, bubbles in the beerglass,
+    node_id: '105'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 107.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly
+    node_id: '107'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 164.image
+    label: Reference image
+    type: image
+    required: false
+    default: ''
+    node_id: '164'
+    node_type: LoadAndResizeImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 158.value
+    label: Width
+    type: int
+    required: false
+    default: 848
+    minimum: 64
+    maximum: 1920
+    node_id: '158'
+    node_type: PrimitiveNode
+    input: value
+  - id: 159.value
+    label: Height
+    type: int
+    required: false
+    default: 480
+    minimum: 64
+    maximum: 1920
+    node_id: '159'
+    node_type: PrimitiveNode
+    input: value
+  - id: 109.length
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    node_id: '109'
+    node_type: WanVaceToVideo
+    input: length
+  - id: 108.seed
+    label: Seed
+    type: int
+    required: false
+    default: 1001261027954396
+    node_id: '108'
+    node_type: KSampler
+    input: seed
+  - id: 108.steps
+    label: Steps
+    type: int
+    required: false
+    default: 4
+    minimum: 1
+    maximum: 50
+    node_id: '108'
+    node_type: KSampler
+    input: steps
+  - id: 108.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 1
+    minimum: 0
+    maximum: 20
+    node_id: '108'
+    node_type: KSampler
+    input: cfg
+  - id: 115.strength_model
+    label: CausVid LoRA strength
+    type: float
+    required: false
+    default: 0.3
+    minimum: 0
+    maximum: 1
+    node_id: '115'
+    node_type: LoraLoader
+    input: strength_model
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '113'
+    node_type: UNETLoader
+    name: wan2.1_vace_1.3B_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_vace_1.3B_fp16.safetensors
+  - node_id: '127'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '114'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  - node_id: '115'
+    node_type: LoraLoader
+    name: Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors
+    directory: loras
+    url: https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors
+  optional:
+  - node_id: '179'
+    node_type: RIFE VFI
+    name: rife47.pth
+    directory: frame_interpolation
+    url: https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/rife47.pth
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-kjnodes
+  - comfyui-frame-interpolation
+  - comfyui-videohelpersuite
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true

@@ -1,0 +1,153 @@
+id: video.wan22-fastest-i2v-8step
+name: Wan 2.2 Fastest I2V (8-step, SageAttention)
+version: 1.0.0
+category: video-animation
+subcategory: wan22
+description: >
+  Imported from a user-authored ComfyUI export (workflow-wan228150kj-...-openart.ai.json). Dual-expert
+  Wan 2.2 14B image-to-video pipeline tuned for speed via SageAttention patching and VRAM purging
+  between passes. The two 4-step Lightning distillation LoRAs it referenced
+  (Wan2.2-Lightning_T2V-A14B-4steps-lora_HIGH/LOW_fp16) aren't installed in this suite - repointed to
+  the installed wan2.2_i2v_lightx2v_4steps_lora_v1 high/low-noise pair instead, which serves the same
+  step-distillation role for image-to-video. Requires the VideoHelperSuite, KJNodes, and ComfyUI
+  LayerStyle custom node packs (for VHS_VideoCombine, PathchSageAttentionKJ, and LayerUtility: PurgeVRAM
+  respectively) in addition to core ComfyUI.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 70.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: A girl crouched down and picked up a coin from the ground
+    node_id: '70'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 51.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: overexposed, static, blurred details, subtitles, worst quality, low quality
+    node_id: '51'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 54.image
+    label: Input image
+    type: image
+    required: false
+    default: ''
+    node_id: '54'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 74.width
+    label: Width
+    type: int
+    required: false
+    default: 704
+    minimum: 256
+    maximum: 1920
+    node_id: '74'
+    node_type: WanImageToVideo
+    input: width
+  - id: 74.height
+    label: Height
+    type: int
+    required: false
+    default: 544
+    minimum: 256
+    maximum: 1920
+    node_id: '74'
+    node_type: WanImageToVideo
+    input: height
+  - id: 74.length
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    node_id: '74'
+    node_type: WanImageToVideo
+    input: length
+  - id: 71.noise_seed
+    label: Seed (high-noise expert)
+    type: int
+    required: false
+    default: 0
+    node_id: '71'
+    node_type: KSamplerAdvanced
+    input: noise_seed
+  - id: 72.noise_seed
+    label: Seed (low-noise expert)
+    type: int
+    required: false
+    default: 0
+    node_id: '72'
+    node_type: KSamplerAdvanced
+    input: noise_seed
+  - id: 73.strength_model
+    label: High-noise LoRA strength
+    type: float
+    required: false
+    default: 2.0
+    minimum: -2
+    maximum: 3
+    node_id: '73'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 75.strength_model
+    label: Low-noise LoRA strength
+    type: float
+    required: false
+    default: 2.0
+    minimum: -2
+    maximum: 3
+    node_id: '75'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '58'
+    node_type: UNETLoader
+    name: wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '66'
+    node_type: UNETLoader
+    name: wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '60'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '52'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  - node_id: '73'
+    node_type: LoraLoaderModelOnly
+    name: wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+    directory: loras
+  - node_id: '75'
+    node_type: LoraLoaderModelOnly
+    name: wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+    directory: loras
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-videohelpersuite
+  - comfyui-kjnodes
+  - comfyui_layerstyle
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true
