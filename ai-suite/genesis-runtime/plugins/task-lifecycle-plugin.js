@@ -1,31 +1,28 @@
-/**
- * Plugin Name: Task Lifecycle
- * Plugin Slug: task-lifecycle
- * Description: Adds modular task create/stop/wait/output/answer APIs and UI panel metadata for Nova.
- * Version: 1.0.0
- * Author: Nova Observer
- * Observer UI Panel: Yes
- */
+// Ported from genesis-core's server/plugins/task-lifecycle-plugin.js, which shipped
+// byte-identical into this repo but relied on Nova's server.js injecting a
+// `taskLifecycleService` via the (Nova-era) runtimeContext mechanism. Nothing in Genesis's
+// server.js ever populates runtimeContext (it's `{}` — see server.js), so every route here
+// silently 503'd ("task lifecycle runtime context is unavailable") no matter what.
+//
+// Fixed the same way developer-tools-plugin.js was already fixed for its own
+// runtimeContext dependency: delegate to capabilities instead. agent-runtime-plugin.js now
+// owns the real task queue/storage/execution mechanism (see its header for what was ported
+// from observer-task-storage.js / observer-task-lifecycle-service.js /
+// observer-queue-processor.js) and exposes it as tasks:create/get/list/stop/answer/history
+// capabilities. This plugin is the thin Nova-shaped HTTP surface on top of those
+// capabilities — same route paths and field names as the original
+// (/api/plugins/tasks/create|output|wait|stop|answer), adapted to the simpler task shape
+// Genesis's agent-runtime-plugin.js actually produces (no brain-kind routing, no
+// sessionId/attachments/specialistRoute — those were dropped in agent-runtime-plugin.js
+// per the same routing decision documented there).
 
 import { compactText } from "../observer-general-utils.js";
-
-function normalizeTaskSummary(task = {}) {
-  return compactText(
-    task.resultSummary
-    || task.reviewSummary
-    || task.workerSummary
-    || task.notes
-    || task.message
-    || "",
-    420
-  );
-}
 
 function normalizeTaskOutputPayload(task = {}, history = []) {
   const status = String(task.status || "").trim();
   const timeline = Array.isArray(history) ? history : [];
   const recentTransitions = timeline.slice(-20).map((entry) => ({
-    at: Number(entry.at || 0),
+    at: Date.parse(entry.at || 0) || 0,
     eventType: String(entry.eventType || "").trim(),
     fromStatus: String(entry.fromStatus || "").trim(),
     toStatus: String(entry.toStatus || "").trim(),
@@ -33,32 +30,15 @@ function normalizeTaskOutputPayload(task = {}, history = []) {
   }));
   return {
     taskId: String(task.id || "").trim(),
-    codename: String(task.codename || "").trim(),
     status,
-    startedAt: Number(task.startedAt || 0) || null,
-    completedAt: Number(task.completedAt || task.updatedAt || 0) || null,
-    model: String(task.model || "").trim(),
-    summary: normalizeTaskSummary(task),
-    outputFiles: Array.isArray(task.outputFiles) ? task.outputFiles.map((entry) => ({
-      name: String(entry?.name || "").trim(),
-      path: String(entry?.path || "").trim(),
-      size: Number(entry?.size || 0),
-      modifiedAt: Number(entry?.modifiedAt || 0)
-    })) : [],
-    waitingForUser: status === "waiting_for_user",
-    questionCategory: status === "waiting_for_user"
-      ? String(task.questionCategory || "").trim()
-      : "",
-    questionForUser: status === "waiting_for_user"
-      ? compactText(task.questionForUser || "", 1200)
-      : "",
+    startedAt: Date.parse(task.startedAt || 0) || null,
+    completedAt: Date.parse(task.completedAt || task.updatedAt || 0) || null,
+    model: String(task.brainId || "").trim(),
+    summary: compactText(task.result?.text || task.error || "", 420),
+    waitingForUser: status === "waiting",
+    questionForUser: status === "waiting" ? compactText(task.questionForUser || "", 1200) : "",
     transitions: recentTransitions
   };
-}
-
-function getTaskLifecycleService(runtime = {}) {
-  const service = runtime?.taskLifecycleService;
-  return service && typeof service === "object" ? service : null;
 }
 
 async function waitForTaskTerminalState({
@@ -73,23 +53,11 @@ async function waitForTaskTerminalState({
   while (Date.now() - start <= maxWaitMs) {
     const task = await findTaskById(taskId);
     if (!task) {
-      return {
-        ok: false,
-        done: false,
-        status: "missing",
-        task: null,
-        elapsedMs: Date.now() - start
-      };
+      return { ok: false, done: false, status: "missing", task: null, elapsedMs: Date.now() - start };
     }
     const status = String(task.status || "").trim().toLowerCase();
-    if (["completed", "failed", "closed", "waiting_for_user"].includes(status)) {
-      return {
-        ok: true,
-        done: true,
-        status,
-        task,
-        elapsedMs: Date.now() - start
-      };
+    if (["done", "failed", "waiting"].includes(status)) {
+      return { ok: true, done: true, status, task, elapsedMs: Date.now() - start };
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
@@ -107,7 +75,7 @@ export function createTaskLifecyclePlugin(options = {}) {
   const {
     pluginId = "task-lifecycle",
     pluginName = "Task Lifecycle",
-    description = "Adds modular task create/stop/output/wait lifecycle APIs for Nova."
+    description = "Adds modular task create/stop/output/wait lifecycle APIs for Genesis's agent runtime."
   } = options;
 
   return {
@@ -123,13 +91,11 @@ export function createTaskLifecyclePlugin(options = {}) {
         data: false,
         capabilities: [],
         hooks: [],
-        runtimeContext: [
-          "taskLifecycleService"
-        ]
+        runtimeContext: []
       },
       dependencies: {
         requiredCapabilities: [],
-        optionalCapabilities: []
+        optionalCapabilities: ["tasks:create", "tasks:get", "tasks:stop", "tasks:answer", "tasks:history"]
       },
       security: {
         isolation: "inprocess"
@@ -224,24 +190,21 @@ export function createTaskLifecyclePlugin(options = {}) {
     async registerRoutes({ app, api }) {
       app.get("/api/plugins/tasks/output", async (req, res) => {
         try {
-          const service = getTaskLifecycleService(api.getRuntimeContext());
-          if (!service || typeof service.findTaskById !== "function" || typeof service.readTaskHistory !== "function") {
-            return res.status(503).json({ ok: false, error: "task lifecycle runtime context is unavailable" });
+          const findTaskById = api.getCapability("tasks:get");
+          const readHistory = api.getCapability("tasks:history");
+          if (typeof findTaskById !== "function") {
+            return res.status(503).json({ ok: false, error: "no plugin provides the tasks:get capability (install agent-runtime)" });
           }
           const taskId = String(req.query.taskId || req.query.task_id || "").trim();
           if (!taskId) {
             return res.status(400).json({ ok: false, error: "taskId is required" });
           }
-          const task = await service.findTaskById(taskId);
+          const task = await findTaskById({ taskId });
           if (!task) {
             return res.status(404).json({ ok: false, error: "task not found" });
           }
-          const historyLimit = Math.max(5, Math.min(Number(req.query.historyLimit || 40), 200));
-          const history = await service.readTaskHistory(taskId, { limit: historyLimit });
-          res.json({
-            ok: true,
-            output: normalizeTaskOutputPayload(task, history)
-          });
+          const history = typeof readHistory === "function" ? await readHistory({ taskId }) : [];
+          res.json({ ok: true, output: normalizeTaskOutputPayload(task, history) });
         } catch (error) {
           res.status(500).json({ ok: false, error: String(error?.message || error || "failed to fetch task output") });
         }
@@ -249,9 +212,9 @@ export function createTaskLifecyclePlugin(options = {}) {
 
       app.post("/api/plugins/tasks/stop", async (req, res) => {
         try {
-          const service = getTaskLifecycleService(api.getRuntimeContext());
-          if (!service || typeof service.stopTask !== "function") {
-            return res.status(503).json({ ok: false, error: "task lifecycle runtime context is unavailable" });
+          const stopTask = api.getCapability("tasks:stop");
+          if (typeof stopTask !== "function") {
+            return res.status(503).json({ ok: false, error: "no plugin provides the tasks:stop capability (install agent-runtime)" });
           }
           const taskId = String(req.body?.taskId || req.body?.task_id || "").trim();
           const reason = String(req.body?.reason || "Stopped by plugin lifecycle endpoint.").trim();
@@ -259,7 +222,7 @@ export function createTaskLifecyclePlugin(options = {}) {
           if (!taskId) {
             return res.status(400).json({ ok: false, error: "taskId is required" });
           }
-          const task = await service.stopTask({ taskId, reason, force });
+          const task = await stopTask({ taskId, reason, force });
           res.json({ ok: true, task });
         } catch (error) {
           res.status(400).json({ ok: false, error: String(error?.message || error || "failed to stop task") });
@@ -268,20 +231,19 @@ export function createTaskLifecyclePlugin(options = {}) {
 
       app.post("/api/plugins/tasks/answer", async (req, res) => {
         try {
-          const service = getTaskLifecycleService(api.getRuntimeContext());
-          if (!service || typeof service.answerTask !== "function") {
-            return res.status(503).json({ ok: false, error: "task lifecycle runtime context is unavailable" });
+          const answerTask = api.getCapability("tasks:answer");
+          if (typeof answerTask !== "function") {
+            return res.status(503).json({ ok: false, error: "no plugin provides the tasks:answer capability (install agent-runtime)" });
           }
           const taskId = String(req.body?.taskId || req.body?.task_id || "").trim();
           const answer = String(req.body?.answer || "").trim();
-          const sessionId = String(req.body?.sessionId || req.body?.session_id || "Main").trim() || "Main";
           if (!taskId) {
             return res.status(400).json({ ok: false, error: "taskId is required" });
           }
           if (!answer) {
             return res.status(400).json({ ok: false, error: "answer is required" });
           }
-          const task = await service.answerTask({ taskId, answer, sessionId });
+          const task = await answerTask({ taskId, answer });
           res.json({ ok: true, task });
         } catch (error) {
           res.status(400).json({ ok: false, error: String(error?.message || error || "failed to answer waiting task") });
@@ -290,22 +252,13 @@ export function createTaskLifecyclePlugin(options = {}) {
 
       app.post("/api/plugins/tasks/create", async (req, res) => {
         try {
-          const service = getTaskLifecycleService(api.getRuntimeContext());
-          if (!service || typeof service.createTask !== "function") {
-            return res.status(503).json({ ok: false, error: "task lifecycle runtime context is unavailable" });
+          const createTask = api.getCapability("tasks:create");
+          if (typeof createTask !== "function") {
+            return res.status(503).json({ ok: false, error: "no plugin provides the tasks:create capability (install agent-runtime)" });
           }
-          const task = await service.createTask({
-            message: String(req.body?.message || "").trim(),
-            sessionId: String(req.body?.sessionId || "Main").trim() || "Main",
-            requestedBrainId: String(req.body?.requestedBrainId || "worker").trim() || "worker",
-            intakeBrainId: String(req.body?.intakeBrainId || "bitnet").trim() || "bitnet",
-            internetEnabled: req.body?.internetEnabled == null ? true : Boolean(req.body?.internetEnabled),
-            selectedMountIds: Array.isArray(req.body?.selectedMountIds) ? req.body.selectedMountIds : [],
-            forceToolUse: req.body?.forceToolUse === true,
-            requireWorkerPreflight: req.body?.requireWorkerPreflight === true,
-            attachments: Array.isArray(req.body?.attachments) ? req.body.attachments : [],
-            notes: String(req.body?.notes || "Task created via task lifecycle plugin.").trim(),
-            taskMeta: req.body?.taskMeta && typeof req.body.taskMeta === "object" ? req.body.taskMeta : {}
+          const task = await createTask({
+            request: String(req.body?.message || req.body?.request || "").trim(),
+            brainId: String(req.body?.brainId || req.body?.requestedBrainId || "").trim()
           });
           res.json({ ok: true, task });
         } catch (error) {
@@ -315,9 +268,10 @@ export function createTaskLifecyclePlugin(options = {}) {
 
       app.get("/api/plugins/tasks/wait", async (req, res) => {
         try {
-          const service = getTaskLifecycleService(api.getRuntimeContext());
-          if (!service || typeof service.findTaskById !== "function" || typeof service.readTaskHistory !== "function") {
-            return res.status(503).json({ ok: false, error: "task lifecycle runtime context is unavailable" });
+          const findTaskByIdCap = api.getCapability("tasks:get");
+          const readHistory = api.getCapability("tasks:history");
+          if (typeof findTaskByIdCap !== "function") {
+            return res.status(503).json({ ok: false, error: "no plugin provides the tasks:get capability (install agent-runtime)" });
           }
           const taskId = String(req.query.taskId || req.query.task_id || "").trim();
           if (!taskId) {
@@ -326,7 +280,7 @@ export function createTaskLifecyclePlugin(options = {}) {
           const timeoutMsValue = req.query.timeoutMs ?? req.query.timeout_ms ?? 30000;
           const pollMsValue = req.query.pollMs ?? req.query.poll_ms ?? 800;
           const waitResult = await waitForTaskTerminalState({
-            findTaskById: service.findTaskById,
+            findTaskById: (id) => findTaskByIdCap({ taskId: id }),
             taskId,
             timeoutMs: Number(timeoutMsValue),
             pollMs: Number(pollMsValue)
@@ -334,7 +288,7 @@ export function createTaskLifecyclePlugin(options = {}) {
           if (!waitResult.task) {
             return res.status(404).json(waitResult);
           }
-          const history = await service.readTaskHistory(taskId, { limit: 40 });
+          const history = typeof readHistory === "function" ? await readHistory({ taskId }) : [];
           res.json({
             ...waitResult,
             output: normalizeTaskOutputPayload(waitResult.task, history)

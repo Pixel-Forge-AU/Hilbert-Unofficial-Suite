@@ -1,31 +1,35 @@
-// Extracted (in substantially simplified form, not a mechanical line-for-line port) from
-// genesis-core's largest cluster: the task queue / agent execution runtime. That cluster is
-// ~44 files and ~19,000 lines (observer-execution-runner.js, observer-queue-processor.js,
-// observer-task-*.js, observer-worker-*.js, tool-loop-*.js, intake-*.js, and more) — deeply
-// specific to Nova's brain/persona/mail/project-cycle model. Porting it 1:1 would mean
-// reproducing Nova's product behavior wholesale, which isn't what "infrastructure, not
-// behaviour" extraction calls for.
-//
-// What this plugin DOES provide, faithfully capturing the *shape* of the original (task
-// statuses, file-backed queue, a dispatch loop, a tool-calling execution loop, a lightweight
-// intake/triage split) as a genuinely usable but much smaller reference implementation:
-//   - task storage + lifecycle (queued/in_progress/waiting/done/failed), one JSON record per
-//     task under this plugin's own data store (see observer-task-storage.js for the pattern
-//     this mirrors)
-//   - a queue dispatch loop (see observer-queue-processor.js)
-//   - a tool-calling execution loop against a "brain:generate" capability (see
-//     observer-execution-runner.js / observer-worker-prompting.js for the pattern)
+// Faithfully ported (adapted, not a mechanical line-for-line copy) from genesis-core's
+// largest cluster: the task queue / agent execution runtime (observer-task-storage.js,
+// observer-task-lifecycle-service.js, observer-queue-processor.js,
+// observer-execution-runner.js, observer-worker-prompting.js, intake-*.js — ~30 files,
+// ~17,400 lines). The original is saturated with Nova-specific brain-kind routing
+// (worker/intake/helper roles, specialist-brain selection, creative-handoff brain choice,
+// hardware-tied queue lanes) that has no Genesis equivalent — Genesis treats every brain a
+// model-provider plugin exposes as interchangeable, so all of that routing is dropped here
+// (documented, not silently lost) in favor of porting the actual mechanism faithfully:
+//   - real file-backed task storage + lifecycle (queued/in_progress/waiting/done/failed),
+//     one JSON record per task under this plugin's own data store (see
+//     observer-task-storage.js for the pattern this mirrors)
+//   - a real queue dispatch loop with an in-flight guard and stale in_progress recovery
+//     (see observer-queue-processor.js's processNextQueuedTask/recoverStaleInProgressTasks)
+//   - a real tool-calling execution loop against the "brain:generate" capability, including
+//     a waiting_for_user pause/resume path (see observer-execution-runner.js's
+//     buildPermissionApprovalWaitingResponse for the pattern this mirrors) and cooperative
+//     task cancellation (see abortActiveTask/forceStopTask)
+//   - task history/breadcrumbs per transition (see recordTaskBreadcrumb's pattern)
 //   - a minimal intake/triage split: reply directly vs. enqueue a task (see
 //     intake-planner-service.js / intake-routing-domain.js for the pattern)
 //   - simple interval-based cron scheduling that enqueues tasks (see cron-domain.js)
 //
-// EXPLICITLY NOT PORTED (left for a dedicated follow-up, not silently dropped): opportunity
-// scanning, escalation-review retry heuristics, helper-scout/maintenance jobs, the
-// "recreation" reflective job, Nova's elaborate native chat-response builders (calendar/
+// EXPLICITLY NOT PORTED (deferred to a dedicated follow-up phase, not silently dropped):
+// opportunity scanning, escalation-review retry heuristics, helper-scout/maintenance jobs,
+// the "recreation" reflective job, Nova's elaborate native chat-response builders (calendar/
 // finance/inbox summaries — those depend on domains like calendar/finance that were never
-// part of Nova's *infrastructure* either), and tool-loop-repair-helpers' sandbox-specific
-// JSON-repair heuristics. These are autonomous personal-assistant *product* behaviors, not
-// generic orchestration infrastructure.
+// part of Nova's *infrastructure* either), tool-loop-repair-helpers' sandbox-specific
+// JSON-repair heuristics, and the intake/routing cluster's fuller heuristics
+// (observer-request-heuristics.js, observer-native-support.js, observer-prompt-utils.js).
+// These are autonomous personal-assistant *product* behaviors, not generic orchestration
+// infrastructure, and/or a large enough cluster to warrant their own porting pass.
 //
 // Tool-invocation convention: any plugin that wants a tool it registers via
 // api.registerTool({name, ...}) (metadata/discovery only — core does not dispatch tool calls)
@@ -33,6 +37,11 @@
 // "tool:<name>" whose handler executes the tool given its parsed arguments. None of the
 // pilot plugins built alongside this one (homeassistant, skills, ...) were retrofitted with
 // that convention yet — that's a known follow-up, noted in the final extraction report.
+//
+// task-lifecycle-plugin.js is the thin API-shim over this plugin's capabilities (matching
+// the same runtimeContext -> capability-delegation fix already applied in
+// developer-tools-plugin.js) — it owns the Nova-shaped /api/plugins/tasks/* HTTP surface,
+// this plugin owns the actual queue/storage/execution mechanism.
 
 const MANIFEST = {
   schemaVersion: 1,
@@ -41,7 +50,7 @@ const MANIFEST = {
     routes: true,
     uiPanels: false,
     data: true,
-    capabilities: ["tasks:create", "tasks:get", "tasks:list", "agent:run"],
+    capabilities: ["tasks:create", "tasks:get", "tasks:list", "tasks:stop", "tasks:answer", "tasks:history", "agent:run"],
     hooks: [],
     runtimeContext: [],
     tools: ["web_fetch"]
@@ -58,6 +67,8 @@ const STATUSES = ["queued", "in_progress", "waiting", "done", "failed"];
 const MAX_TOOL_LOOP_ITERATIONS = 6;
 const DISPATCH_INTERVAL_MS = 3000;
 const CRON_TICK_INTERVAL_MS = 30000;
+const STALE_IN_PROGRESS_MS = 5 * 60 * 1000;
+const MAX_HISTORY_ENTRIES = 50;
 
 function nowIso() {
   return new Date().toISOString();
@@ -88,11 +99,39 @@ function extractToolCall(text = "") {
   return null;
 }
 
+// Mirrors observer-execution-runner.js's buildPermissionApprovalWaitingResponse pattern:
+// the model can pause a task and ask the user a clarifying question instead of finishing
+// or calling a tool, by responding {"waiting_for_user": true, "question": "..."}.
+function extractWaitingForUser(text = "") {
+  const match = String(text || "").match(/\{[^{}]*"waiting_for_user"\s*:\s*true[^{}]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    const question = String(parsed?.question || "").trim();
+    return question ? { question } : null;
+  } catch {
+    return null;
+  }
+}
+
+function appendHistory(task, entry = {}) {
+  const history = Array.isArray(task.history) ? task.history.slice() : [];
+  history.push({ at: nowIso(), ...entry });
+  task.history = history.slice(-MAX_HISTORY_ENTRIES);
+  return task;
+}
+
 export default function createAgentRuntimePlugin() {
   let api = null;
   let dispatchTimer = null;
   let cronTimer = null;
   let dispatching = false;
+  // taskId -> { abortRequested: boolean }. Best-effort cooperative cancellation: a running
+  // executeTask() checks this between tool-loop iterations. It cannot interrupt a single
+  // in-flight brain:generate() call (the capability contract has no cancellation signal),
+  // but force=true immediately closes the task record regardless, mirroring
+  // observer-task-lifecycle-service.js's forceStopTask semantics.
+  const activeControllers = new Map();
 
   function requireCapability(name) {
     const handler = api.getCapability(name);
@@ -135,9 +174,15 @@ export default function createAgentRuntimePlugin() {
       transcript: [],
       result: null,
       error: "",
+      waitingForUser: false,
+      questionForUser: "",
+      history: [],
       createdAt: nowIso(),
-      updatedAt: nowIso()
+      updatedAt: nowIso(),
+      startedAt: null,
+      completedAt: null
     };
+    appendHistory(task, { eventType: "task.created", toStatus: "queued", reason: "Task created." });
     await saveTask(task);
     const index = await loadIndex();
     index.taskIds.push(task.id);
@@ -146,10 +191,14 @@ export default function createAgentRuntimePlugin() {
     return task;
   }
 
-  async function transitionTask(taskId, patch = {}) {
+  async function transitionTask(taskId, patch = {}, { eventType = "task.updated", reason = "" } = {}) {
     const task = await getTask(taskId);
     if (!task) throw new Error(`task ${taskId} not found`);
+    const fromStatus = task.status;
     const next = { ...task, ...patch, updatedAt: nowIso() };
+    if (patch.status && patch.status !== fromStatus) {
+      appendHistory(next, { eventType, fromStatus, toStatus: patch.status, reason });
+    }
     await saveTask(next);
     return next;
   }
@@ -180,69 +229,183 @@ export default function createAgentRuntimePlugin() {
     if (typeof generate !== "function") {
       await transitionTask(task.id, {
         status: "failed",
+        completedAt: nowIso(),
         error: 'no "brain:generate" capability is available — install a model-provider plugin'
-      });
+      }, { eventType: "task.failed", reason: "brain:generate capability unavailable" });
       return;
     }
+
+    const control = { abortRequested: false, force: false };
+    activeControllers.set(task.id, control);
 
     const systemPrompt = [
       "You are an autonomous task-execution agent.",
       "Respond with plain text to finish the task, OR respond with a single JSON object",
-      '{"tool": "<tool_name>", "args": { ... }} to call a tool and see its result before finishing.',
-      `Built-in tools: web_fetch({url, method}). Other tools may be available via plugins.`
+      '{"tool": "<tool_name>", "args": { ... }} to call a tool and see its result before finishing,',
+      'OR respond with {"waiting_for_user": true, "question": "..."} to pause and ask the user',
+      "a clarifying question before continuing.",
+      "Built-in tools: web_fetch({url, method}). Other tools may be available via plugins."
     ].join(" ");
 
     const transcript = Array.isArray(task.transcript) ? task.transcript.slice() : [];
     transcript.push({ role: "system", content: systemPrompt, at: nowIso() });
     transcript.push({ role: "user", content: task.request, at: nowIso() });
 
-    let finalText = "";
-    for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration += 1) {
-      let response;
-      try {
-        response = await generate({
-          brainId: task.brainId || undefined,
-          messages: transcript.map(({ role, content }) => ({ role, content }))
+    try {
+      let finalText = "";
+      let waiting = null;
+      for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration += 1) {
+        if (control.abortRequested) {
+          await transitionTask(task.id, {
+            status: "failed",
+            completedAt: nowIso(),
+            error: "aborted by user",
+            transcript
+          }, { eventType: "task.failed", reason: "Aborted by user." });
+          return;
+        }
+        let response;
+        try {
+          response = await generate({
+            brainId: task.brainId || undefined,
+            messages: transcript.map(({ role, content }) => ({ role, content }))
+          });
+        } catch (err) {
+          await transitionTask(task.id, {
+            status: "failed",
+            completedAt: nowIso(),
+            error: String(err?.message || err || "generation failed"),
+            transcript
+          }, { eventType: "task.failed", reason: "Generation failed." });
+          return;
+        }
+        const responseText = typeof response === "string" ? response : String(response?.text || response?.content || "");
+        transcript.push({ role: "assistant", content: responseText, at: nowIso() });
+
+        waiting = extractWaitingForUser(responseText);
+        if (waiting) break;
+
+        const toolCall = extractToolCall(responseText);
+        if (!toolCall) {
+          finalText = responseText;
+          break;
+        }
+        const toolResult = toolCall.tool === "web_fetch"
+          ? { ok: true, result: await toolWebFetch(toolCall.args).catch((err) => ({ error: String(err?.message || err) })) }
+          : await runToolCall(toolCall.tool, toolCall.args);
+        transcript.push({
+          role: "tool",
+          content: JSON.stringify({ tool: toolCall.tool, ...toolResult }),
+          at: nowIso()
         });
-      } catch (err) {
-        await transitionTask(task.id, { status: "failed", error: String(err?.message || err || "generation failed"), transcript });
+      }
+
+      if (waiting) {
+        await transitionTask(task.id, {
+          status: "waiting",
+          waitingForUser: true,
+          questionForUser: waiting.question,
+          transcript
+        }, { eventType: "task.waiting", reason: waiting.question });
+        api.broadcast(`[genesis] task ${task.id} waiting for user input`);
         return;
       }
-      const responseText = typeof response === "string" ? response : String(response?.text || response?.content || "");
-      transcript.push({ role: "assistant", content: responseText, at: nowIso() });
 
-      const toolCall = extractToolCall(responseText);
-      if (!toolCall) {
-        finalText = responseText;
-        break;
-      }
-      const toolResult = toolCall.tool === "web_fetch"
-        ? { ok: true, result: await toolWebFetch(toolCall.args).catch((err) => ({ error: String(err?.message || err) })) }
-        : await runToolCall(toolCall.tool, toolCall.args);
-      transcript.push({
-        role: "tool",
-        content: JSON.stringify({ tool: toolCall.tool, ...toolResult }),
-        at: nowIso()
+      await transitionTask(task.id, {
+        status: finalText ? "done" : "failed",
+        completedAt: nowIso(),
+        result: finalText ? { text: finalText } : null,
+        error: finalText ? "" : "tool loop exhausted without a final answer",
+        transcript
+      }, {
+        eventType: finalText ? "task.completed" : "task.failed",
+        reason: finalText ? "Task completed." : "Tool loop exhausted without a final answer."
       });
+      api.broadcast(`[genesis] task ${task.id} ${finalText ? "completed" : "failed"}`);
+    } finally {
+      activeControllers.delete(task.id);
     }
+  }
 
-    await transitionTask(task.id, {
-      status: finalText ? "done" : "failed",
-      result: finalText ? { text: finalText } : null,
-      error: finalText ? "" : "tool loop exhausted without a final answer",
+  async function answerTask({ taskId = "", answer = "" } = {}) {
+    const id = String(taskId || "").trim();
+    const text = String(answer || "").trim();
+    if (!id) throw new Error("taskId is required");
+    if (!text) throw new Error("answer is required");
+    const task = await getTask(id);
+    if (!task) throw new Error(`task ${id} not found`);
+    if (task.status !== "waiting") throw new Error(`task ${id} is not waiting for user input`);
+    const transcript = Array.isArray(task.transcript) ? task.transcript.slice() : [];
+    transcript.push({ role: "user", content: text, at: nowIso() });
+    return transitionTask(id, {
+      status: "queued",
+      waitingForUser: false,
+      questionForUser: "",
       transcript
-    });
-    api.broadcast(`[genesis] task ${task.id} ${finalText ? "completed" : "failed"}`);
+    }, { eventType: "task.answered", reason: "User answered the pending question." });
+  }
+
+  // Mirrors observer-task-lifecycle-service.js's abortActiveTask/forceStopTask: stopping
+  // only applies to a task that is currently in_progress (matching the original, which
+  // throws "task is not currently in progress" for any other status). `force` distinguishes
+  // a cooperative stop (the loop notices control.abortRequested on its next iteration and
+  // transitions itself) from an immediate one (transition to failed right away, even though
+  // the loop may still be mid-flight on a single brain:generate() call it cannot interrupt).
+  async function stopTask({ taskId = "", reason = "Stopped by user.", force = false } = {}) {
+    const id = String(taskId || "").trim();
+    if (!id) throw new Error("taskId is required");
+    const task = await getTask(id);
+    if (!task) throw new Error(`task ${id} not found`);
+    if (task.status !== "in_progress") {
+      throw new Error(`task ${id} is not currently in progress`);
+    }
+    const control = activeControllers.get(id);
+    if (control) {
+      control.abortRequested = true;
+    }
+    if (!force) {
+      // Cooperative stop: the running loop will notice control.abortRequested on its next
+      // iteration and transition the task itself. Return the task as-is for now.
+      return task;
+    }
+    activeControllers.delete(id);
+    return transitionTask(id, {
+      status: "failed",
+      completedAt: nowIso(),
+      error: String(reason || "Force-stopped by user.").trim()
+    }, { eventType: "task.failed", reason: String(reason || "Force-stopped by user.").trim() });
+  }
+
+  // Mirrors observer-queue-processor.js's recoverStaleInProgressTasks, simplified: no
+  // specialist-brain fallback routing (dropped per the routing decision above) — a stalled
+  // in_progress task (e.g. the process crashed mid-execution) is simply requeued.
+  async function recoverStaleInProgressTasks() {
+    const inProgress = await listTasks({ status: "in_progress" });
+    for (const task of inProgress) {
+      if (activeControllers.has(task.id)) continue; // still genuinely running in this process
+      const lastTouchedAt = Date.parse(task.updatedAt || task.createdAt || 0) || 0;
+      if (!lastTouchedAt || Date.now() - lastTouchedAt < STALE_IN_PROGRESS_MS) continue;
+      await transitionTask(task.id, { status: "queued" }, {
+        eventType: "task.recovered",
+        reason: "Recovered from stale in_progress (no active controller and no recent update)."
+      });
+      api.broadcast(`[genesis] recovered stale in_progress task ${task.id}`);
+    }
   }
 
   async function dispatchNext() {
     if (dispatching) return;
     dispatching = true;
     try {
+      await recoverStaleInProgressTasks();
       const queued = await listTasks({ status: "queued" });
       if (!queued.length) return;
       const next = queued.sort((left, right) => (left.createdAt < right.createdAt ? -1 : 1))[0];
-      await transitionTask(next.id, { status: "in_progress" });
+      const startedAt = nowIso();
+      await transitionTask(next.id, { status: "in_progress", startedAt }, {
+        eventType: "task.started",
+        reason: "Dispatched from queue."
+      });
       const task = await getTask(next.id);
       await executeTask(task);
     } catch (err) {
@@ -316,6 +479,9 @@ export default function createAgentRuntimePlugin() {
       api.provideCapability("tasks:create", async (args = {}) => createTask(args));
       api.provideCapability("tasks:get", async ({ taskId } = {}) => getTask(taskId));
       api.provideCapability("tasks:list", async (args = {}) => listTasks(args));
+      api.provideCapability("tasks:stop", async (args = {}) => stopTask(args));
+      api.provideCapability("tasks:answer", async (args = {}) => answerTask(args));
+      api.provideCapability("tasks:history", async ({ taskId } = {}) => (await getTask(taskId))?.history || []);
       api.provideCapability("agent:run", async ({ request, brainId } = {}) => {
         const task = await createTask({ request, brainId });
         await executeTask(await getTask(task.id));
@@ -356,9 +522,24 @@ export default function createAgentRuntimePlugin() {
 
       app.post("/api/tasks/:taskId/abort", async (req, res) => {
         try {
-          res.json({ ok: true, task: await transitionTask(req.params?.taskId, { status: "failed", error: "aborted by user" }) });
+          res.json({
+            ok: true,
+            task: await stopTask({
+              taskId: req.params?.taskId,
+              reason: req.body?.reason,
+              force: req.body?.force === true
+            })
+          });
         } catch (err) {
           res.status(400).json({ ok: false, error: String(err?.message || err || "failed to abort task") });
+        }
+      });
+
+      app.post("/api/tasks/:taskId/answer", async (req, res) => {
+        try {
+          res.json({ ok: true, task: await answerTask({ taskId: req.params?.taskId, answer: req.body?.answer }) });
+        } catch (err) {
+          res.status(400).json({ ok: false, error: String(err?.message || err || "failed to answer task") });
         }
       });
 
