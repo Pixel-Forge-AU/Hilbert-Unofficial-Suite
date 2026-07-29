@@ -121,6 +121,124 @@ function appendHistory(task, entry = {}) {
   return task;
 }
 
+// --- Intake heuristics, ported from observer-request-heuristics.js (the generic,
+// Nova-agnostic subset only — the many isXSummaryRequest() domain classifiers there are
+// native chat-response routing for calendar/finance/mail, which is explicitly out of scope
+// per this file's header). ---
+
+function normalizeSummaryComparisonText(text = "") {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// A model-proposed task message is "low signal" if it's too short or just echoes the
+// original request verbatim — in that case, reshape it into something more concrete.
+function looksLikeLowSignalPlannerTaskMessage(taskMessage = "", prompt = "") {
+  const normalizedTask = normalizeSummaryComparisonText(taskMessage);
+  const normalizedPrompt = normalizeSummaryComparisonText(prompt);
+  if (!normalizedTask || normalizedTask.length < 24) return true;
+  return normalizedTask === normalizedPrompt;
+}
+
+function shapePlannerTaskMessage(message = "") {
+  const raw = String(message || "").trim();
+  if (!raw) return "";
+  const readAndWriteMatch = raw.match(/^read\s+(.+?)\s+and\s+write\s+(.+)$/i);
+  if (readAndWriteMatch) {
+    const source = String(readAndWriteMatch[1] || "").trim();
+    const outcome = String(readAndWriteMatch[2] || "").trim().replace(/\.$/, "");
+    return `Inspect ${source}. Produce ${outcome}. Base the result on concrete content from the source instead of generic assumptions.`;
+  }
+  const compareMatch = raw.match(/^compare\s+(.+?)\s+and\s+create\s+(.+)$/i);
+  if (compareMatch) {
+    const leftRight = String(compareMatch[1] || "").trim();
+    const outcome = String(compareMatch[2] || "").trim().replace(/\.$/, "");
+    return `Compare ${leftRight}. Identify the key overlap and differences, then create ${outcome} as a concrete deliverable.`;
+  }
+  return `${raw} Produce a concrete outcome, not just a status note.`;
+}
+
+// A message asking for phrasing/wording help should get a direct reply even if it also
+// contains task-shaped language — never silently queue "help me phrase this" as work.
+function isLightweightPlannerReplyRequest(message = "") {
+  const text = String(message || "").trim().toLowerCase();
+  if (!text) return false;
+  if (/\bevery\s+\d+\s*(?:ms|s|m|h|d)\b/.test(text) || /\bin\s+\d+\s*(?:ms|s|m|h|d)\b/.test(text)) return false;
+  if (/\b(read|inspect|open|search|write to|create file|run|test|debug|fix|implement|refactor|code)\b/.test(text)) return false;
+  return /\b(help me phrase|phrase a|better titles?|how should i structure|good next step|what should i say|rewrite this sentence|word this)\b/.test(text);
+}
+
+// Only trust an explicit "every N units" / scheduling keyword in the user's own words —
+// never let the model hallucinate a recurring schedule the user didn't ask for.
+function intakeMessageExplicitlyRequestsScheduling(message = "") {
+  const text = String(message || "").trim().toLowerCase();
+  if (!text) return false;
+  if (/\b(?:every|in)\s+\d+\s*(?:ms|s|m|h|d)\b/.test(text)) return true;
+  return /\b(schedule|scheduled|cron|recurring|repeat|repeating|periodic|daily|weekly|monthly|hourly|nightly|background job|remind me)\b/.test(text);
+}
+
+function parseEveryToMs(every = "") {
+  const match = String(every || "").trim().toLowerCase().match(/^(\d+)\s*(ms|s|m|h|d)$/);
+  if (!match) return 0;
+  const amount = Number(match[1]);
+  const unitMs = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[match[2]];
+  return Math.max(0, amount * unitMs);
+}
+
+// Mirrors intake-routing-domain.js's buildQueuedIntakeReceipt.
+function buildQueuedIntakeReceipt(tasks = [], fallbackText = "") {
+  if (!tasks.length) return String(fallbackText || "I'll take a closer look now.").trim();
+  const receipt = tasks.length === 1
+    ? `I've queued task ${tasks[0].id} for the worker. You can follow it in the task queue.`
+    : `I've queued ${tasks.length} tasks for the worker: ${tasks.map((t) => t.id).join(", ")}. You can follow them in the task queue.`;
+  const base = String(fallbackText || "").trim();
+  return base && !/^i'?ll take a closer look now\.?$/i.test(base) ? `${base}\n\n${receipt}` : receipt;
+}
+
+// Mirrors session-conversation-store.js: a small in-memory per-session window with
+// expiry and older-turns summarization, used so the intake planner can see recent
+// conversation context (follow-up detection) without persisting full transcripts to disk.
+function createSessionConversationStore({ maxExchanges = 10, expireMs = 2 * 60 * 60 * 1000, recentWindow = 8 } = {}) {
+  const store = new Map();
+
+  function getSessionHistory(sessionId = "Main") {
+    const key = String(sessionId || "Main").trim() || "Main";
+    const entry = store.get(key);
+    if (!entry) return [];
+    if (Date.now() - Number(entry.lastAt || 0) > expireMs) {
+      store.delete(key);
+      return [];
+    }
+    const exchanges = entry.exchanges.slice();
+    if (exchanges.length <= recentWindow) return exchanges;
+    const older = exchanges.slice(0, exchanges.length - recentWindow);
+    const recent = exchanges.slice(exchanges.length - recentWindow);
+    const userSnippets = older.filter((turn) => turn.role === "user").map((turn) => `"${String(turn.text || "").slice(0, 80)}"`);
+    if (!userSnippets.length) return recent;
+    return [{ role: "agent", text: `[Earlier in this session: ${userSnippets.join("; ")}]`, ts: older[0]?.ts || Date.now() }, ...recent];
+  }
+
+  function appendSessionExchange(sessionId = "Main", { userText = "", agentText = "", action = "" } = {}) {
+    const key = String(sessionId || "Main").trim() || "Main";
+    const user = String(userText || "").trim();
+    const agent = String(agentText || "").trim();
+    if (!user && !agent) return;
+    const entry = store.get(key) || { exchanges: [], lastAt: 0 };
+    const ts = Date.now();
+    if (user) entry.exchanges.push({ role: "user", text: user, ts });
+    if (agent) entry.exchanges.push({ role: "agent", text: agent, ts, ...(action ? { action } : {}) });
+    while (entry.exchanges.length > maxExchanges * 2) entry.exchanges.shift();
+    entry.lastAt = ts;
+    store.set(key, entry);
+  }
+
+  return { getSessionHistory, appendSessionExchange };
+}
+
 export default function createAgentRuntimePlugin() {
   let api = null;
   let dispatchTimer = null;
@@ -132,6 +250,7 @@ export default function createAgentRuntimePlugin() {
   // but force=true immediately closes the task record regardless, mirroring
   // observer-task-lifecycle-service.js's forceStopTask semantics.
   const activeControllers = new Map();
+  const sessionConversationStore = createSessionConversationStore();
 
   function requireCapability(name) {
     const handler = api.getCapability(name);
@@ -416,40 +535,121 @@ export default function createAgentRuntimePlugin() {
   }
 
   // --- Intake / triage --------------------------------------------------
-
-  async function handleIntakeMessage({ text = "" } = {}) {
+  //
+  // Ported from intake-planner-service.js / intake-routing-domain.js (adapted, not a
+  // mechanical copy): a three-way triage split (reply directly / ask a clarifying question
+  // / queue background work), with recent session history for follow-up context, multiple
+  // tasks per message, and "every N" recurring-schedule detection feeding the cron
+  // mechanism below. Nova's "bitnet" dedicated intake-brain concept and its tool-calling
+  // planner loop (which let the intake model itself call tools while deciding) are dropped
+  // per the routing decision documented at the top of this file — this uses whatever
+  // brain:generate-json capability is installed, same as everything else here.
+  async function handleIntakeMessage({ text = "", sessionId = "Main" } = {}) {
     const message = String(text || "").trim();
     if (!message) throw new Error("text is required");
+    const session = String(sessionId || "Main").trim() || "Main";
     const generateJson = api.getCapability("brain:generate-json") || api.getCapability("brain:generate");
+
+    const recordAndReturn = (result) => {
+      sessionConversationStore.appendSessionExchange(session, {
+        userText: message,
+        agentText: result.replyText || "",
+        action: result.action
+      });
+      return result;
+    };
+
     if (typeof generateJson !== "function") {
       // No model provider installed — fall back to always queueing.
       const task = await createTask({ request: message });
-      return { action: "queue", taskId: task.id };
+      return recordAndReturn({ action: "queue", tasks: [task], replyText: buildQueuedIntakeReceipt([task], "") });
     }
+
+    const history = sessionConversationStore.getSessionHistory(session);
+    const historyText = history.length
+      ? `\n\nRecent conversation:\n${history.map((turn) => `${turn.role}: ${turn.text}`).join("\n")}`
+      : "";
+    const systemPrompt = [
+      "Decide how to triage this message. Respond with JSON only, one of:",
+      '{"action":"reply","replyText":"..."} to answer directly in one short reply,',
+      '{"action":"clarify","replyText":"..."} to ask a clarifying question before doing anything,',
+      'or {"action":"queue","tasks":[{"message":"...","every":""}]} to queue one or more',
+      'background tasks (set "every" to a duration like "1h"/"30m" only if the user',
+      "explicitly asked for a recurring/scheduled job)."
+    ].join(" ");
+
     let decision;
     try {
       const raw = await generateJson({
         messages: [
-          { role: "system", content: 'Decide whether this message needs background work (respond {"action":"queue"}) or can be answered directly in one short reply (respond {"action":"reply","replyText":"..."}). Respond with JSON only.' },
-          { role: "user", content: message }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `${message}${historyText}` }
         ]
       });
-      const text2 = typeof raw === "string" ? raw : String(raw?.text || raw?.content || "{}");
-      decision = JSON.parse(text2.match(/\{[\s\S]*\}/)?.[0] || "{}");
+      const responseText = typeof raw === "string" ? raw : String(raw?.text || raw?.content || "{}");
+      decision = JSON.parse(responseText.match(/\{[\s\S]*\}/)?.[0] || "{}");
     } catch {
       decision = { action: "queue" };
     }
-    if (decision?.action === "reply" && decision?.replyText) {
-      return { action: "reply", replyText: String(decision.replyText) };
+
+    let action = decision?.action === "reply" ? "reply" : decision?.action === "clarify" ? "clarify" : "queue";
+    const replyText = String(decision?.replyText || "").trim();
+
+    if (action === "queue" && isLightweightPlannerReplyRequest(message)) {
+      action = "reply";
     }
-    const task = await createTask({ request: message });
-    return { action: "queue", taskId: task.id };
+    if ((action === "reply" || action === "clarify") && replyText) {
+      return recordAndReturn({ action, replyText });
+    }
+
+    // action === "queue" (or a "reply"/"clarify" the model returned with no replyText —
+    // treat as a queue fallback rather than silently returning nothing).
+    const explicitlyScheduled = intakeMessageExplicitlyRequestsScheduling(message);
+    const requestedTasks = Array.isArray(decision?.tasks) && decision.tasks.length
+      ? decision.tasks
+      : [{ message, every: "" }];
+
+    const createdTasks = [];
+    for (const requested of requestedTasks) {
+      let taskMessage = String(requested?.message || "").trim() || message;
+      if (looksLikeLowSignalPlannerTaskMessage(taskMessage, message)) {
+        taskMessage = shapePlannerTaskMessage(message);
+      }
+      const every = explicitlyScheduled ? String(requested?.every || "").trim() : "";
+      if (every && parseEveryToMs(every) > 0) {
+        const job = await addCronJob({ directive: taskMessage, intervalMs: parseEveryToMs(every) });
+        createdTasks.push({ id: job.id, scheduled: true, every });
+      } else {
+        createdTasks.push(await createTask({ request: taskMessage }));
+      }
+    }
+    return recordAndReturn({
+      action: "queue",
+      tasks: createdTasks,
+      replyText: buildQueuedIntakeReceipt(createdTasks, replyText)
+    });
   }
 
   // --- Cron ---------------------------------------------------------------
 
   async function loadCronJobs() {
     return (await api.data.readJson("cron-jobs", { jobs: [] })) || { jobs: [] };
+  }
+
+  async function addCronJob({ directive = "", intervalMs = 3600000, brainId = "" } = {}) {
+    const state = await loadCronJobs();
+    const job = {
+      id: `cron-${Date.now().toString(36)}`,
+      directive: String(directive || "").trim(),
+      intervalMs: Math.max(60000, Number(intervalMs || 3600000)),
+      brainId: String(brainId || "").trim(),
+      lastRunAt: 0,
+      nextRunAt: Date.now()
+    };
+    if (!job.directive) throw new Error("directive is required");
+    state.jobs.push(job);
+    await api.data.writeJson("cron-jobs", state);
+    return job;
   }
 
   async function cronTick() {
@@ -557,19 +757,7 @@ export default function createAgentRuntimePlugin() {
 
       app.post("/api/cron", async (req, res) => {
         try {
-          const state = await loadCronJobs();
-          const job = {
-            id: `cron-${Date.now().toString(36)}`,
-            directive: String(req.body?.directive || "").trim(),
-            intervalMs: Math.max(60000, Number(req.body?.intervalMs || 3600000)),
-            brainId: String(req.body?.brainId || "").trim(),
-            lastRunAt: 0,
-            nextRunAt: Date.now()
-          };
-          if (!job.directive) throw new Error("directive is required");
-          state.jobs.push(job);
-          await api.data.writeJson("cron-jobs", state);
-          res.json({ ok: true, job });
+          res.json({ ok: true, job: await addCronJob(req.body || {}) });
         } catch (err) {
           res.status(400).json({ ok: false, error: String(err?.message || err || "failed to add cron job") });
         }
