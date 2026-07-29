@@ -17,19 +17,35 @@
 //     buildPermissionApprovalWaitingResponse for the pattern this mirrors) and cooperative
 //     task cancellation (see abortActiveTask/forceStopTask)
 //   - task history/breadcrumbs per transition (see recordTaskBreadcrumb's pattern)
-//   - a minimal intake/triage split: reply directly vs. enqueue a task (see
-//     intake-planner-service.js / intake-routing-domain.js for the pattern)
+//   - a three-way intake/triage split (reply / clarify / queue), with session history,
+//     multi-task queueing, and explicit-only schedule detection (see
+//     intake-planner-service.js / intake-routing-domain.js / session-conversation-store.js
+//     / observer-request-heuristics.js for the pattern — ported in a later pass)
 //   - simple interval-based cron scheduling that enqueues tasks (see cron-domain.js)
+//   - a bounded automatic retry on task failure (see observer-queue-processor.js's
+//     chooseAutomaticRetryBrainId retry-gate pattern, minus the specialist-brain selection)
+//   - an opt-in, off-by-default idle opportunity scan (see observer-opportunity-domain.js's
+//     processQueuedTasksToCapacity-adjacent idle-scan trigger, minus its workspace-markdown-
+//     file-ranking implementation, which is Nova-workspace-mount-specific)
 //
-// EXPLICITLY NOT PORTED (deferred to a dedicated follow-up phase, not silently dropped):
-// opportunity scanning, escalation-review retry heuristics, helper-scout/maintenance jobs,
-// the "recreation" reflective job, Nova's elaborate native chat-response builders (calendar/
-// finance/inbox summaries — those depend on domains like calendar/finance that were never
-// part of Nova's *infrastructure* either), tool-loop-repair-helpers' sandbox-specific
-// JSON-repair heuristics, and the intake/routing cluster's fuller heuristics
-// (observer-request-heuristics.js, observer-native-support.js, observer-prompt-utils.js).
-// These are autonomous personal-assistant *product* behaviors, not generic orchestration
-// infrastructure, and/or a large enough cluster to warrant their own porting pass.
+// EXPLICITLY NOT PORTED (deferred, not silently dropped — each is Nova personal-assistant
+// *product* behavior tied to concepts Genesis has no equivalent for):
+// - escalation-review (observer-escalation-review.js): retries a failed task on a distinct
+//   "remote triage" brain. Meaningless without brain-kind/specialist routing, which this
+//   extraction deliberately drops (see the routing decision above).
+// - helper-scout / maintenance-support / the "recreation" reflective job
+//   (observer-maintenance-support.js, observer-recreation-job.js): periodic self-maintenance
+//   and personality-regeneration jobs specific to Nova's own persona system.
+// - the elaborate failure-classification taxonomy and capability-mismatch retry-message
+//   builder (observer-failure-domain.js): classifies failure signal strings
+//   ("no_inspection", "speculative_completion", "project-cycle finalization", harness-eval
+//   snapshots) that only the full observer-execution-runner.js tool loop — not this
+//   plugin's deliberately simpler one — ever produces. Porting the classifier without the
+//   thing it classifies would be dead code.
+// - Nova's elaborate native chat-response builders (calendar/finance/inbox summaries —
+//   those depend on domains like calendar/finance that were never part of Nova's
+//   *infrastructure* either) and tool-loop-repair-helpers' sandbox-specific JSON-repair
+//   heuristics.
 //
 // Tool-invocation convention: any plugin that wants a tool it registers via
 // api.registerTool({name, ...}) (metadata/discovery only — core does not dispatch tool calls)
@@ -69,6 +85,8 @@ const DISPATCH_INTERVAL_MS = 3000;
 const CRON_TICK_INTERVAL_MS = 30000;
 const STALE_IN_PROGRESS_MS = 5 * 60 * 1000;
 const MAX_HISTORY_ENTRIES = 50;
+const MAX_TASK_RETRIES = 2;
+const DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS = 30 * 60 * 1000;
 
 function nowIso() {
   return new Date().toISOString();
@@ -343,14 +361,38 @@ export default function createAgentRuntimePlugin() {
     return { status: response.status, ok: response.ok, body: text.slice(0, 8000) };
   }
 
+  // Mirrors observer-queue-processor.js's retry gate (chooseAutomaticRetryBrainId +
+  // canReshapeTask), simplified: no specialist-brain fallback selection (dropped per the
+  // routing decision) — a failed task is just requeued with the same brainId, up to
+  // MAX_TASK_RETRIES times, before being marked permanently failed.
+  async function failTaskOrRetry(task, { error = "", transcript = [] } = {}) {
+    const retryCount = Number(task.retryCount || 0);
+    if (retryCount < MAX_TASK_RETRIES) {
+      return transitionTask(task.id, {
+        status: "queued",
+        retryCount: retryCount + 1,
+        error: String(error || "").trim(),
+        transcript
+      }, {
+        eventType: "task.retried",
+        reason: `Retrying (attempt ${retryCount + 1}/${MAX_TASK_RETRIES}) after: ${String(error || "").trim()}`
+      });
+    }
+    return transitionTask(task.id, {
+      status: "failed",
+      completedAt: nowIso(),
+      error: String(error || "").trim(),
+      transcript
+    }, {
+      eventType: "task.failed",
+      reason: `Failed permanently after ${MAX_TASK_RETRIES} retries: ${String(error || "").trim()}`
+    });
+  }
+
   async function executeTask(task) {
     const generate = api.getCapability("brain:generate");
     if (typeof generate !== "function") {
-      await transitionTask(task.id, {
-        status: "failed",
-        completedAt: nowIso(),
-        error: 'no "brain:generate" capability is available — install a model-provider plugin'
-      }, { eventType: "task.failed", reason: "brain:generate capability unavailable" });
+      await failTaskOrRetry(task, { error: 'no "brain:generate" capability is available — install a model-provider plugin' });
       return;
     }
 
@@ -390,12 +432,7 @@ export default function createAgentRuntimePlugin() {
             messages: transcript.map(({ role, content }) => ({ role, content }))
           });
         } catch (err) {
-          await transitionTask(task.id, {
-            status: "failed",
-            completedAt: nowIso(),
-            error: String(err?.message || err || "generation failed"),
-            transcript
-          }, { eventType: "task.failed", reason: "Generation failed." });
+          await failTaskOrRetry(task, { error: String(err?.message || err || "generation failed"), transcript });
           return;
         }
         const responseText = typeof response === "string" ? response : String(response?.text || response?.content || "");
@@ -430,17 +467,19 @@ export default function createAgentRuntimePlugin() {
         return;
       }
 
+      if (!finalText) {
+        await failTaskOrRetry(task, { error: "tool loop exhausted without a final answer", transcript });
+        api.broadcast(`[genesis] task ${task.id} failed or requeued for retry`);
+        return;
+      }
       await transitionTask(task.id, {
-        status: finalText ? "done" : "failed",
+        status: "done",
         completedAt: nowIso(),
-        result: finalText ? { text: finalText } : null,
-        error: finalText ? "" : "tool loop exhausted without a final answer",
+        result: { text: finalText },
+        error: "",
         transcript
-      }, {
-        eventType: finalText ? "task.completed" : "task.failed",
-        reason: finalText ? "Task completed." : "Tool loop exhausted without a final answer."
-      });
-      api.broadcast(`[genesis] task ${task.id} ${finalText ? "completed" : "failed"}`);
+      }, { eventType: "task.completed", reason: "Task completed." });
+      api.broadcast(`[genesis] task ${task.id} completed`);
     } finally {
       activeControllers.delete(task.id);
     }
@@ -512,13 +551,49 @@ export default function createAgentRuntimePlugin() {
     }
   }
 
+  // --- Idle opportunity scan (opt-in, off by default) ----------------------
+  //
+  // Mirrors observer-opportunity-domain.js's shape (when the queue has been idle for a
+  // while, use the spare cycles to look for something useful to do) without its
+  // implementation (ranking workspace markdown files by heuristic score against a
+  // Docker-mounted workspace root — a concept specific to Nova's sandbox/workspace mounts
+  // that doesn't exist at this layer in Genesis). Off by default because autonomously
+  // creating tasks is a meaningful behavior change a user should opt into, not something
+  // that starts happening silently after an upgrade.
+  async function getSettings() {
+    return (await api.data.readJson("settings", { opportunityScanEnabled: false, opportunityScanIntervalMs: DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS, lastOpportunityScanAt: 0 }))
+      || { opportunityScanEnabled: false, opportunityScanIntervalMs: DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS, lastOpportunityScanAt: 0 };
+  }
+
+  async function updateSettings(patch = {}) {
+    const settings = { ...(await getSettings()), ...patch };
+    await api.data.writeJson("settings", settings);
+    return settings;
+  }
+
+  async function maybeRunOpportunityScan() {
+    const settings = await getSettings();
+    if (!settings.opportunityScanEnabled) return;
+    const intervalMs = Math.max(60000, Number(settings.opportunityScanIntervalMs || DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS));
+    if (Date.now() - Number(settings.lastOpportunityScanAt || 0) < intervalMs) return;
+    await updateSettings({ lastOpportunityScanAt: Date.now() });
+    const task = await createTask({
+      request: "Idle opportunity scan: check if there is anything useful to look into or improve right now using the tools available to you. If nothing concrete comes to mind, say so briefly — do not invent busywork."
+    });
+    await transitionTask(task.id, { internalJobType: "opportunity_scan" }, { eventType: "task.updated", reason: "Tagged as an idle opportunity scan." });
+    api.broadcast(`[genesis] queued idle opportunity scan as ${task.id}`);
+  }
+
   async function dispatchNext() {
     if (dispatching) return;
     dispatching = true;
     try {
       await recoverStaleInProgressTasks();
       const queued = await listTasks({ status: "queued" });
-      if (!queued.length) return;
+      if (!queued.length) {
+        await maybeRunOpportunityScan();
+        return;
+      }
       const next = queued.sort((left, right) => (left.createdAt < right.createdAt ? -1 : 1))[0];
       const startedAt = nowIso();
       await transitionTask(next.id, { status: "in_progress", startedAt }, {
@@ -769,6 +844,21 @@ export default function createAgentRuntimePlugin() {
         state.jobs = state.jobs.filter((job) => job.id !== req.params?.jobId);
         await api.data.writeJson("cron-jobs", state);
         res.json({ ok: true, removed: before !== state.jobs.length });
+      });
+
+      app.get("/api/agent/settings", async (_req, res) => {
+        res.json({ ok: true, settings: await getSettings() });
+      });
+
+      app.post("/api/agent/settings", async (req, res) => {
+        try {
+          const patch = {};
+          if (req.body?.opportunityScanEnabled != null) patch.opportunityScanEnabled = Boolean(req.body.opportunityScanEnabled);
+          if (req.body?.opportunityScanIntervalMs != null) patch.opportunityScanIntervalMs = Math.max(60000, Number(req.body.opportunityScanIntervalMs));
+          res.json({ ok: true, settings: await updateSettings(patch) });
+        } catch (err) {
+          res.status(400).json({ ok: false, error: String(err?.message || err || "failed to update settings") });
+        }
       });
     },
 
