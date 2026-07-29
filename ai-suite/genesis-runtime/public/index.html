@@ -48,6 +48,12 @@
   .plugin-meta { font-size: 0.78rem; color: #888; margin-top: 0.35rem; }
   .plugin-failure { font-size: 0.8rem; color: #a12a20; margin-top: 0.35rem; }
 
+  .tab-strip { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .tab-strip button { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.85rem; cursor: pointer; color: inherit; }
+  .tab-strip button[aria-selected="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .tab-strip .tab-group-label { font-size: 0.75rem; color: #888; align-self: center; margin-right: 0.15rem; }
+  #tab-content { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; min-height: 4rem; }
+
   @media (prefers-color-scheme: dark) {
     body { color: #eaeaea; }
     th, td { border-color: #333; }
@@ -63,6 +69,9 @@
     .badge.missing-required { background: #3d1815; color: #f3a89f; border-color: #5a221d; }
     .badge.missing-optional { background: #3d3113; color: #f0c877; border-color: #5a4a1c; }
     .badge.provides { background: #1c2140; color: #b7c0f0; border-color: #2c3564; }
+    .tab-strip button { background: #1e1e1e; border-color: #444; color: #eaeaea; }
+    .tab-strip button[aria-selected="true"] { background: #eaeaea; color: #111; border-color: #eaeaea; }
+    #tab-content { border-color: #333; }
   }
 </style>
 </head>
@@ -87,7 +96,15 @@
   <div id="plugin-list"><p class="empty">Loading&hellip;</p></div>
 </section>
 
-<script>
+<section id="plugin-tabs-section" style="display:none">
+  <h2>Open</h2>
+  <div id="tab-strip" class="tab-strip"></div>
+  <div id="tab-content"><p class="empty">Select a tab above.</p></div>
+</section>
+
+<script type="module">
+import { mountObserverPluginTab, createObserverBrowserHost } from "/observer-compat/browser/plugin-host.js";
+
 let headers = {};
 let pluginsData = null;
 let activeFilter = "all";
@@ -255,6 +272,92 @@ async function loadPlugins() {
   const pluginsRes = await fetch("/api/plugins/list", { headers });
   pluginsData = await pluginsRes.json();
   render();
+  renderTabStrip();
+}
+
+// --- Plugin-contributed UI tabs (observer-compat/browser/plugin-host.js contract) ---
+
+let uiTabsFlat = [];
+let activeTabKey = null;
+let host = null;
+
+function authFetch(path, options = {}) {
+  return fetch(path, { ...options, headers: { ...headers, ...(options.headers || {}) } });
+}
+
+function buildHost() {
+  return createObserverBrowserHost({
+    fetch: authFetch,
+    adminFetch: authFetch,
+    pluginAdminFetch: authFetch,
+    refreshAll: loadPlugins
+  });
+}
+
+function collectUiTabs(data) {
+  const feature = [
+    ...(data.uiTabs || []),
+    ...(data.uiPrimaryTabs || []),
+    ...(data.uiSystemTabs || [])
+  ].filter((t) => t.enabled);
+  const secrets = (data.uiSecretsTabs || []).filter((t) => t.enabled).map((t) => ({ ...t, group: "secrets" }));
+  const seen = new Set();
+  const all = [...feature, ...secrets].filter((t) => {
+    const key = `${t.pluginId}:${t.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  all.sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.title.localeCompare(b.title));
+  return all;
+}
+
+function renderTabStrip() {
+  const section = document.getElementById("plugin-tabs-section");
+  const strip = document.getElementById("tab-strip");
+  uiTabsFlat = collectUiTabs(pluginsData || {});
+  if (!uiTabsFlat.length) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  if (!activeTabKey || !uiTabsFlat.some((t) => `${t.pluginId}:${t.id}` === activeTabKey)) {
+    activeTabKey = `${uiTabsFlat[0].pluginId}:${uiTabsFlat[0].id}`;
+  }
+  strip.innerHTML = uiTabsFlat.map((t) => {
+    const key = `${t.pluginId}:${t.id}`;
+    const label = `${t.icon ? t.icon + " " : ""}${t.title}`;
+    return `<button data-tab-key="${escapeHtml(key)}" aria-selected="${key === activeTabKey}">${escapeHtml(label)} <span style="opacity:.6">(${escapeHtml(t.pluginName)})</span></button>`;
+  }).join("");
+  strip.querySelectorAll("button[data-tab-key]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeTabKey = btn.getAttribute("data-tab-key");
+      renderTabStrip();
+    });
+  });
+  mountActiveTab();
+}
+
+let mountToken = 0;
+async function mountActiveTab() {
+  const tab = uiTabsFlat.find((t) => `${t.pluginId}:${t.id}` === activeTabKey);
+  const contentEl = document.getElementById("tab-content");
+  if (!tab) {
+    contentEl.innerHTML = `<p class="empty">Select a tab above.</p>`;
+    return;
+  }
+  const token = ++mountToken;
+  contentEl.innerHTML = `<p class="empty">Loading&hellip;</p>`;
+  try {
+    const moduleExports = await import(tab.scriptUrl);
+    if (token !== mountToken) return; // a newer tab was selected while this was loading
+    contentEl.innerHTML = "";
+    if (!host) host = buildHost();
+    await mountObserverPluginTab(moduleExports, { root: contentEl, tab, host });
+  } catch (err) {
+    if (token !== mountToken) return;
+    contentEl.innerHTML = `<p class="plugin-failure">Failed to load tab: ${escapeHtml(String(err?.message || err))}</p>`;
+  }
 }
 
 async function main() {
