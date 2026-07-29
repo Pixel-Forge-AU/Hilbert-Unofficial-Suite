@@ -19,3 +19,30 @@ Thumbs.db
 
 # Archives
 *.tar.gz
+
+# Build output / caches
+dist/
+*.tsbuildinfo
+
+# Local runtime data, logs, and model weights (not source)
+ai-suite/genesis-runtime/runtime-data/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/ffmpeg/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/whisper/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/models/
+
+# Recovery reference snapshots (not part of the actual codebase)
+ai-suite/genesis-runtime/source genesis/
+ai-suite/genesis-runtime/source plugins/
+ai-suite/.pids/
+ai-suite/.venv-playwright/
+ai-suite/archive/
+ai-suite/chat-data/
+ai-suite/logs/
+ai-suite/models/
+ai-suite/state/
+ai-suite/open-hands/
+ai-suite/playwright-artifacts/
+ai-suite/repos/
+ai-suite/safetensors/
+ai-suite/storyboards/
+ai-suite/disk_check.txt

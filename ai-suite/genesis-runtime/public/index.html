@@ -5,15 +5,65 @@
 <title>Genesis</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 720px; color: #1a1a1a; }
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 920px; color: #1a1a1a; }
   h1 { font-size: 1.4rem; }
-  section { margin-bottom: 1.5rem; }
+  h2 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+  section { margin-bottom: 1.75rem; }
   dt { font-weight: 600; margin-top: 0.5rem; }
   dd { margin: 0 0 0.25rem 0; }
   table { border-collapse: collapse; width: 100%; }
   th, td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
   .empty { color: #777; font-style: italic; }
-  code { background: #f2f2f2; padding: 0 0.25rem; border-radius: 3px; }
+  code { background: #f2f2f2; padding: 0 0.15rem; border-radius: 3px; font-size: 0.85em; }
+
+  .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  #plugin-search { flex: 1; min-width: 12rem; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+  .chip-filter { display: flex; gap: 0.35rem; }
+  .chip { border: 1px solid #ccc; background: #fff; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.8rem; cursor: pointer; color: inherit; }
+  .chip[aria-pressed="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+  .plugin-card { border: 1px solid #ddd; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.6rem; }
+  .plugin-card.attention { border-color: #c77700; }
+  .plugin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+  .plugin-title { font-weight: 600; }
+  .plugin-id { color: #777; font-weight: 400; font-size: 0.85em; }
+  .plugin-desc { color: #555; font-size: 0.88rem; margin: 0.2rem 0 0.5rem; }
+
+  .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 999px; cursor: pointer; transition: background 0.15s; }
+  .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.15s; }
+  .switch input:checked + .slider { background: #2f8f3f; }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+  .switch input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+  .badge-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+  .badge { font-size: 0.75rem; padding: 0.12rem 0.5rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .badge.ok { background: #e5f5e8; color: #1e6b2c; border-color: #bfe5c6; }
+  .badge.missing-required { background: #fdeceb; color: #a12a20; border-color: #f5c6c1; }
+  .badge.missing-optional { background: #fff6e5; color: #8a5a00; border-color: #f2ddab; }
+  .badge.provides { background: #eef1fb; color: #33408c; border-color: #d3d9f3; }
+
+  .plugin-meta { font-size: 0.78rem; color: #888; margin-top: 0.35rem; }
+  .plugin-failure { font-size: 0.8rem; color: #a12a20; margin-top: 0.35rem; }
+
+  @media (prefers-color-scheme: dark) {
+    body { color: #eaeaea; }
+    th, td { border-color: #333; }
+    code { background: #2a2a2a; }
+    #plugin-search, .chip { background: #1e1e1e; border-color: #444; color: #eaeaea; }
+    .chip[aria-pressed="true"] { background: #eaeaea; color: #111; border-color: #eaeaea; }
+    .plugin-card { border-color: #333; }
+    .plugin-card.attention { border-color: #d98a2b; }
+    .plugin-desc, .plugin-meta { color: #aaa; }
+    .plugin-id { color: #999; }
+    .slider { background: #444; }
+    .badge.ok { background: #143d1c; color: #8fd39d; border-color: #1f5a2b; }
+    .badge.missing-required { background: #3d1815; color: #f3a89f; border-color: #5a221d; }
+    .badge.missing-optional { background: #3d3113; color: #f0c877; border-color: #5a4a1c; }
+    .badge.provides { background: #1c2140; color: #b7c0f0; border-color: #2c3564; }
+  }
 </style>
 </head>
 <body>
@@ -26,14 +76,191 @@
 
 <section>
   <h2>Plugins</h2>
-  <table id="plugins"><tbody><tr><td class="empty">Loading&hellip;</td></tr></tbody></table>
+  <div class="toolbar">
+    <input id="plugin-search" type="search" placeholder="Search plugins by name, id, or capability&hellip;">
+    <div class="chip-filter" role="group" aria-label="Filter plugins">
+      <button class="chip" data-filter="all" aria-pressed="true">All</button>
+      <button class="chip" data-filter="enabled" aria-pressed="false">Enabled</button>
+      <button class="chip" data-filter="attention" aria-pressed="false">Needs attention</button>
+    </div>
+  </div>
+  <div id="plugin-list"><p class="empty">Loading&hellip;</p></div>
 </section>
 
 <script>
+let headers = {};
+let pluginsData = null;
+let activeFilter = "all";
+let searchTerm = "";
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+// A capability is "satisfied" if some OTHER currently-enabled plugin provides it.
+function isCapabilitySatisfied(capabilityName, capabilityProviders, excludePluginId) {
+  const providers = capabilityProviders[capabilityName] || [];
+  return providers.some((entry) => entry.enabled && entry.pluginId !== excludePluginId);
+}
+
+// Plugins that would lose a required capability if `pluginId` were disabled right now.
+function findDependents(pluginId, plugins, capabilityProviders) {
+  const providedByThis = new Set(
+    (plugins.find((p) => p.id === pluginId)?.capabilities) || []
+  );
+  const affected = [];
+  for (const other of plugins) {
+    if (other.id === pluginId || !other.enabled) continue;
+    const required = other.manifest?.dependencies?.requiredCapabilities || [];
+    for (const cap of required) {
+      if (!providedByThis.has(cap)) continue;
+      const otherEnabledProviders = (capabilityProviders[cap] || []).filter(
+        (entry) => entry.enabled && entry.pluginId !== pluginId
+      );
+      if (otherEnabledProviders.length === 0) {
+        affected.push({ pluginId: other.id, pluginName: other.name, capability: cap });
+      }
+    }
+  }
+  return affected;
+}
+
+function pluginNeedsAttention(plugin, capabilityProviders) {
+  if (!plugin.enabled) return false;
+  const required = plugin.manifest?.dependencies?.requiredCapabilities || [];
+  return required.some((cap) => !isCapabilitySatisfied(cap, capabilityProviders, plugin.id))
+    || (plugin.failureCount || 0) > 0;
+}
+
+function matchesSearch(plugin, term) {
+  if (!term) return true;
+  const haystack = [
+    plugin.id, plugin.name, plugin.description,
+    ...(plugin.capabilities || []),
+    ...(plugin.manifest?.dependencies?.requiredCapabilities || []),
+    ...(plugin.manifest?.dependencies?.optionalCapabilities || [])
+  ].join(" ").toLowerCase();
+  return haystack.includes(term);
+}
+
+async function toggle(pluginId, nextEnabled) {
+  await fetch(`/api/plugins/${encodeURIComponent(pluginId)}/toggle`, {
+    method: "POST",
+    headers: { ...headers, "content-type": "application/json" },
+    body: JSON.stringify({ enabled: nextEnabled })
+  });
+  await loadPlugins();
+}
+
+function onToggleClick(plugin, capabilityProviders, plugins) {
+  const nextEnabled = !plugin.enabled;
+  if (nextEnabled) {
+    const unmet = (plugin.manifest?.dependencies?.requiredCapabilities || [])
+      .filter((cap) => !isCapabilitySatisfied(cap, capabilityProviders, plugin.id));
+    if (unmet.length) {
+      const proceed = confirm(
+        `${plugin.name} requires ${unmet.join(", ")}, which no enabled plugin currently provides.\n\n` +
+        `It will likely fail at runtime until those are enabled too. Enable it anyway?`
+      );
+      if (!proceed) return;
+    }
+  } else {
+    const dependents = findDependents(plugin.id, plugins, capabilityProviders);
+    if (dependents.length) {
+      const lines = dependents.map((d) => `- ${d.pluginName} (needs ${d.capability})`).join("\n");
+      const proceed = confirm(
+        `Disabling ${plugin.name} will break:\n${lines}\n\nDisable anyway?`
+      );
+      if (!proceed) return;
+    }
+  }
+  toggle(plugin.id, nextEnabled);
+}
+
+function renderPluginCard(plugin, capabilityProviders, plugins) {
+  const required = plugin.manifest?.dependencies?.requiredCapabilities || [];
+  const optional = plugin.manifest?.dependencies?.optionalCapabilities || [];
+  const provides = plugin.capabilities || [];
+  const attention = pluginNeedsAttention(plugin, capabilityProviders);
+
+  const depBadges = [
+    ...required.map((cap) => {
+      const ok = isCapabilitySatisfied(cap, capabilityProviders, plugin.id);
+      return `<span class="badge ${ok ? "ok" : "missing-required"}" title="${ok ? "satisfied" : "required, not currently provided by any enabled plugin"}">requires ${escapeHtml(cap)}${ok ? "" : " (missing)"}</span>`;
+    }),
+    ...optional.map((cap) => {
+      const ok = isCapabilitySatisfied(cap, capabilityProviders, plugin.id);
+      return `<span class="badge ${ok ? "ok" : "missing-optional"}" title="${ok ? "satisfied" : "optional, degraded functionality without it"}">optional ${escapeHtml(cap)}${ok ? "" : " (missing)"}</span>`;
+    }),
+    ...provides.map((cap) => `<span class="badge provides" title="provided by this plugin">provides ${escapeHtml(cap)}</span>`)
+  ].join("");
+
+  const failureNote = plugin.failureCount
+    ? `<div class="plugin-failure">${plugin.failureCount} recorded failure${plugin.failureCount === 1 ? "" : "s"} &mdash; see /api/plugins/list</div>`
+    : "";
+
+  return `
+    <div class="plugin-card${attention ? " attention" : ""}" data-plugin-id="${escapeHtml(plugin.id)}">
+      <div class="plugin-head">
+        <div>
+          <div class="plugin-title">${escapeHtml(plugin.name)} <span class="plugin-id">${escapeHtml(plugin.id)} &middot; v${escapeHtml(plugin.version)}</span></div>
+          <div class="plugin-desc">${escapeHtml(plugin.description || "")}</div>
+        </div>
+        <label class="switch" title="${plugin.enabled ? "Disable" : "Enable"} ${escapeHtml(plugin.name)}">
+          <input type="checkbox" ${plugin.enabled ? "checked" : ""} data-toggle="${escapeHtml(plugin.id)}">
+          <span class="slider"></span>
+        </label>
+      </div>
+      ${depBadges ? `<div class="badge-row">${depBadges}</div>` : ""}
+      ${failureNote}
+      <div class="plugin-meta">${plugin.toolCount || 0} tools &middot; ${plugin.hookCount || 0} hooks &middot; ${plugin.routeCount || 0} routes</div>
+    </div>`;
+}
+
+function render() {
+  const container = document.getElementById("plugin-list");
+  if (!pluginsData || !pluginsData.plugins?.length) {
+    container.innerHTML = `<p class="empty">No plugins installed &mdash; this is a zero-plugin Genesis instance.</p>`;
+    return;
+  }
+  const { plugins, capabilityProviders } = pluginsData;
+  const term = searchTerm.trim().toLowerCase();
+  const visible = plugins
+    .filter((p) => matchesSearch(p, term))
+    .filter((p) => {
+      if (activeFilter === "enabled") return p.enabled;
+      if (activeFilter === "attention") return pluginNeedsAttention(p, capabilityProviders);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (!visible.length) {
+    container.innerHTML = `<p class="empty">No plugins match this filter.</p>`;
+    return;
+  }
+  container.innerHTML = visible.map((p) => renderPluginCard(p, capabilityProviders, plugins)).join("");
+  container.querySelectorAll("[data-toggle]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const pluginId = input.getAttribute("data-toggle");
+      const plugin = plugins.find((p) => p.id === pluginId);
+      input.checked = plugin.enabled; // revert optimistic native toggle; onToggleClick drives the real state
+      onToggleClick(plugin, capabilityProviders, plugins);
+    });
+  });
+}
+
+async function loadPlugins() {
+  const pluginsRes = await fetch("/api/plugins/list", { headers });
+  pluginsData = await pluginsRes.json();
+  render();
+}
+
 async function main() {
   const tokenRes = await fetch("/api/admin-token");
   const tokenJson = await tokenRes.json();
-  const headers = tokenJson.ok ? { "x-admin-token": tokenJson.token } : {};
+  headers = tokenJson.ok ? { "x-admin-token": tokenJson.token } : {};
 
   const statusRes = await fetch("/api/runtime/status", { headers });
   const status = await statusRes.json();
@@ -46,16 +273,19 @@ async function main() {
     <dt>Plugin load errors</dt><dd>${status.pluginLoadErrors?.length || 0}</dd>
   `;
 
-  const pluginsRes = await fetch("/api/plugins/list", { headers });
-  const pluginsJson = await pluginsRes.json();
-  const tbody = document.querySelector("#plugins tbody");
-  if (!pluginsJson.plugins?.length) {
-    tbody.innerHTML = `<tr><td class="empty">No plugins installed &mdash; this is a zero-plugin Genesis instance.</td></tr>`;
-  } else {
-    tbody.innerHTML = pluginsJson.plugins.map((p) =>
-      `<tr><td>${p.id}</td><td>${p.name || ""}</td><td>${p.enabled ? "enabled" : "disabled"}</td></tr>`
-    ).join("");
-  }
+  document.getElementById("plugin-search").addEventListener("input", (event) => {
+    searchTerm = event.target.value;
+    render();
+  });
+  document.querySelectorAll(".chip-filter .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      activeFilter = chip.getAttribute("data-filter");
+      document.querySelectorAll(".chip-filter .chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+      render();
+    });
+  });
+
+  await loadPlugins();
 }
 main().catch((err) => {
   document.getElementById("status").innerHTML = `<dt>Error</dt><dd>${err}</dd>`;
