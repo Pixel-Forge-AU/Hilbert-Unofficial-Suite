@@ -325,6 +325,7 @@ export default function createAgentRuntimePlugin() {
     index.taskIds.push(task.id);
     await api.data.writeJson("index", index);
     api.broadcast(`[genesis] task ${task.id} queued`);
+    await api.runHook("task:created", { task }).catch(() => {});
     return task;
   }
 
@@ -362,13 +363,18 @@ export default function createAgentRuntimePlugin() {
   }
 
   // Mirrors observer-queue-processor.js's retry gate (chooseAutomaticRetryBrainId +
-  // canReshapeTask), simplified: no specialist-brain fallback selection (dropped per the
-  // routing decision) — a failed task is just requeued with the same brainId, up to
-  // MAX_TASK_RETRIES times, before being marked permanently failed.
+  // canReshapeTask), simplified: no specialist-brain fallback selection is built in here —
+  // but unlike the earlier version of this function, that's no longer a permanent
+  // limitation. Before giving up for good, this fires "task:retry-exhausted" so a plugin
+  // that wants Nova's dropped escalation-review/specialist-fallback behavior (or anything
+  // else) can listen via api.addHook and take over: returning `{ ...payload, handled: true }`
+  // (optionally with a `redirectTo` capability name/brainId/message to act on) skips this
+  // function's own default failure, leaving the task exactly as the handler left it. This
+  // is the "minimalist core, hooks for everything" pattern applied to the retry decision.
   async function failTaskOrRetry(task, { error = "", transcript = [] } = {}) {
     const retryCount = Number(task.retryCount || 0);
     if (retryCount < MAX_TASK_RETRIES) {
-      return transitionTask(task.id, {
+      const retried = await transitionTask(task.id, {
         status: "queued",
         retryCount: retryCount + 1,
         error: String(error || "").trim(),
@@ -377,8 +383,14 @@ export default function createAgentRuntimePlugin() {
         eventType: "task.retried",
         reason: `Retrying (attempt ${retryCount + 1}/${MAX_TASK_RETRIES}) after: ${String(error || "").trim()}`
       });
+      await api.runHook("task:retried", { task: retried, error }).catch(() => {});
+      return retried;
     }
-    return transitionTask(task.id, {
+    const hookResult = await api.runHook("task:retry-exhausted", { task, error, transcript, handled: false }).catch(() => null);
+    if (hookResult?.handled === true) {
+      return getTask(task.id);
+    }
+    const failed = await transitionTask(task.id, {
       status: "failed",
       completedAt: nowIso(),
       error: String(error || "").trim(),
@@ -387,6 +399,8 @@ export default function createAgentRuntimePlugin() {
       eventType: "task.failed",
       reason: `Failed permanently after ${MAX_TASK_RETRIES} retries: ${String(error || "").trim()}`
     });
+    await api.runHook("task:failed", { task: failed, error }).catch(() => {});
+    return failed;
   }
 
   async function executeTask(task) {
@@ -417,12 +431,13 @@ export default function createAgentRuntimePlugin() {
       let waiting = null;
       for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration += 1) {
         if (control.abortRequested) {
-          await transitionTask(task.id, {
+          const aborted = await transitionTask(task.id, {
             status: "failed",
             completedAt: nowIso(),
             error: "aborted by user",
             transcript
           }, { eventType: "task.failed", reason: "Aborted by user." });
+          await api.runHook("task:failed", { task: aborted, error: "aborted by user" }).catch(() => {});
           return;
         }
         let response;
@@ -457,13 +472,14 @@ export default function createAgentRuntimePlugin() {
       }
 
       if (waiting) {
-        await transitionTask(task.id, {
+        const waitingTask = await transitionTask(task.id, {
           status: "waiting",
           waitingForUser: true,
           questionForUser: waiting.question,
           transcript
         }, { eventType: "task.waiting", reason: waiting.question });
         api.broadcast(`[genesis] task ${task.id} waiting for user input`);
+        await api.runHook("task:waiting", { task: waitingTask }).catch(() => {});
         return;
       }
 
@@ -472,7 +488,7 @@ export default function createAgentRuntimePlugin() {
         api.broadcast(`[genesis] task ${task.id} failed or requeued for retry`);
         return;
       }
-      await transitionTask(task.id, {
+      const completed = await transitionTask(task.id, {
         status: "done",
         completedAt: nowIso(),
         result: { text: finalText },
@@ -480,6 +496,7 @@ export default function createAgentRuntimePlugin() {
         transcript
       }, { eventType: "task.completed", reason: "Task completed." });
       api.broadcast(`[genesis] task ${task.id} completed`);
+      await api.runHook("task:completed", { task: completed }).catch(() => {});
     } finally {
       activeControllers.delete(task.id);
     }
@@ -591,15 +608,24 @@ export default function createAgentRuntimePlugin() {
       await recoverStaleInProgressTasks();
       const queued = await listTasks({ status: "queued" });
       if (!queued.length) {
-        await maybeRunOpportunityScan();
+        // "queue:idle" is the extension point for anything that wants to use spare
+        // capacity — this plugin's own opportunity scan is just the default listener.
+        // A plugin can pre-empt it entirely by returning `{ handled: true }` (e.g. a
+        // future maintenance/escalation-review/recreation plugin deciding what idle time
+        // should be spent on, instead of that decision being hardcoded here).
+        const hookResult = await api.runHook("queue:idle", { handled: false }).catch(() => null);
+        if (hookResult?.handled !== true) {
+          await maybeRunOpportunityScan();
+        }
         return;
       }
       const next = queued.sort((left, right) => (left.createdAt < right.createdAt ? -1 : 1))[0];
       const startedAt = nowIso();
-      await transitionTask(next.id, { status: "in_progress", startedAt }, {
+      const started = await transitionTask(next.id, { status: "in_progress", startedAt }, {
         eventType: "task.started",
         reason: "Dispatched from queue."
       });
+      await api.runHook("task:started", { task: started }).catch(() => {});
       const task = await getTask(next.id);
       await executeTask(task);
     } catch (err) {
