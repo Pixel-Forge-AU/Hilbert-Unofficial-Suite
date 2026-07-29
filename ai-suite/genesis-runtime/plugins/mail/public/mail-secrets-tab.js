@@ -46,14 +46,12 @@ async function loadMailSecrets() {
   }
   listEl.innerHTML = `<div class="panel-subtle">Loading mail secrets...</div>`;
   try {
-    const response = await fetch("/api/secrets/catalog");
+    const response = await fetch("/api/mail/agents");
     const payload = await response.json();
     if (!response.ok || payload.ok === false) {
-      throw new Error(payload.error || "failed to load secrets catalog");
+      throw new Error(payload.error || "failed to load mail agents");
     }
-    const catalog = payload.catalog && typeof payload.catalog === "object" ? payload.catalog : {};
-    const mail = catalog.mail && typeof catalog.mail === "object" ? catalog.mail : { agents: [] };
-    const mailAgents = Array.isArray(mail.agents) ? mail.agents : [];
+    const mailAgents = Array.isArray(payload.agents) ? payload.agents : [];
     if (!mailAgents.length) {
       if (hintEl) {
         hintEl.textContent = "No mail agents are configured.";
@@ -62,7 +60,7 @@ async function loadMailSecrets() {
       return;
     }
     if (hintEl) {
-      hintEl.textContent = `${mail.enabled ? "Mail is enabled." : "Mail is disabled."} Active agent: ${h(mail.activeAgentId || "(none)")}.`;
+      hintEl.textContent = `${payload.enabled ? "Mail is enabled." : "Mail is disabled."} Active agent: ${h(payload.activeAgentId || "(none)")}.`;
     }
     listEl.innerHTML = mailAgents.map((agent) => {
       const handle = String(agent.passwordHandle || "").trim();

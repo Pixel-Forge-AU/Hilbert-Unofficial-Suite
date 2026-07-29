@@ -14,6 +14,13 @@ import {
   buildMailRegressionSuites,
   runMailInternalRegressionCase
 } from "./lib/mail-regression.js";
+import {
+  normalizeTrustLevel,
+  normalizeSourceIdentityRecord,
+  describeSourceTrust,
+  defaultAppTrustConfig,
+  hashRef
+} from "../../observer-compat/server/trust.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +45,16 @@ export function createMailPlugin(options = {}) {
         ? runtime.mailDomainContext
         : {};
       mailRuntime = createMailDomain({
+        // This repo's observer-compat/server/trust.js (part of the KEEP_COMPAT layer this
+        // whole runtime was extracted around) already implements these — mail-plugin.js
+        // just never imported them, leaving mail-domain.js's trust-related calls
+        // (getAppTrustConfig(), normalizeTrustLevel(), etc.) undefined and crashing any
+        // code path that touched them (e.g. buildMailStatus() with any recent messages).
+        normalizeTrustLevel,
+        normalizeSourceIdentityRecord,
+        describeSourceTrust,
+        getAppTrustConfig: defaultAppTrustConfig,
+        hashRef,
         ...mailDomainContext,
         pluginManager: {
           runHook: async (...args) => await api.runHook(...args)
@@ -292,6 +309,43 @@ export function createMailPlugin(options = {}) {
           const buildMailStatus = requireRuntimeFn(runtime, "buildMailStatus");
           const fallback = buildMailStatus ? await buildMailStatus() : {};
           res.status(500).json({ ok: false, error: String(error?.message || error || "mail status failed"), ...fallback });
+        }
+      });
+
+      // Per-agent secrets listing for mail-secrets-tab.js. This used to come from a global
+      // /api/secrets/catalog aggregator that secrets-plugin.js's own header says was
+      // deliberately removed (cross-plugin coupling) in favor of each plugin reporting its
+      // own status — mail-secrets-tab.js was just never updated to match (github-secrets-tab.js
+      // already does this correctly via /api/github/status).
+      app.get("/api/mail/agents", async (_req, res) => {
+        try {
+          const runtime = getRouteRuntime();
+          const getMailAgents = requireRuntimeFn(runtime, "getMailAgents");
+          const getActiveMailAgent = requireRuntimeFn(runtime, "getActiveMailAgent");
+          const hasMailPassword = requireRuntimeFn(runtime, "hasMailPassword");
+          const buildMailStatus = requireRuntimeFn(runtime, "buildMailStatus");
+          if (!getMailAgents || !getActiveMailAgent || !hasMailPassword || !buildMailStatus) {
+            return res.status(503).json({ ok: false, error: "mail runtime context is unavailable" });
+          }
+          const activeAgentId = String(getActiveMailAgent()?.id || "").trim();
+          const agents = await Promise.all(getMailAgents().map(async (agent) => ({
+            id: agent.id,
+            label: agent.label,
+            email: agent.email,
+            user: agent.user,
+            active: agent.id === activeAgentId,
+            passwordHandle: agent.passwordHandle,
+            hasSecret: await hasMailPassword(agent)
+          })));
+          const status = await buildMailStatus();
+          res.json({
+            ok: true,
+            enabled: status.enabled === true,
+            activeAgentId,
+            agents
+          });
+        } catch (error) {
+          res.status(500).json({ ok: false, error: String(error?.message || error || "failed to list mail agents") });
         }
       });
 

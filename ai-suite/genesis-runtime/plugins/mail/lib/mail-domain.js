@@ -28,8 +28,8 @@ export function createMailDomain(context = {}) {
     findRecentDuplicateQueuedTask,
     buildFailureInvestigationTaskMessage,
     closeTaskRecord,
-    normalizeTrustLevel,
-    getAppTrustConfig,
+    normalizeTrustLevel = (value, fallback = "unknown") => String(value || fallback).trim().toLowerCase(),
+    getAppTrustConfig = () => ({ emailCommandMinLevel: "trusted" }),
     getDocumentRulesState,
     setDocumentRulesState,
     getMailWatchRulesState,
@@ -2541,6 +2541,12 @@ async function toolMoveMail(args = {}) {
     loadMailWatchRulesState,
     saveMailWatchRulesState,
     getMailAgents,
+    // Exposes the local in-memory mail state (recentMessages, lastCheckAt/lastError,
+    // highestUidByAgent, ...) as a live accessor — mail-plugin.js's /api/mail/status route
+    // expects a callable getMailState(), not the raw mailState object, matching the same
+    // accessor convention as getObserverConfig/getMailWatchRulesState above. This was
+    // simply never added, leaving that route permanently 503ing.
+    getMailState: () => mailState,
     hasImapCredentials,
     hasMailCredentials,
     looksLikeEmailAddress,

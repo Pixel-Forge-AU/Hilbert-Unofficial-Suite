@@ -46,31 +46,17 @@ async function loadWordPressSecrets() {
   }
   listEl.innerHTML = `<div class="panel-subtle">Loading WordPress secrets...</div>`;
   try {
-    const [catalogResponse, sitesResponse] = await Promise.all([
-      fetch("/api/secrets/catalog"),
-      fetch("/api/wordpress/sites")
-    ]);
-    const catalogPayload = await catalogResponse.json();
+    // /api/wordpress/sites already returns sharedSecretHandle/hasSecret/maskedSecret per
+    // site (see wordpress-domain.js's listSites) — this used to also fetch the global
+    // /api/secrets/catalog aggregator and merge the two, but that aggregator was
+    // deliberately removed (see secrets-plugin.js's header) and this tab was never updated
+    // to drop the now-dead fetch.
+    const sitesResponse = await fetch("/api/wordpress/sites");
     const sitesPayload = await sitesResponse.json();
-    if (!catalogResponse.ok || catalogPayload.ok === false) {
-      throw new Error(catalogPayload.error || "failed to load secrets catalog");
-    }
     if (!sitesResponse.ok || sitesPayload.ok === false) {
       throw new Error(sitesPayload.error || "failed to load WordPress sites");
     }
-    const catalog = catalogPayload.catalog && typeof catalogPayload.catalog === "object" ? catalogPayload.catalog : {};
-    const wordpress = catalog.wordpress && typeof catalog.wordpress === "object" ? catalog.wordpress : { sites: [] };
-    const catalogSites = Array.isArray(wordpress.sites) ? wordpress.sites : [];
-    const configuredSites = Array.isArray(sitesPayload.sites) ? sitesPayload.sites : [];
-    const sitesById = new Map(
-      configuredSites
-        .filter((site) => site && typeof site === "object")
-        .map((site) => [String(site.siteId || "").trim(), site])
-    );
-    const sites = catalogSites.map((site) => ({
-      ...sitesById.get(String(site.siteId || "").trim()),
-      ...site
-    }));
+    const sites = Array.isArray(sitesPayload.sites) ? sitesPayload.sites : [];
 
     if (hintEl) {
       hintEl.textContent = sites.length
