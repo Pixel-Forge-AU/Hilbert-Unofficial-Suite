@@ -25,27 +25,40 @@
 //   - a bounded automatic retry on task failure (see observer-queue-processor.js's
 //     chooseAutomaticRetryBrainId retry-gate pattern, minus the specialist-brain selection)
 //   - an opt-in, off-by-default idle opportunity scan (see observer-opportunity-domain.js's
-//     processQueuedTasksToCapacity-adjacent idle-scan trigger, minus its workspace-markdown-
-//     file-ranking implementation, which is Nova-workspace-mount-specific)
+//     processQueuedTasksToCapacity-adjacent idle-scan trigger)
 //
-// EXPLICITLY NOT PORTED (deferred, not silently dropped — each is Nova personal-assistant
-// *product* behavior tied to concepts Genesis has no equivalent for):
-// - escalation-review (observer-escalation-review.js): retries a failed task on a distinct
-//   "remote triage" brain. Meaningless without brain-kind/specialist routing, which this
-//   extraction deliberately drops (see the routing decision above).
+// EXTENSION POINTS, not hardcoded decisions: earlier drafts of this file treated several
+// Nova behaviors as permanently out of scope because they're "product, not infrastructure."
+// That was the wrong call — Genesis's design goal is a minimalist core plus hooks so *any*
+// plugin can add functionality the core never anticipated, including things this file's
+// author didn't think of. So instead of baking in or excluding these, this plugin fires
+// hooks at the decision points and lets plugins opt in:
+// - task:retry-exhausted (fired before a task is marked permanently failed) is where an
+//   escalation-review-style plugin belongs — see plugins/escalation-review-plugin.js,
+//   which retries on a different registered brain instead of giving up.
+// - queue:idle (fired every dispatch tick the queue is empty) is where richer opportunity
+//   scanning belongs — see plugins/opportunity-scan-plugin.js, which scans real workspace
+//   markdown files (a faithful-content port of observer-opportunity-domain.js) and takes
+//   over from this plugin's generic placeholder scan via `{ handled: true }`.
+// - intake:before-triage (fired before the intake model is even called) is where Nova's
+//   native chat-response builders (observer-native-support.js / calendar/finance/mail quick
+//   answers) belong — a domain plugin can answer directly with `{ handled: true, replyText }`
+//   without a model call. No plugin implements this yet; it's a real gap, not a dead hook.
+//
+// Still not ported, and not hook-shaped — these are Nova personal-assistant behaviors this
+// plugin has no reasonable hook to expose because nothing in Genesis produces the signals
+// they depend on:
 // - helper-scout / maintenance-support / the "recreation" reflective job
 //   (observer-maintenance-support.js, observer-recreation-job.js): periodic self-maintenance
-//   and personality-regeneration jobs specific to Nova's own persona system.
+//   and personality-regeneration jobs specific to Nova's own persona system. A plugin could
+//   still build these using queue:idle/cron; none does yet.
 // - the elaborate failure-classification taxonomy and capability-mismatch retry-message
 //   builder (observer-failure-domain.js): classifies failure signal strings
 //   ("no_inspection", "speculative_completion", "project-cycle finalization", harness-eval
 //   snapshots) that only the full observer-execution-runner.js tool loop — not this
 //   plugin's deliberately simpler one — ever produces. Porting the classifier without the
-//   thing it classifies would be dead code.
-// - Nova's elaborate native chat-response builders (calendar/finance/inbox summaries —
-//   those depend on domains like calendar/finance that were never part of Nova's
-//   *infrastructure* either) and tool-loop-repair-helpers' sandbox-specific JSON-repair
-//   heuristics.
+//   thing it classifies would be dead code, hook or no hook.
+// - tool-loop-repair-helpers' sandbox-specific JSON-repair heuristics.
 //
 // Tool-invocation convention: any plugin that wants a tool it registers via
 // api.registerTool({name, ...}) (metadata/discovery only — core does not dispatch tool calls)
@@ -659,6 +672,18 @@ export default function createAgentRuntimePlugin() {
       });
       return result;
     };
+
+    // "intake:before-triage" is the pluggable equivalent of Nova's native chat-response
+    // builders (observer-native-support.js / observer-native-response-helpers.js) — a
+    // domain plugin (calendar, finance, mail, ...) can answer a message directly from its
+    // own data, with no model call at all, by returning `{ handled: true, replyText, action }`.
+    // This was previously just a documented gap; now it's a real extension point instead of
+    // requiring those builders to be ported into this plugin (they never should be — this
+    // plugin has no business knowing about calendar or finance).
+    const nativeResult = await api.runHook("intake:before-triage", { message, sessionId: session, handled: false }).catch(() => null);
+    if (nativeResult?.handled === true && nativeResult?.replyText) {
+      return recordAndReturn({ action: nativeResult.action === "clarify" ? "clarify" : "reply", replyText: String(nativeResult.replyText) });
+    }
 
     if (typeof generateJson !== "function") {
       // No model provider installed — fall back to always queueing.
