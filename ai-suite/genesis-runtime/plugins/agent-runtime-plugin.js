@@ -71,6 +71,15 @@
 // the same runtimeContext -> capability-delegation fix already applied in
 // developer-tools-plugin.js) — it owns the Nova-shaped /api/plugins/tasks/* HTTP surface,
 // this plugin owns the actual queue/storage/execution mechanism.
+//
+// One thing genuinely missing until now: done/failed task records accumulated forever with
+// no pruning at all (unlike observer-task-lifecycle-service.js's
+// archiveExpiredCompletedTasks/pruneClosedTasks). This isn't Nova product behavior to weigh
+// in or out — an unbounded local data store is a real infrastructure gap in this plugin's
+// own housekeeping, so it's fixed directly here (see pruneOldTasks below) rather than
+// pushed off onto a hook/plugin the way the actually-optional behaviors were.
+
+import fs from "node:fs/promises";
 
 const MANIFEST = {
   schemaVersion: 1,
@@ -100,6 +109,9 @@ const STALE_IN_PROGRESS_MS = 5 * 60 * 1000;
 const MAX_HISTORY_ENTRIES = 50;
 const MAX_TASK_RETRIES = 2;
 const DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS = 30 * 60 * 1000;
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+const DEFAULT_TASK_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_MAX_FINISHED_TASKS = 500;
 
 function nowIso() {
   return new Date().toISOString();
@@ -274,6 +286,7 @@ export default function createAgentRuntimePlugin() {
   let api = null;
   let dispatchTimer = null;
   let cronTimer = null;
+  let pruneTimer = null;
   let dispatching = false;
   // taskId -> { abortRequested: boolean }. Best-effort cooperative cancellation: a running
   // executeTask() checks this between tool-loop iterations. It cannot interrupt a single
@@ -590,15 +603,58 @@ export default function createAgentRuntimePlugin() {
   // that doesn't exist at this layer in Genesis). Off by default because autonomously
   // creating tasks is a meaningful behavior change a user should opt into, not something
   // that starts happening silently after an upgrade.
+  const DEFAULT_SETTINGS = {
+    opportunityScanEnabled: false,
+    opportunityScanIntervalMs: DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS,
+    lastOpportunityScanAt: 0,
+    taskRetentionMs: DEFAULT_TASK_RETENTION_MS,
+    maxFinishedTasks: DEFAULT_MAX_FINISHED_TASKS
+  };
+
   async function getSettings() {
-    return (await api.data.readJson("settings", { opportunityScanEnabled: false, opportunityScanIntervalMs: DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS, lastOpportunityScanAt: 0 }))
-      || { opportunityScanEnabled: false, opportunityScanIntervalMs: DEFAULT_OPPORTUNITY_SCAN_INTERVAL_MS, lastOpportunityScanAt: 0 };
+    return (await api.data.readJson("settings", DEFAULT_SETTINGS)) || DEFAULT_SETTINGS;
   }
 
   async function updateSettings(patch = {}) {
     const settings = { ...(await getSettings()), ...patch };
     await api.data.writeJson("settings", settings);
     return settings;
+  }
+
+  // Mirrors observer-task-lifecycle-service.js's archiveExpiredCompletedTasks/
+  // pruneClosedTasks, simplified to Genesis's flatter status model (no separate
+  // "closed" history state — done/failed tasks past retention or beyond the keep-count
+  // cap are removed outright). Unlike the opt-in opportunity scan, this isn't a behavior
+  // change a user needs to consent to — it's queue hygiene, on by default with generous
+  // defaults (7 days / 500 records), configurable via the same settings endpoint.
+  async function pruneOldTasks() {
+    const settings = await getSettings();
+    const retentionMs = Math.max(0, Number(settings.taskRetentionMs ?? DEFAULT_TASK_RETENTION_MS));
+    const maxFinished = Math.max(10, Number(settings.maxFinishedTasks ?? DEFAULT_MAX_FINISHED_TASKS));
+    const finished = (await listTasks({})).filter((task) => task.status === "done" || task.status === "failed");
+    if (!finished.length) return;
+
+    const now = Date.now();
+    const expired = new Set(
+      finished
+        .filter((task) => retentionMs > 0 && now - (Date.parse(task.completedAt || task.updatedAt || 0) || 0) > retentionMs)
+        .map((task) => task.id)
+    );
+    const overCapIds = finished
+      .filter((task) => !expired.has(task.id))
+      .sort((left, right) => (Date.parse(right.completedAt || right.updatedAt || 0) || 0) - (Date.parse(left.completedAt || left.updatedAt || 0) || 0))
+      .slice(maxFinished)
+      .map((task) => task.id);
+    const toRemove = new Set([...expired, ...overCapIds]);
+    if (!toRemove.size) return;
+
+    for (const taskId of toRemove) {
+      await fs.rm(api.data.path(`tasks/${taskId}`), { force: true }).catch(() => {});
+    }
+    const index = await loadIndex();
+    index.taskIds = index.taskIds.filter((id) => !toRemove.has(id));
+    await api.data.writeJson("index", index);
+    api.broadcast(`[genesis] pruned ${toRemove.size} old finished task record(s)`);
   }
 
   async function maybeRunOpportunityScan() {
@@ -906,6 +962,8 @@ export default function createAgentRuntimePlugin() {
           const patch = {};
           if (req.body?.opportunityScanEnabled != null) patch.opportunityScanEnabled = Boolean(req.body.opportunityScanEnabled);
           if (req.body?.opportunityScanIntervalMs != null) patch.opportunityScanIntervalMs = Math.max(60000, Number(req.body.opportunityScanIntervalMs));
+          if (req.body?.taskRetentionMs != null) patch.taskRetentionMs = Math.max(0, Number(req.body.taskRetentionMs));
+          if (req.body?.maxFinishedTasks != null) patch.maxFinishedTasks = Math.max(10, Number(req.body.maxFinishedTasks));
           res.json({ ok: true, settings: await updateSettings(patch) });
         } catch (err) {
           res.status(400).json({ ok: false, error: String(err?.message || err || "failed to update settings") });
@@ -916,8 +974,10 @@ export default function createAgentRuntimePlugin() {
     async onDisable() {
       if (dispatchTimer) clearInterval(dispatchTimer);
       if (cronTimer) clearInterval(cronTimer);
+      if (pruneTimer) clearInterval(pruneTimer);
       dispatchTimer = null;
       cronTimer = null;
+      pruneTimer = null;
     },
 
     async onEnable() {
@@ -926,8 +986,9 @@ export default function createAgentRuntimePlugin() {
   };
 
   function startTimers() {
-    if (dispatchTimer || cronTimer) return;
+    if (dispatchTimer || cronTimer || pruneTimer) return;
     dispatchTimer = setInterval(() => { dispatchNext().catch(() => {}); }, DISPATCH_INTERVAL_MS);
     cronTimer = setInterval(() => { cronTick().catch(() => {}); }, CRON_TICK_INTERVAL_MS);
+    pruneTimer = setInterval(() => { pruneOldTasks().catch(() => {}); }, PRUNE_INTERVAL_MS);
   }
 }
