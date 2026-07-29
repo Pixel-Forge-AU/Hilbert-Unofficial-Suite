@@ -13,63 +13,59 @@ import path from "node:path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function requireRuntimeFn(runtime = {}, name = "") {
-  const fn = runtime?.[name];
-  return typeof fn === "function" ? fn : null;
-}
-
+// Reinterprets Nova's observer-recreation-job.js for Genesis: the original tracked a
+// dedicated "agent_recreation" internalJobType across Nova's rich task-queue folders
+// (queued/inProgress/done/closed), a shape agent-runtime-plugin.js's task model doesn't
+// have (no internalJobType tag, no "closed" history bucket, no notBeforeAt delay). Since
+// there's no way to filter agent-runtime's tasks by job type, this plugin tracks its own
+// list of recreation task ids (in its own data store, now that it has one) and looks each
+// one up via tasks:get, deriving scheduled/running/recent from the task's actual status.
 async function buildRecreationStatusPayload(api, limitInput = 10) {
-  const runtime = api.getRuntimeContext();
-  const listAllTasks = requireRuntimeFn(runtime, "listAllTasks");
-  const listTasksByFolder = requireRuntimeFn(runtime, "listTasksByFolder");
-  const queueClosed = String(runtime?.TASK_QUEUE_CLOSED || "").trim();
-  if (!listAllTasks || !listTasksByFolder || !queueClosed) {
-    throw new Error("personality runtime context is unavailable");
+  const getTask = api.getCapability("tasks:get");
+  if (typeof getTask !== "function") {
+    throw new Error("no plugin provides the tasks:get capability (install agent-runtime)");
   }
-
   const limit = Math.min(20, Math.max(1, Number(limitInput || 10) || 10));
-  const { queued, inProgress, done } = await listAllTasks();
-  const closed = await listTasksByFolder(queueClosed, "closed");
-  const isRecreation = (task) => String(task?.internalJobType || "").trim() === "agent_recreation";
+  const state = (await api.data.readJson("recreation", { taskIds: [] })) || { taskIds: [] };
+  const tasks = (await Promise.all(state.taskIds.map((id) => getTask({ taskId: id })))).filter(Boolean);
 
-  const scheduledTask = queued.find(isRecreation) || null;
-  const runningTask = inProgress.find(isRecreation) || null;
-  const recentTasks = [...done, ...closed]
-    .filter(isRecreation)
+  const scheduledTask = tasks.find((task) => task.status === "queued") || null;
+  const runningTask = tasks.find((task) => task.status === "in_progress") || null;
+  const recentTasks = tasks
+    .filter((task) => task.status === "done" || task.status === "failed")
     .sort((left, right) =>
-      Number(right.completedAt || right.updatedAt || right.createdAt || 0)
-      - Number(left.completedAt || left.updatedAt || left.createdAt || 0)
+      (Date.parse(right.completedAt || right.updatedAt || 0) || 0)
+      - (Date.parse(left.completedAt || left.updatedAt || 0) || 0)
     )
     .slice(0, limit)
     .map((task) => ({
       id: task.id,
-      codename: task.codename,
       status: task.status,
       startedAt: task.startedAt || null,
-      completedAt: task.completedAt || task.updatedAt || null,
-      summary: String(task.workerSummary || task.resultSummary || task.reviewSummary || task.notes || "").trim(),
-      brain: task.requestedBrainId || null,
-      internetEnabled: task.internetEnabled === true
+      completedAt: task.completedAt || null,
+      summary: String(task.result?.text || task.error || "").trim(),
+      brain: task.brainId || null
     }));
 
   return {
-    scheduled: scheduledTask
-      ? {
-          id: scheduledTask.id,
-          notBeforeAt: scheduledTask.notBeforeAt || null,
-          notes: scheduledTask.notes || ""
-        }
-      : null,
-    running: runningTask
-      ? {
-          id: runningTask.id,
-          codename: runningTask.codename,
-          startedAt: runningTask.startedAt || null,
-          brain: runningTask.requestedBrainId || null
-        }
-      : null,
+    scheduled: scheduledTask ? { id: scheduledTask.id } : null,
+    running: runningTask ? { id: runningTask.id, startedAt: runningTask.startedAt || null, brain: runningTask.brainId || null } : null,
     recent: recentTasks
   };
+}
+
+async function ensureRecreationJob(api) {
+  const createTask = api.getCapability("tasks:create");
+  if (typeof createTask !== "function") {
+    throw new Error("no plugin provides the tasks:create capability (install agent-runtime)");
+  }
+  const task = await createTask({
+    request: "Reflective self-check: review your recent task history and note anything about your own behavior, tools, or instructions that should change. Keep it brief and concrete."
+  });
+  const state = (await api.data.readJson("recreation", { taskIds: [] })) || { taskIds: [] };
+  state.taskIds = [...state.taskIds, task.id].slice(-50);
+  await api.data.writeJson("recreation", state);
+  return task;
 }
 
 export function createPersonalityPlugin(options = {}) {
@@ -89,22 +85,16 @@ export function createPersonalityPlugin(options = {}) {
       permissions: {
         routes: true,
         uiPanels: true,
-        data: false,
+        data: true,
         capabilities: [
           "subsystem:classify"
         ],
         hooks: [],
-        runtimeContext: [
-          "TASK_QUEUE_CLOSED",
-          "ensureRecreationJob",
-          "listAllTasks",
-          "listTasksByFolder",
-          "noteInteractiveActivity"
-        ]
+        runtimeContext: []
       },
       dependencies: {
         requiredCapabilities: [],
-        optionalCapabilities: []
+        optionalCapabilities: ["tasks:create", "tasks:get"]
       },
       security: {
         isolation: "inprocess"
@@ -169,16 +159,7 @@ export function createPersonalityPlugin(options = {}) {
 
       app.post("/api/personality/recreation/trigger", async (_req, res) => {
         try {
-          const runtime = api.getRuntimeContext();
-          const ensureRecreationJob = requireRuntimeFn(runtime, "ensureRecreationJob");
-          const noteInteractiveActivity = requireRuntimeFn(runtime, "noteInteractiveActivity");
-          if (!ensureRecreationJob) {
-            return res.status(503).json({ ok: false, error: "personality runtime context is unavailable" });
-          }
-          if (noteInteractiveActivity) {
-            noteInteractiveActivity();
-          }
-          const task = await ensureRecreationJob({ immediate: true });
+          const task = await ensureRecreationJob(api);
           const status = await buildRecreationStatusPayload(api, 10);
           res.json({ ok: true, task, ...status });
         } catch (error) {
