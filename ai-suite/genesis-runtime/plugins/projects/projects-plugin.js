@@ -40,7 +40,41 @@ export function createProjectsPlugin(options = {}) {
   let projectRuntime = null;
   const getRawProjectRuntime = (api) => {
     if (!rawProjectRuntime) {
-      rawProjectRuntime = createProjectsRuntime(api.getRuntimeContext());
+      // observer-project-state.js calls several of these context functions unconditionally
+      // (no typeof guard), so leaving them unset from the dead runtimeContext (always `{}`
+      // in Genesis) crashed /api/projects/config outright rather than degrading gracefully.
+      // Bridge the two that have a real Genesis equivalent to the actual capabilities that
+      // provide them; the rest (Nova's "closed" task-queue folder, which agent-runtime
+      // -plugin.js's simpler status model has no equivalent for) get a safe empty fallback
+      // instead of a crash.
+      const listContainerWorkspaceProjects = async () => {
+        const listProjects = api.getCapability("workspace:list-projects");
+        if (typeof listProjects !== "function") return [];
+        const result = await listProjects();
+        return Array.isArray(result?.projects) ? result.projects : Array.isArray(result) ? result : [];
+      };
+      const listAllTasks = async () => {
+        const listTasks = api.getCapability("tasks:list");
+        const buckets = { queued: [], waiting: [], inProgress: [], done: [], failed: [] };
+        if (typeof listTasks !== "function") return buckets;
+        const tasks = await listTasks({});
+        for (const task of Array.isArray(tasks) ? tasks : []) {
+          if (task.status === "queued") buckets.queued.push(task);
+          else if (task.status === "waiting") buckets.waiting.push(task);
+          else if (task.status === "in_progress") buckets.inProgress.push(task);
+          else if (task.status === "done") buckets.done.push(task);
+          else if (task.status === "failed") buckets.failed.push(task);
+        }
+        return buckets;
+      };
+      rawProjectRuntime = createProjectsRuntime({
+        listContainerWorkspaceProjects,
+        listAllTasks,
+        listTasksByFolder: async () => [],
+        TASK_QUEUE_CLOSED: "closed",
+        opportunityScanState: { projectRotation: { recentImports: {}, backups: {} } },
+        ...api.getRuntimeContext()
+      });
     }
     return rawProjectRuntime;
   };
