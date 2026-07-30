@@ -32,7 +32,15 @@ import { fileURLToPath } from "node:url";
 
 import * as trust from "../observer-compat/server/trust.js";
 
-const DEFAULT_ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public", "assets");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_ASSETS_DIR = path.join(__dirname, "..", "public", "assets");
+
+// Served to the browser at /vendor/three so the avatar tab (and worker-sprites' own tab,
+// which has depended on this same path since before this plugin had any UI) can `import
+// * as THREE from "/vendor/three/build/three.module.js"` without a bundler. Sourced
+// straight from node_modules/three (declared as a real npm dependency in package.json)
+// rather than a committed copy — nothing three.js-related needs to live in git.
+const THREE_VENDOR_ROOT = path.join(__dirname, "..", "node_modules", "three");
 
 // Emotion vocabulary the annotator/animation map understands. Values are intentionally
 // blank by default (see class comment above) — the deployer fills in clip names that match
@@ -252,7 +260,7 @@ const MANIFEST = {
   startupPriority: 100,
   permissions: {
     routes: true,
-    uiPanels: false,
+    uiPanels: true,
     data: true,
     capabilities: [
       "voice:annotate-emotion",
@@ -409,9 +417,51 @@ export default function createVoiceAvatarPlugin() {
         const config = await getSceneConfig();
         return listAssetChoices(config.assetsDir || DEFAULT_ASSETS_DIR);
       });
+
+      if (typeof api.registerUiTab === "function") {
+        api.registerUiTab({
+          id: "avatar",
+          title: "Avatar",
+          icon: "V",
+          order: 8,
+          scriptUrl: "/api/plugin-ui/voice-avatar/avatar-tab.js"
+        });
+      }
     },
 
     async registerRoutes({ app }) {
+      // Served from node_modules/three, not committed. examples/jsm/** files import the
+      // core module via the bare specifier `from "three"`, which only resolves via a
+      // bundler or an import map — neither of which this plain-script admin UI uses. Rather
+      // than add a global import map to the core shell (public/index.html) for a path only
+      // this plugin provides, rewrite that one bare specifier to a relative path at serve
+      // time, scoped entirely to this plugin's own route.
+      app.get(/^\/vendor\/three\/(.+)$/, async (req, res) => {
+        const relativePath = String(req.params[0] || "").replace(/\\/g, "/");
+        const resolved = path.resolve(THREE_VENDOR_ROOT, relativePath);
+        const root = path.resolve(THREE_VENDOR_ROOT);
+        if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) {
+          return res.status(403).end();
+        }
+        let content;
+        try {
+          content = await fs.readFile(resolved, "utf8");
+        } catch {
+          return res.status(404).end();
+        }
+        if (relativePath.startsWith("examples/jsm/") && relativePath.endsWith(".js")) {
+          const depth = relativePath.split("/").length - 1;
+          const upToRoot = "../".repeat(depth) || "./";
+          content = content.replace(/from\s+(['"])three\1/g, `from "${upToRoot}build/three.module.js"`);
+        }
+        res.type("application/javascript").send(content);
+      });
+
+      app.get("/api/plugin-ui/voice-avatar/avatar-tab.js", async (_req, res) => {
+        res.type("application/javascript");
+        res.sendFile(path.join(__dirname, "voice-avatar", "public", "avatar-tab.js"));
+      });
+
       app.get("/api/voice/trust-profiles", async (_req, res) => {
         try {
           res.json({ ok: true, profiles: await getTrustProfiles() });
