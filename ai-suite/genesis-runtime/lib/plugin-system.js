@@ -244,6 +244,13 @@ export function createGenesisPluginManager(context = {}) {
       disabledPluginIds: [...pluginStateById.entries()]
         .filter(([, enabled]) => enabled === false)
         .map(([pluginId]) => pluginId)
+        .sort((left, right) => left.localeCompare(right)),
+      // Symmetric with disabledPluginIds: a manual "enable" toggle on a plugin the active
+      // profile doesn't itself enable (e.g. turning one thing on from the "default"
+      // profile) needs to survive a restart the same way a manual "disable" already does.
+      enabledPluginIds: [...pluginStateById.entries()]
+        .filter(([, enabled]) => enabled === true)
+        .map(([pluginId]) => pluginId)
         .sort((left, right) => left.localeCompare(right))
     };
   }
@@ -271,6 +278,15 @@ export function createGenesisPluginManager(context = {}) {
         }
         knownPluginIds.add(normalizedPluginId);
         pluginStateById.set(normalizedPluginId, false);
+      }
+      const enabledPluginIds = Array.isArray(parsed?.enabledPluginIds) ? parsed.enabledPluginIds : [];
+      for (const pluginId of enabledPluginIds) {
+        const normalizedPluginId = normalizePluginId(pluginId);
+        if (!normalizedPluginId) {
+          continue;
+        }
+        knownPluginIds.add(normalizedPluginId);
+        pluginStateById.set(normalizedPluginId, true);
       }
     } catch {
       // Missing or malformed plugin state should never block startup.
@@ -1492,10 +1508,13 @@ export function createGenesisPluginManager(context = {}) {
         knownPluginIds.add(pluginId);
         pluginStateChanged = true;
       }
-      if (!pluginStateById.has(pluginId)) {
-        pluginStateById.set(pluginId, true);
-        pluginStateChanged = true;
-      }
+      // Deliberately NOT defaulting pluginStateById to true here: leaving it unset lets
+      // isPluginEnabled() fall through to the active profile's own enabledPlugins/
+      // disabledPlugins/fallback resolution (see resolveProfilePluginState) instead of
+      // this map silently overriding it with a permanent "manually enabled" record for
+      // every plugin the very first time it's ever loaded — which is what previously
+      // made every profile behave like "everything on" regardless of its own
+      // enabledPlugins list.
       const pluginApi = buildPluginApi(pluginMeta);
       if (typeof plugin.init === "function") {
         try {
