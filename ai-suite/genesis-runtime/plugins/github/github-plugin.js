@@ -128,7 +128,7 @@ function buildGithubMailTaskMessage(message = {}, notification = {}) {
   const subject = String(notification.subject || message.subject || "(no subject)").trim() || "(no subject)";
   const preview = compactGithubPluginText(notification.preview || message.text || "", 900);
   return [
-    "Triage this GitHub notification email for Derek.",
+    "Triage this GitHub notification email for the user.",
     "",
     repo ? `Repository: ${repo}` : "",
     notification.url ? `GitHub URL: ${notification.url}` : "",
@@ -136,7 +136,7 @@ function buildGithubMailTaskMessage(message = {}, notification = {}) {
     `Email subject: ${subject}`,
     "",
     "Use the GitHub tools to inspect the relevant issue, PR, commit, or notification before deciding what to do.",
-    "If it is actionable and safe, do the work or prepare the needed response. If it needs Derek's decision, create or update a todo/waiting item and summarize the blocker. If it is FYI only, archive or mark it handled when appropriate.",
+    "If it is actionable and safe, do the work or prepare the needed response. If it needs the user's decision, create or update a todo/waiting item and summarize the blocker. If it is FYI only, archive or mark it handled when appropriate.",
     "",
     preview ? `Email preview: ${preview}` : ""
   ].filter(Boolean).join("\n");
@@ -162,7 +162,7 @@ function buildGithubNotificationTaskMessage(notification = {}) {
   const repo = String(notification.repo || "").trim();
   const title = String(notification.title || "(no title)").trim() || "(no title)";
   return [
-    "Triage this GitHub notification for Derek.",
+    "Triage this GitHub notification for the user.",
     "",
     repo ? `Repository: ${repo}` : "",
     notification.subjectUrl ? `GitHub URL: ${notification.subjectUrl}` : "",
@@ -171,7 +171,7 @@ function buildGithubNotificationTaskMessage(notification = {}) {
     `Title: ${title}`,
     "",
     "Use the GitHub tools (github_get_notification, github_list_notifications) to inspect the relevant issue, PR, commit, or notification before deciding what to do.",
-    "If it is actionable and safe, do the work or prepare the needed response. If it needs Derek's decision, create or update a todo/waiting item and summarize the blocker. If it is FYI only, mark it handled when appropriate."
+    "If it is actionable and safe, do the work or prepare the needed response. If it needs the user's decision, create or update a todo/waiting item and summarize the blocker. If it is FYI only, mark it handled when appropriate."
   ].filter(Boolean).join("\n");
 }
 

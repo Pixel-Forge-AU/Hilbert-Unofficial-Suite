@@ -210,10 +210,10 @@ export function buildMailRegressionSuites() {
           message: {
             fromName: "GitHub",
             fromAddress: "notifications@github.com",
-            subject: "[derek/example] Review requested on pull request #42",
-            text: "You were requested to review this pull request. https://github.com/derek/example/pull/42",
+            subject: "[octocat/example] Review requested on pull request #42",
+            text: "You were requested to review this pull request. https://github.com/octocat/example/pull/42",
             headers: {
-              "list-id": "derek/example <example.derek.github.com>",
+              "list-id": "octocat/example <example.octocat.github.com>",
               "x-github-reason": "review_requested",
               "auto-submitted": "auto-generated"
             }
