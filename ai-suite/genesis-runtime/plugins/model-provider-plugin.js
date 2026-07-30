@@ -31,6 +31,12 @@
 // Ollama server in the environment this was written in, so the generation/embedding paths are
 // untested against a real endpoint -- see the final report for details.
 
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const DEFAULT_LOCAL_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const DEFAULT_MODEL_TEMPERATURE = 0.7;
 const MAX_MODEL_TEMPERATURE = 1.5;
@@ -213,7 +219,7 @@ const MANIFEST = {
   startupPriority: 20, // load early: other plugins depend on this for LLM calls
   permissions: {
     routes: true,
-    uiPanels: false,
+    uiPanels: true,
     data: true,
     capabilities: [
       "brain:list",
@@ -1005,9 +1011,24 @@ export default function createModelProviderPlugin() {
       api.provideCapability("brain:generate-json", async (args = {}) => generateJsonForCapability(args));
       api.provideCapability("brain:embed", async (args = {}) => embedForCapability(args));
       api.provideCapability("brain:queue-lane", (brain = {}) => getBrainQueueLane(brain, brain?.endpointId || "local"));
+
+      if (typeof api.registerUiTab === "function") {
+        api.registerUiTab({
+          id: "brains",
+          title: "Brains",
+          icon: "B",
+          order: 6,
+          scriptUrl: "/api/plugin-ui/model-provider/brains-tab.js"
+        });
+      }
     },
 
     async registerRoutes({ app }) {
+      app.get("/api/plugin-ui/model-provider/brains-tab.js", async (_req, res) => {
+        res.type("application/javascript");
+        res.sendFile(path.join(__dirname, "model-provider", "public", "brains-tab.js"));
+      });
+
       app.get("/api/brains", async (req, res) => {
         try {
           const includeDisabled = String(req.query?.includeDisabled || "").trim() === "true";
