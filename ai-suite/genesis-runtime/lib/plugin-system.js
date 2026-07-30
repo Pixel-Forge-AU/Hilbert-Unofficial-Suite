@@ -65,6 +65,7 @@ export function createGenesisPluginManager(context = {}) {
   const pluginRoutes = new Map();
   const failedPlugins = [];
   const pluginStateById = new Map();
+  const routeRegisteredPluginIds = new Set();
   const knownPluginIds = new Set();
   const pluginRuntimeStatsById = new Map();
   const hookRuntimeStatsByName = new Map();
@@ -224,6 +225,10 @@ export function createGenesisPluginManager(context = {}) {
     setPluginEnabled(normalizedPluginId, nextEnabled);
     await savePluginState();
     if (nextEnabled) {
+      const plugin = activePlugins.find((entry) => normalizePluginId(entry?.id || "") === normalizedPluginId);
+      if (plugin) {
+        await registerRoutesForPlugin(plugin);
+      }
       await invokePluginLifecycleCallback(normalizedPluginId, "onEnable", payload);
     }
     await appendPluginAudit({
@@ -1850,31 +1855,43 @@ export function createGenesisPluginManager(context = {}) {
     await Promise.allSettled(
       activePlugins
         .filter((plugin) => plugin.registerRoutes && isPluginEnabled(plugin.id))
-        .map(async (plugin) => {
-          const pluginApi = buildPluginApi(plugin);
-          if (pluginApi.canRegisterRoutes && pluginApi.canRegisterRoutes() !== true) {
-            recordPluginFailure(plugin.id, "manifest:routes-denied", "route registration is not permitted");
-            return;
-          }
-          const routeAwareApp = buildPluginRouteAwareApp(plugin.id) || app;
-          try {
-            await plugin.registerRoutes({
-              app: routeAwareApp,
-              fs,
-              path,
-              runtimeRoot,
-              plugin: {
-                id: plugin.id,
-                name: plugin.name,
-                version: plugin.version
-              },
-              api: pluginApi
-            });
-          } catch (error) {
-            recordPluginFailure(plugin.id, "registerRoutes", error);
-          }
-        })
+        .map((plugin) => registerRoutesForPlugin(plugin))
     );
+  }
+
+  // Runs a single plugin's registerRoutes callback exactly once (tracked via
+  // routeRegisteredPluginIds), regardless of whether that happens during the startup
+  // sweep above or later, when a plugin disabled at boot gets manually enabled — without
+  // this, a plugin toggled on after startup would show its UI tab (registerUiTab already
+  // ran unconditionally in init()) but every route that tab actually calls (its own
+  // scriptUrl included) would 404 until the process was restarted.
+  async function registerRoutesForPlugin(plugin) {
+    if (!plugin || !plugin.registerRoutes || routeRegisteredPluginIds.has(plugin.id)) {
+      return;
+    }
+    routeRegisteredPluginIds.add(plugin.id);
+    const pluginApi = buildPluginApi(plugin);
+    if (pluginApi.canRegisterRoutes && pluginApi.canRegisterRoutes() !== true) {
+      recordPluginFailure(plugin.id, "manifest:routes-denied", "route registration is not permitted");
+      return;
+    }
+    const routeAwareApp = buildPluginRouteAwareApp(plugin.id) || app;
+    try {
+      await plugin.registerRoutes({
+        app: routeAwareApp,
+        fs,
+        path,
+        runtimeRoot,
+        plugin: {
+          id: plugin.id,
+          name: plugin.name,
+          version: plugin.version
+        },
+        api: pluginApi
+      });
+    } catch (error) {
+      recordPluginFailure(plugin.id, "registerRoutes", error);
+    }
   }
 
   function listPlugins() {
