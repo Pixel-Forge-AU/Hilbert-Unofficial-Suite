@@ -19,7 +19,7 @@ def test_queue_status_handles_tuple_queue_items(monkeypatch):
     }
     monkeypatch.setattr(comfy_studio, "queue", lambda config: payload)
 
-    result = comfy_studio.queue_status({"COMFY_HOST": "127.0.0.1", "COMFY_PORT": 8188})
+    result = comfy_studio.queue_status({"COMFY_HOST": "127.0.0.1", "COMFY_PORT": 39003})
 
     assert result["running"][0]["prompt_id"] == "running-prompt"
     assert result["pending"][0]["prompt_id"] == "pending-prompt"
@@ -34,7 +34,7 @@ def test_progress_omits_outputs_while_job_is_running(monkeypatch):
     })
     monkeypatch.setattr(comfy_studio, "queue", lambda config: {"queue_running": [], "queue_pending": []})
 
-    result = comfy_studio.progress({"COMFY_HOST": "127.0.0.1", "COMFY_PORT": 8188}, "job-123")
+    result = comfy_studio.progress({"COMFY_HOST": "127.0.0.1", "COMFY_PORT": 39003}, "job-123")
 
     assert result["state"] == "history"
     assert result["completed"] is False

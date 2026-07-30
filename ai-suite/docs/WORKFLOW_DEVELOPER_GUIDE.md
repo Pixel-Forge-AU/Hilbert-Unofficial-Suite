@@ -179,7 +179,7 @@ presets:
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
 | `id` | string | Unique workflow identifier | `character.character-sheet` |
-| `name` | string | Human-readable name | `Character Character Sheet` |
+| `name` | string | Human-readable name | `Character Sheet` |
 | `version` | string | Semantic version | `1.0.0` |
 | `category` | string | Category pack name | `character` |
 | `description` | string | Detailed description | `Character sheet generation...` |

@@ -12,6 +12,7 @@ workflows:
   - editing.background-removal
   - editing.background-replacement
   - editing.object-removal
+  - editing.inpaint-flexible
   - editing.object-replacement
   - editing.sky-replacement
   - editing.face-repair
@@ -24,5 +25,7 @@ workflows:
   - editing.depth-of-field
   - editing.reflection-removal
   - editing.shadow-removal
+  - editing.anima-inpaint-v1-beta
+  - editing.cocoamix-qwen-image-edit
 
 default_enabled: true

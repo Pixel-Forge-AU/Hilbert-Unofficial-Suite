@@ -30,6 +30,11 @@ CANCELLED_PROMPTS = set()
 SKIP_NODE_TYPES = {
     "MarkdownNote",
     "Note",
+    "Reroute",
+    # rgthree-comfy nodes with no Python backend - frontend-only graph
+    # organization widgets that never appear in ComfyUI's /object_info.
+    "Fast Groups Bypasser (rgthree)",
+    "Fast Groups Muter (rgthree)",
 }
 PRIMITIVE_NODE_TYPES = {
     "PrimitiveNode",
@@ -182,6 +187,17 @@ def is_bypassed(node):
     return node.get("mode") == 4
 
 
+# Node types with no Python backend that just pass their single input
+# straight through to their output - Reroute has no registered ComfyUI class,
+# so any link routed through one must be resolved past it, the same way a
+# bypassed node's links are.
+PASSTHROUGH_NODE_TYPES = {"Reroute"}
+
+
+def is_passthrough(node):
+    return is_bypassed(node) or node.get("type") in PASSTHROUGH_NODE_TYPES
+
+
 def effective_link_map(workflow):
     links = link_map(workflow)
     link_rows = {}
@@ -189,26 +205,51 @@ def effective_link_map(workflow):
         link_id, *_ = link_parts(link)
         if link_id is not None:
             link_rows[link_id] = link
-    for node in workflow.get("nodes", []):
-        if not is_bypassed(node):
-            continue
-        linked_inputs_by_type = {}
-        fallback_link = None
-        for item in node.get("inputs", []):
-            link_id = item.get("link")
-            if link_id is None or link_id not in link_rows:
+
+    nodes_by_id = {node.get("id"): node for node in workflow.get("nodes", []) or []}
+    passthrough_ids = {node.get("id") for node in nodes_by_id.values() if is_passthrough(node)}
+
+    # Which links originate from each node, keyed off the workflow's own
+    # top-level links array rather than each node's outputs[].links - after
+    # expand_subgraphs synthesizes a new cross-boundary link, the origin
+    # node's outputs metadata isn't guaranteed to be updated to list it, but
+    # the top-level links array always is.
+    outgoing_by_origin = {}
+    for link_id, link in link_rows.items():
+        _link_id, origin_id, origin_slot, _target_id, _target_slot, link_type = link_parts(link)
+        outgoing_by_origin.setdefault(origin_id, []).append((link_id, origin_slot, link_type))
+
+    # A chain of passthrough nodes (e.g. Reroute -> Reroute -> real node) needs
+    # one resolution pass per hop, and node order in the workflow isn't
+    # guaranteed to follow the data flow. Repeating the pass until nothing
+    # changes (bounded by the number of passthrough nodes) resolves chains of
+    # any depth.
+    for _ in range(len(passthrough_ids) + 1):
+        changed = False
+        for node_id in passthrough_ids:
+            node = nodes_by_id.get(node_id)
+            if node is None:
                 continue
-            fallback_link = fallback_link or link_id
-            linked_inputs_by_type.setdefault(item.get("type"), link_id)
-        if fallback_link is None:
-            continue
-        for output in node.get("outputs", []):
-            source_link = linked_inputs_by_type.get(output.get("type"), fallback_link)
-            source = links.get(source_link)
-            if not source:
+            linked_inputs_by_type = {}
+            fallback_link = None
+            for item in node.get("inputs", []):
+                link_id = item.get("link")
+                if link_id is None or link_id not in link_rows:
+                    continue
+                fallback_link = fallback_link or link_id
+                linked_inputs_by_type.setdefault(item.get("type"), link_id)
+            if fallback_link is None:
                 continue
-            for output_link in output.get("links") or []:
-                links[output_link] = source
+            for output_link, _origin_slot, output_type in outgoing_by_origin.get(node_id, []):
+                source_link = linked_inputs_by_type.get(output_type, fallback_link)
+                source = links.get(source_link)
+                if not source:
+                    continue
+                if links.get(output_link) != source:
+                    links[output_link] = source
+                    changed = True
+        if not changed:
+            break
     return links
 
 
@@ -362,10 +403,26 @@ def control_label(node, input_name, fallback_index=0, prompt=None):
     return labels.get(input_name, value if value else f"Node {node_id}")
 
 
+def node_feeds_mask(node):
+    return any(
+        output.get("type") == "MASK" and output.get("links")
+        for output in node.get("outputs", []) or []
+    )
+
+
 def workflow_controls(path, workflow):
     controls = []
-    prompt = workflow_to_api(workflow) if "nodes" in workflow else workflow
-    ui_nodes = {str(node.get("id")): node for node in workflow.get("nodes", [])} if "nodes" in workflow else {}
+    if "nodes" in workflow:
+        prompt = workflow_to_api(workflow)
+        # Use the expanded (subgraph-flattened) node list for title lookups too - inner
+        # subgraph nodes are renamed to "<outer_id>_sg_<inner_id>" during expansion, so
+        # looking titles up against the raw pre-expansion workflow.nodes always misses,
+        # silently dropping author-provided titles like "... (Positive Prompt)" and
+        # falling through to the reachability heuristic below.
+        ui_nodes = {str(node.get("id")): node for node in expand_subgraphs(workflow).get("nodes", [])}
+    else:
+        prompt = workflow
+        ui_nodes = {}
 
     clip_text_count = 0
     for node_id, node in prompt.items():
@@ -401,6 +458,15 @@ def workflow_controls(path, workflow):
             control_id = f"{node_id}.{name}"
             ui_node = ui_nodes.get(str(node_id), {})
             label_node = {"id": node_id, "type": node_type, "title": ui_node.get("title")}
+            # LoadImage-family nodes with a connected MASK output derive that mask from the
+            # uploaded file's alpha channel (ComfyUI's native "open in Mask Editor" on the
+            # node). There is no separate mask control to paint in that case - the Studio
+            # front end needs to know to offer the painter on this same image field instead.
+            alpha_mask = (
+                node_type in ("LoadImage", "LoadImageOutput")
+                and name == "image"
+                and node_feeds_mask(ui_node)
+            )
             controls.append(
                 {
                     "id": control_id,
@@ -411,6 +477,7 @@ def workflow_controls(path, workflow):
                     "accept": "video/mp4,video/webm,video/quicktime,video/x-matroska" if node_type == "LoadVideo" else "image/png,image/jpeg,image/webp,image/bmp",
                     "value": value,
                     "node_type": node_type,
+                    "alpha_mask": alpha_mask,
                 }
             )
 
@@ -446,7 +513,7 @@ def workflow_provider_nodes(workflow):
     node_types = []
     if "nodes" in workflow:
         node_types.extend(node.get("type", "") for node in workflow.get("nodes", []))
-        subgraphs = workflow.get("definitions", {}).get("subgraphs", [])
+        subgraphs = (workflow.get("definitions") or {}).get("subgraphs", [])
         for subgraph in subgraphs:
             node_types.extend(node.get("type", "") for node in subgraph.get("nodes", []))
     else:
@@ -465,6 +532,25 @@ def combo_options(input_spec):
         if isinstance(options, list):
             return options
     return []
+
+
+MODEL_COMBO_INPUTS = ("ckpt_name", "unet_name", "lora_name", "vae_name", "clip_name")
+
+
+def available_model_options(config):
+    """Map ComfyUI combo input names (ckpt_name, lora_name, ...) to the model
+    filenames currently on disk, sourced from ComfyUI's /object_info."""
+    object_info = comfy_object_info(config) or {}
+    options = {}
+    for node_info in object_info.values():
+        required = (node_info.get("input") or {}).get("required", {})
+        for input_name in MODEL_COMBO_INPUTS:
+            if input_name in options:
+                continue
+            values = combo_options(required.get(input_name))
+            if values:
+                options[input_name] = values
+    return options
 
 
 def input_default(input_spec):
@@ -558,7 +644,7 @@ def validate_prompt_choices(prompt, object_info, requirements=None):
 def subgraph_definitions(workflow):
     return {
         subgraph.get("id"): subgraph
-        for subgraph in workflow.get("definitions", {}).get("subgraphs", []) or []
+        for subgraph in (workflow.get("definitions") or {}).get("subgraphs", []) or []
         if subgraph.get("id")
     }
 
@@ -885,6 +971,17 @@ def workflow_to_api(workflow):
                 if isinstance(compare_view, dict):
                     compare_view = "Slide"
                 inputs.setdefault("compare_view", compare_view)
+        elif node_type == "FluxGuidance":
+            # Some exports never promote "guidance" to a socket, so it has no
+            # matching entry in node["inputs"] for the generic fallback below
+            # to zip against - without this, ComfyUI drops the whole branch
+            # ("Required input is missing: guidance") instead of running it.
+            if widgets:
+                inputs.setdefault("guidance", widgets[0])
+        elif node_type == "InpaintModelConditioning":
+            # Same issue as FluxGuidance above, for the "noise_mask" widget.
+            if widgets:
+                inputs.setdefault("noise_mask", widgets[0])
         elif node_type == "LoraLoaderModelOnly":
             names = ["lora_name", "strength_model"]
             for name, value in zip(names, widgets):

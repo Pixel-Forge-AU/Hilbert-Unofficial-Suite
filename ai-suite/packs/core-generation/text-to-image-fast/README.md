@@ -80,7 +80,7 @@ low quality, worst quality, lowres, blurry, text, watermark, signature, cropped,
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/core.text-to-image-fast/run \
+curl -X POST http://localhost:39000/workflows/core.text-to-image-fast/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A futuristic city in the clouds",

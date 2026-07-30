@@ -100,8 +100,8 @@ export async function ensureModelLoaded(modelKey: string): Promise<void> {
 }
 
 /**
- * Polls the actual inference endpoint (DEFAULT_LLM_BASE_URL, e.g. port 8080's /v1/models) -
- * not the management API's /api/chat/health (port 8000). That health endpoint reflects a
+ * Polls the actual inference endpoint (DEFAULT_LLM_BASE_URL, e.g. port 39001's /v1/models) -
+ * not the management API's /api/chat/health (port 39000). That health endpoint reflects a
  * separate "chat" convenience routing profile that can point at an entirely different
  * backend (observed live: an unrelated small Ollama model) independent of what's actually
  * loaded in the "main" slot our requests hit, so it's not a reliable signal that the switch

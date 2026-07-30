@@ -154,7 +154,7 @@ paths:
 settings:
   default_width: 1024
   default_height: 1024
-  comfyui_port: 8188
+  comfyui_port: 39003
 ```
 
 **model-paths.yaml** - Model location configuration:
@@ -316,7 +316,7 @@ Every workflow includes a `manifest.yaml` file that defines:
 ```yaml
 # Required fields
 id: character.character-sheet
-name: Character Character Sheet
+name: Character Sheet
 version: "1.0.0"
 category: character
 description: >
@@ -697,7 +697,7 @@ Jobs are processed in a queue with the following states:
 ```
 AI Suite Launcher
         │
-        ├── HTTP API (port 8188)
+        ├── HTTP API (port 39003)
         │   ├── POST /prompt
         │   ├── GET /history
         │   └── GET /system_stats

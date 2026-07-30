@@ -388,7 +388,7 @@ def main():
     parser = argparse.ArgumentParser(description="Local Playwright automation server.")
     config = load_config()
     parser.add_argument("--host", default=config.get("PLAYWRIGHT_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(config.get("PLAYWRIGHT_PORT", "8092")))
+    parser.add_argument("--port", type=int, default=int(config.get("PLAYWRIGHT_PORT", "39005")))
     args = parser.parse_args()
     run(args.host, args.port)
 

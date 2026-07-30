@@ -1,4 +1,4 @@
-# Character Character Sheet Workflow
+# Character Sheet Workflow
 
 Character sheet generation with multiple angles (front, side, back). Optimized for character design documentation and reference sheets.
 

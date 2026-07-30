@@ -79,12 +79,12 @@ settings:
   
   # ComfyUI connection
   comfyui_host: "127.0.0.1"
-  comfyui_port: 8188
+  comfyui_port: 39003
   comfyui_timeout: 300  # seconds
   
   # Launcher settings
   launcher_host: "127.0.0.1"
-  launcher_port: 8000
+  launcher_port: 39000
   launcher_debug: false
   
   # Feature flags
@@ -189,8 +189,8 @@ settings:
   default_width: 1024
   default_height: 1024
   default_steps: 20
-  comfyui_port: 8188
-  launcher_port: 8000
+  comfyui_port: 39003
+  launcher_port: 39000
   max_concurrent_jobs: 4
 ```
 
@@ -698,8 +698,8 @@ export PATHS_SHARED="./shared"
 export SETTINGS_DEFAULT_WIDTH=1024
 export SETTINGS_DEFAULT_HEIGHT=1024
 export SETTINGS_DEFAULT_STEPS=20
-export SETTINGS_COMFYUI_PORT=8188
-export SETTINGS_LAUNCHER_PORT=8000
+export SETTINGS_COMFYUI_PORT=39003
+export SETTINGS_LAUNCHER_PORT=39000
 
 # Logging
 export LOGGING_LEVEL="info"
@@ -717,7 +717,7 @@ export SECURITY_REQUIRE_AUTHENTICATION=false
 
 ```bash
 export COMFYUI_HOST="127.0.0.1"
-export COMFYUI_PORT="8188"
+export COMFYUI_PORT="39003"
 export COMFYUI_TIMEOUT="300"
 ```
 
@@ -756,7 +756,7 @@ set VARIABLE_NAME=value
 # docker-compose.yml
 environment:
   - SUITE_NAME=AI Suite
-  - SETTINGS_LAUNCHER_PORT=8000
+  - SETTINGS_LAUNCHER_PORT=39000
 ```
 
 ---

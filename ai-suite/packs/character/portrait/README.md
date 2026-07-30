@@ -85,7 +85,7 @@ extra legs, malformed limbs, missing limbs, drawing, cartoon, graphic, 3d, rende
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/character.portrait/run \
+curl -X POST http://localhost:39000/workflows/character.portrait/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "portrait of a young woman with blue eyes, long brown hair, wearing a white dress",

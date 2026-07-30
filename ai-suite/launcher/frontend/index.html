@@ -432,6 +432,17 @@
             letter-spacing: 0.04em;
         }
 
+        .studio-side-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .studio-side-section-header h4 {
+            margin: 0;
+        }
+
         .workbench-nav-item {
             width: 100%;
             text-align: left;
@@ -1132,6 +1143,12 @@
             opacity: 0.4;
         }
 
+        .job-cancel-btn:hover:not(:disabled) {
+            border-color: #ef5350;
+            color: #ffffff;
+            background: rgba(239, 83, 80, 0.18);
+        }
+
         .queue-note {
             padding: 0.65rem 0.75rem;
             border: 1px solid rgba(79, 195, 247, 0.18);
@@ -1149,6 +1166,36 @@
         .composer-fields {
             display: grid;
             gap: 0.875rem;
+        }
+
+        .composer-project {
+            display: grid;
+            gap: 0.7rem;
+            padding: 0.85rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(79, 195, 247, 0.28);
+            border-radius: 8px;
+            background: rgba(79, 195, 247, 0.06);
+        }
+
+        .composer-project-heading {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .composer-project-hint {
+            margin: 0;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .composer-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
         }
 
         .composer-row {
@@ -1279,6 +1326,10 @@
 
         .composer-clip.vocal {
             background: rgba(255, 193, 7, 0.2);
+        }
+
+        .composer-clip.fx {
+            background: rgba(129, 199, 132, 0.22);
         }
 
         .composer-clip small {
@@ -1525,6 +1576,76 @@
             display: flex;
             gap: 0.75rem;
             justify-content: flex-end;
+        }
+
+        .mask-editor-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            color: #eee;
+            font-size: 0.875rem;
+        }
+
+        .mask-editor-toolbar label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mask-editor-toolbar input[type="range"] {
+            width: 140px;
+        }
+
+        .mask-editor-canvas-wrap {
+            position: relative;
+            width: 100%;
+            max-height: 60vh;
+            overflow: auto;
+            background: repeating-conic-gradient(rgba(255,255,255,0.06) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #maskEditorCanvas {
+            max-width: 100%;
+            max-height: 60vh;
+            touch-action: none;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .mask-editor-empty {
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+        }
+
+        .mask-editor-empty input[type="file"] {
+            margin-top: 0.75rem;
+        }
+
+        .mask-status {
+            font-size: 0.75rem;
+            color: #66bb6a;
+            margin-left: 0.5rem;
+        }
+
+        .field-with-action {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .field-with-action input[type="file"],
+        .field-with-action input[type="number"] {
+            flex: 1;
+            min-width: 0;
         }
 
         .loading {
@@ -1900,10 +2021,13 @@
 
         <section class="tab-panel active" id="tab-runtime">
         <section class="service-panel">
-            <h3>Runtime Services</h3>
+            <h3>Runtime Services
+                <span id="comfyHealthBadge" class="status-badge status-legacy" style="margin-left: 0.5rem; vertical-align: middle;" title="ComfyUI connectivity, checked every 20s">ComfyUI: checking...</span>
+            </h3>
             <div class="service-actions">
                 <button class="btn btn-primary" onclick="runServiceCommand('llama')">Coding LLM</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic')">Heretic LLM</button>
+                <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic27')">Heretic LLM (27B)</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('comfy')">ComfyUI</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('studio')">Studio</button>
                 <button class="btn btn-secondary" onclick="runServiceCommand('chat')">Chat</button>
@@ -2231,7 +2355,10 @@
                         <div class="workbench-nav-list" id="workbenchHistory"></div>
                     </div>
                     <div class="studio-side-section">
-                        <h4>Presets</h4>
+                        <div class="studio-side-section-header">
+                            <h4>Presets</h4>
+                            <button class="job-move-btn" type="button" id="workbenchSavePreset" title="Save the current settings as a new preset">Save as preset</button>
+                        </div>
                         <div class="workbench-nav-list" id="workbenchPresets"></div>
                     </div>
                     <div class="studio-side-section">
@@ -2309,9 +2436,56 @@
                     <div class="workbench-heading">
                         <div>
                             <h3>Composer</h3>
-                            <p>Generate rhythm beds and short vocal parts, then place them on a live timeline.</p>
+                            <p>Generate rhythm beds, vocal parts, and FX/foley, then place them on a live timeline.</p>
                         </div>
                         <span class="media-badge">Audio</span>
+                    </div>
+
+                    <div class="composer-project">
+                        <div class="composer-project-heading">Project continuity</div>
+                        <div class="form-group">
+                            <label for="composerTags">Style / instrumentation (shared across clips)</label>
+                            <input id="composerTags" type="text" placeholder="e.g. warm analog synths, driving four-on-the-floor, tape saturation">
+                        </div>
+                        <div class="composer-row">
+                            <div class="form-group">
+                                <label for="composerKey">Key (Ace)</label>
+                                <select id="composerKey">
+                                    <option>C major</option><option>C minor</option>
+                                    <option>C# major</option><option>C# minor</option>
+                                    <option>D major</option><option>D minor</option>
+                                    <option>D# major</option><option>D# minor</option>
+                                    <option>E major</option><option selected>E minor</option>
+                                    <option>F major</option><option>F minor</option>
+                                    <option>F# major</option><option>F# minor</option>
+                                    <option>G major</option><option>G minor</option>
+                                    <option>G# major</option><option>G# minor</option>
+                                    <option>A major</option><option>A minor</option>
+                                    <option>A# major</option><option>A# minor</option>
+                                    <option>B major</option><option>B minor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="composerSeedMode">Seed strategy</label>
+                                <select id="composerSeedMode">
+                                    <option value="random" selected>Random each clip</option>
+                                    <option value="evolving">Evolving (subtle drift)</option>
+                                    <option value="fixed">Fixed (identical take)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="composer-row">
+                            <div class="form-group">
+                                <label for="composerBaseSeed">Base seed</label>
+                                <input id="composerBaseSeed" type="number" min="0" max="999999999" step="1" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="composerCrossfade">Crossfade (s)</label>
+                                <input id="composerCrossfade" type="number" min="0" max="4" step="0.1" value="0.6">
+                            </div>
+                        </div>
+                        <label class="composer-checkbox"><input type="checkbox" id="composerLockVoice"> Keep the same vocal voice across takes</label>
+                        <p class="composer-project-hint">These carry into every generation so sections share a palette and drift instead of jumping between unrelated takes.</p>
                     </div>
 
                     <div class="composer-fields">
@@ -2321,6 +2495,7 @@
                                 <select id="composerPart">
                                     <option value="rhythm" selected>Rhythm</option>
                                     <option value="vocal">Vocal</option>
+                                    <option value="fx">FX</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -2328,6 +2503,7 @@
                                 <select id="composerEngine">
                                     <option value="diffrhythm" selected>DiffRhythm</option>
                                     <option value="ace">Ace</option>
+                                    <option value="stableaudio">Stable Audio (SFX)</option>
                                 </select>
                             </div>
                         </div>
@@ -2342,12 +2518,16 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="composerPrompt">Sound prompt</label>
+                            <label for="composerPrompt" id="composerPromptLabel">Sound prompt</label>
                             <textarea id="composerPrompt" rows="4" placeholder="tight industrial percussion, syncopated kick, metallic hats, dry room"></textarea>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="composerLyricsGroup">
                             <label for="composerLyrics">Vocal words</label>
                             <textarea id="composerLyrics" rows="4" placeholder="Short lyric, chant, hook, or spoken phrase"></textarea>
+                        </div>
+                        <div class="form-group" id="composerNegativeGroup">
+                            <label for="composerNegative">Avoid (negative prompt)</label>
+                            <textarea id="composerNegative" rows="2" placeholder="music, melody, tonal"></textarea>
                         </div>
                     </div>
 
@@ -2691,6 +2871,37 @@
         </div>
     </div>
 
+    <div class="modal" id="maskEditorModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Paint Mask</h2>
+                <button class="close-btn" onclick="closeMaskEditor()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="maskEditorToolbar" class="mask-editor-toolbar" style="display: none;">
+                    <label><input type="checkbox" id="maskEditorErase"> Erase</label>
+                    <label>Brush size
+                        <input type="range" id="maskEditorBrush" min="4" max="200" value="40">
+                    </label>
+                    <button type="button" class="btn btn-secondary" style="flex: 0;" onclick="clearMaskEditor()">Clear</button>
+                    <small style="color: rgba(255,255,255,0.55);">Paint over what should change. Everything left black stays untouched.</small>
+                </div>
+                <div id="maskEditorCanvasWrap" class="mask-editor-canvas-wrap">
+                    <div class="mask-editor-empty" id="maskEditorEmpty">
+                        Pick or upload the source image first, or upload a reference photo here just to paint against.
+                        <br>
+                        <input type="file" id="maskEditorRefUpload" accept="image/png,image/jpeg,image/webp,image/bmp">
+                    </div>
+                    <canvas id="maskEditorCanvas" style="display: none;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeMaskEditor()">Cancel</button>
+                <button class="btn btn-primary" type="button" id="maskEditorUseBtn" onclick="useMaskFromEditor()" disabled>Use this mask</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="false"></div>
 
     <script type="importmap">
@@ -2710,6 +2921,7 @@
         let workflowsData = {{ workflows | tojson | safe }};
         let storedInputs = [];
         let modelTuningData = { models: [], slots: {}, presets: [] };
+        let comfyModelOptions = {};
         let suiteChatState = {
             user: localStorage.getItem('ai-suite:chat-user') || 'Derek',
             sessionId: localStorage.getItem('ai-suite:chat-session') || '',
@@ -2725,7 +2937,17 @@
             clips: [],
             drag: null,
             timers: [],
-            audio: []
+            intervals: [],
+            audio: [],
+            project: {
+                tags: '',
+                key: 'E minor',
+                seedMode: 'random',
+                baseSeed: 0,
+                crossfade: 0.6,
+                lockVoice: false,
+                voiceSeed: -1
+            }
         };
 
         const threeReady = Promise.all([
@@ -2754,6 +2976,7 @@
             initSuiteChat();
             await refreshStoredInputs();
             await refreshModelTuning();
+            await refreshComfyModelOptions();
             initWorkbench();
             initJobMonitor();
             initComposer();
@@ -3176,6 +3399,7 @@
                 if (workbenchWorkflowId) showWorkflowDetails(workbenchWorkflowId);
             });
             document.getElementById('workbenchRefresh').addEventListener('click', refreshWorkbenchOutputs);
+            document.getElementById('workbenchSavePreset').addEventListener('click', saveWorkbenchPreset);
         }
 
         function requestedWorkbenchWorkflow() {
@@ -3207,6 +3431,7 @@
 
         async function selectWorkbenchWorkflow(workflowId) {
             workbenchWorkflowId = workflowId;
+            Object.keys(paintedMasks).forEach(function(key) { delete paintedMasks[key]; });
             const summary = workflowsData.find(function(workflow) { return workflow.id === workflowId; });
             document.getElementById('workbenchTitle').textContent = summary?.name || workflowId;
             document.getElementById('workbenchDescription').textContent = summary?.description || 'Loading workflow controls...';
@@ -3218,6 +3443,9 @@
                 const details = await response.json();
                 if (!response.ok) throw new Error(details.error || 'Failed to load workflow');
                 workbenchWorkflowDetails = details;
+                if (!Object.keys(comfyModelOptions).length) {
+                    await refreshComfyModelOptions();
+                }
                 document.getElementById('workbenchTitle').textContent = details.name;
                 document.getElementById('workbenchDescription').textContent = details.description || '';
                 document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(details);
@@ -3460,7 +3688,7 @@
                 const required = input.required ? ' *' : '';
                 const defaultValue = input.default !== undefined ? input.default : '';
                 const label = input.label || input.id;
-                const common = `name="${escapeHtml(input.id)}"`;
+                const common = `name="${escapeHtml(input.id)}"${input.required ? ' data-required="true"' : ''}`;
                 if (input.legacy_kind === 'textarea' || input.id === 'prompt' || input.type === 'textarea') {
                     return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><textarea ${common} rows="5">${escapeHtml(defaultValue)}</textarea></div>`;
                 }
@@ -3476,15 +3704,40 @@
                     `;
                 }
                 if (input.type === 'file') {
+                    const isMaskField = /mask/i.test(input.id) || /mask/i.test(label);
+                    const isAlphaMaskField = !!input.alpha_mask;
+                    const paintButton = (isMaskField || isAlphaMaskField)
+                        ? `<button type="button" class="btn btn-secondary" style="flex: 0;" onclick="openMaskEditor('${escapeHtml(input.id)}', ${isAlphaMaskField})">Paint mask</button><span class="mask-status" id="maskStatus-${escapeHtml(input.id)}"></span>`
+                        : '';
                     return `
                         <div class="form-group">
                             <label>${escapeHtml(label)}${required}</label>
-                            <input ${common} type="file" accept="${escapeHtml(input.accept || '')}">
+                            <div class="field-with-action">
+                                <input ${common} type="file" accept="${escapeHtml(input.accept || '')}">
+                                ${paintButton}
+                            </div>
                             <div class="stored-input-row">
                                 <small>Or reuse a stored input</small>
                                 <select data-stored-input-for="${escapeHtml(input.id)}">
                                     ${storedInputOptions(input.accept || '', defaultValue)}
                                 </select>
+                            </div>
+                        </div>
+                    `;
+                }
+                if (input.id === 'conditioning_duration') {
+                    // Kept in sync with "duration" at submit time (see submitWorkbenchForm) - the
+                    // model needs both signals equal or it produces truncated/malformed audio, so
+                    // there's no reason to show the user two duration fields to keep in sync by hand.
+                    return `<input type="hidden" ${common} value="${escapeHtml(defaultValue)}">`;
+                }
+                if ((input.id === 'seed' || input.id === 'voice_seed') && input.type === 'int') {
+                    return `
+                        <div class="form-group">
+                            <label>${escapeHtml(label)}${required}</label>
+                            <div class="field-with-action">
+                                <input ${common} type="number" value="${escapeHtml(defaultValue)}" min="${input.minimum ?? ''}" max="${input.maximum ?? ''}" step="${input.step || 1}">
+                                <button type="button" class="btn btn-secondary" style="flex: 0;" onclick="randomizeSeedField(this)">Randomize</button>
                             </div>
                         </div>
                     `;
@@ -3495,7 +3748,73 @@
                 if (input.type === 'boolean') {
                     return `<div class="form-group"><label><input ${common} type="checkbox" ${defaultValue ? 'checked' : ''}> ${escapeHtml(label)}${required}</label></div>`;
                 }
+                if (input.type === 'select') {
+                    const options = (input.options || []).map(function(option) {
+                        const selected = String(option) === String(defaultValue) ? ' selected' : '';
+                        return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+                    }).join('');
+                    return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><select ${common}>${options}</select></div>`;
+                }
+                if (input.type === 'model') {
+                    const comboName = input.input || (/lora/i.test(input.id + label) ? 'lora_name' : 'ckpt_name');
+                    const listId = `modelOptions-${escapeHtml(input.id)}`;
+                    return `
+                        <div class="form-group">
+                            <label>${escapeHtml(label)}${required}</label>
+                            <input ${common} type="text" list="${listId}" value="${escapeHtml(defaultValue)}" placeholder="${escapeHtml(defaultValue)}">
+                            <datalist id="${listId}">${modelDatalistOptions(comboName)}</datalist>
+                        </div>
+                    `;
+                }
                 return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="text" value="${escapeHtml(defaultValue)}"></div>`;
+            }).join('');
+        }
+
+        function syncConditioningDuration(inputs) {
+            const hasConditioningDuration = (workbenchWorkflowDetails?.inputs || []).some(function(item) {
+                return item.id === 'conditioning_duration';
+            });
+            if (hasConditioningDuration && inputs.duration !== undefined) {
+                inputs.conditioning_duration = inputs.duration;
+            }
+        }
+
+        async function saveWorkbenchPreset() {
+            if (!workbenchWorkflowId) return;
+            const title = prompt('Save as preset');
+            if (!title || !title.trim()) return;
+            const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+            const values = {};
+            fields.forEach(function(field) {
+                if (field.type === 'file') return;
+                values[field.name] = field.type === 'checkbox' ? field.checked : field.value;
+            });
+            syncConditioningDuration(values);
+            try {
+                const response = await fetch(`/api/workflows/${workbenchWorkflowId}/presets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: title.trim(), values: values })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not save preset');
+                renderWorkbenchPresets(data.presets || []);
+                showToast('Preset saved', title.trim(), 'success', 2400);
+            } catch (error) {
+                showToast('Save preset failed', error.message, 'error');
+            }
+        }
+
+        function randomizeSeedField(button) {
+            const input = button.previousElementSibling;
+            if (!input) return;
+            input.value = Math.floor(Math.random() * 1000000000);
+        }
+
+        function modelDatalistOptions(comboName) {
+            const values = comfyModelOptions[comboName] || [];
+            return values.map(function(value) {
+                return `<option value="${escapeHtml(value)}"></option>`;
             }).join('');
         }
 
@@ -3503,6 +3822,7 @@
             const runtimeAliases = [
                 modelTuningData.slots?.main?.alias,
                 modelTuningData.slots?.heretic?.alias,
+                modelTuningData.slots?.heretic27?.alias,
                 modelTuningData.slots?.sidecar?.alias
             ].filter(Boolean);
             const taskAliases = (modelTuningData.task_profiles || [])
@@ -3522,6 +3842,20 @@
 
         async function submitWorkbenchForm() {
             if (!workbenchWorkflowId) return;
+            const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
+            const missingRequired = fields.filter(function(field) {
+                if (field.dataset.required !== 'true' || field.type !== 'file') return false;
+                if (field.files && field.files[0]) return false;
+                const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
+                return !(stored && stored.value);
+            });
+            if (missingRequired.length) {
+                const labels = missingRequired.map(function(field) {
+                    return field.closest('.form-group')?.querySelector('label')?.textContent || field.name;
+                });
+                showToast('Missing required input', `Please provide: ${labels.join(', ')}`, 'error');
+                return;
+            }
             const button = document.getElementById('workbenchRun');
             const status = document.getElementById('workbenchStatus');
             button.disabled = true;
@@ -3530,11 +3864,14 @@
             setEditorProgress('Starting generation...', 5);
             const inputs = {};
             try {
-                const fields = Array.from(document.querySelectorAll('#workbenchFields [name]'));
                 for (const field of fields) {
                     if (field.type === 'file') {
                         if (field.files && field.files[0]) {
-                            inputs[field.name] = await uploadWorkbenchFile(field.files[0]);
+                            const maskDataUrl = paintedMasks[field.name];
+                            const fileToUpload = maskDataUrl
+                                ? await compositeAlphaMask(field.files[0], maskDataUrl)
+                                : field.files[0];
+                            inputs[field.name] = await uploadWorkbenchFile(fileToUpload);
                         } else {
                             const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
                             if (stored && stored.value) {
@@ -3545,10 +3882,11 @@
                         inputs[field.name] = field.type === 'checkbox' ? field.checked : field.value;
                     }
                 }
+                syncConditioningDuration(inputs);
                 const response = await fetch(`/api/workflows/${workbenchWorkflowId}/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputs: inputs })
+                    body: JSON.stringify({ inputs: inputs, hold_for_slot: true })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Failed to launch workflow');
@@ -3610,6 +3948,330 @@
             });
             return options.join('');
         }
+
+        // --- On-the-fly mask painter ---------------------------------------------------
+        const maskEditor = {
+            targetFieldName: null,
+            alphaMode: false,
+            baseImage: null,
+            strokeCanvas: null,
+            strokeCtx: null,
+            displayCanvas: null,
+            displayCtx: null,
+            drawing: false,
+            lastPoint: null,
+            dirty: false,
+        };
+
+        // Painted masks for alpha-mode fields, keyed by field name. Kept separate from the
+        // field's actual file so the source image is never mutated - baking the hole
+        // straight into the file meant reopening the painter loaded an already-punched
+        // image as the new "clean" base, so Clear could wipe new strokes but could never
+        // undo a previously-saved mask (it wasn't a stroke anymore, it was the image).
+        // The mask is only composited into the alpha channel once, at upload time.
+        const paintedMasks = {};
+
+        function findSourceImageInput(maskFieldName) {
+            const fileInputs = Array.from(document.querySelectorAll('#workbenchFields input[type="file"]'));
+            const others = fileInputs.filter(function(el) { return el.name !== maskFieldName; });
+            return others.find(function(el) { return el.name === 'image'; }) || others[0] || null;
+        }
+
+        function loadImageFromBlob(blob) {
+            return loadImageFromUrl(URL.createObjectURL(blob));
+        }
+
+        function loadImageFromUrl(url) {
+            return new Promise(function(resolve, reject) {
+                const img = new Image();
+                img.onload = function() { resolve(img); };
+                img.onerror = function() { reject(new Error('Could not read image')); };
+                img.src = url;
+            });
+        }
+
+        async function compositeAlphaMask(file, maskDataUrl) {
+            const baseImg = await loadImageFromBlob(file);
+            const maskImg = await loadImageFromUrl(maskDataUrl);
+            const w = baseImg.naturalWidth;
+            const h = baseImg.naturalHeight;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(baseImg, 0, 0, w, h);
+            const baseData = ctx.getImageData(0, 0, w, h);
+
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = w;
+            maskCanvas.height = h;
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.drawImage(maskImg, 0, 0, w, h);
+            const maskData = maskCtx.getImageData(0, 0, w, h);
+
+            // See useMaskFromEditor: alpha = 255 - paintedAlpha (painted => transparent => edit-this).
+            for (let i = 3; i < baseData.data.length; i += 4) {
+                baseData.data[i] = 255 - maskData.data[i];
+            }
+            ctx.putImageData(baseData, 0, 0);
+            return new Promise(function(resolve) {
+                canvas.toBlob(function(blob) {
+                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '-masked.png', { type: 'image/png' }));
+                }, 'image/png');
+            });
+        }
+
+        async function loadImageFromField(field) {
+            if (!field) return null;
+            if (field.files && field.files[0]) {
+                return loadImageFromBlob(field.files[0]);
+            }
+            const stored = document.querySelector(`[data-stored-input-for="${CSS.escape(field.name)}"]`);
+            if (stored && stored.value) {
+                const response = await fetch(`/api/input/${stored.value}`);
+                if (response.ok) {
+                    return loadImageFromBlob(await response.blob());
+                }
+            }
+            return null;
+        }
+
+        async function resolveSourceImageForMask(maskFieldName) {
+            return loadImageFromField(findSourceImageInput(maskFieldName));
+        }
+
+        // Alpha-mask fields paint against and write back into the same image field -
+        // there is no separate mask control, since the mask is that image's alpha channel.
+        async function resolveSelfImageForMask(fieldName) {
+            return loadImageFromField(document.querySelector(`#workbenchFields [name="${CSS.escape(fieldName)}"]`));
+        }
+
+        function setupMaskCanvases(image) {
+            const canvas = document.getElementById('maskEditorCanvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            maskEditor.baseImage = image;
+            maskEditor.displayCanvas = canvas;
+            maskEditor.displayCtx = canvas.getContext('2d');
+            const stroke = document.createElement('canvas');
+            stroke.width = image.naturalWidth;
+            stroke.height = image.naturalHeight;
+            maskEditor.strokeCanvas = stroke;
+            maskEditor.strokeCtx = stroke.getContext('2d');
+            document.getElementById('maskEditorEmpty').style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('maskEditorToolbar').style.display = 'flex';
+            document.getElementById('maskEditorUseBtn').disabled = false;
+            redrawMaskDisplay();
+        }
+
+        function redrawMaskDisplay() {
+            const ctx = maskEditor.displayCtx;
+            if (!ctx) return;
+            const canvas = maskEditor.displayCanvas;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(maskEditor.baseImage, 0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.globalAlpha = 0.55;
+            ctx.drawImage(maskEditor.strokeCanvas, 0, 0);
+            ctx.restore();
+        }
+
+        function scheduleMaskRedraw() {
+            if (maskEditor.dirty) return;
+            maskEditor.dirty = true;
+            requestAnimationFrame(function() {
+                maskEditor.dirty = false;
+                redrawMaskDisplay();
+            });
+        }
+
+        function maskCanvasPoint(e) {
+            const canvas = maskEditor.displayCanvas;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
+            };
+        }
+
+        function maskPointerDown(e) {
+            if (!maskEditor.strokeCtx) return;
+            e.preventDefault();
+            maskEditor.drawing = true;
+            maskEditor.displayCanvas.setPointerCapture(e.pointerId);
+            const point = maskCanvasPoint(e);
+            maskEditor.lastPoint = point;
+            strokeDot(point);
+            scheduleMaskRedraw();
+        }
+
+        function maskPointerMove(e) {
+            if (!maskEditor.drawing) return;
+            e.preventDefault();
+            const point = maskCanvasPoint(e);
+            strokeLine(maskEditor.lastPoint, point);
+            maskEditor.lastPoint = point;
+            scheduleMaskRedraw();
+        }
+
+        function maskPointerUp(e) {
+            maskEditor.drawing = false;
+            maskEditor.lastPoint = null;
+        }
+
+        function currentBrushSize() {
+            return Number(document.getElementById('maskEditorBrush').value || 40);
+        }
+
+        function isErasing() {
+            return document.getElementById('maskEditorErase').checked;
+        }
+
+        function strokeDot(point) {
+            const ctx = maskEditor.strokeCtx;
+            ctx.globalCompositeOperation = isErasing() ? 'destination-out' : 'source-over';
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, currentBrushSize() / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function strokeLine(from, to) {
+            const ctx = maskEditor.strokeCtx;
+            ctx.globalCompositeOperation = isErasing() ? 'destination-out' : 'source-over';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = currentBrushSize();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+        }
+
+        function clearMaskEditor() {
+            if (!maskEditor.strokeCtx) return;
+            maskEditor.strokeCtx.clearRect(0, 0, maskEditor.strokeCanvas.width, maskEditor.strokeCanvas.height);
+            redrawMaskDisplay();
+        }
+
+        async function openMaskEditor(fieldName, alphaMode) {
+            maskEditor.targetFieldName = fieldName;
+            maskEditor.alphaMode = !!alphaMode;
+            document.getElementById('maskEditorModal').classList.add('active');
+            document.getElementById('maskEditorEmpty').style.display = 'block';
+            document.getElementById('maskEditorCanvas').style.display = 'none';
+            document.getElementById('maskEditorToolbar').style.display = 'none';
+            document.getElementById('maskEditorUseBtn').disabled = true;
+            document.getElementById('maskEditorErase').checked = false;
+            document.getElementById('maskEditorRefUpload').value = '';
+            maskEditor.baseImage = null;
+            maskEditor.strokeCanvas = null;
+            try {
+                const image = maskEditor.alphaMode
+                    ? await resolveSelfImageForMask(fieldName)
+                    : await resolveSourceImageForMask(fieldName);
+                if (image) {
+                    setupMaskCanvases(image);
+                    const savedMask = maskEditor.alphaMode && paintedMasks[fieldName];
+                    if (savedMask) {
+                        const maskImg = await loadImageFromUrl(savedMask);
+                        maskEditor.strokeCtx.drawImage(maskImg, 0, 0, maskEditor.strokeCanvas.width, maskEditor.strokeCanvas.height);
+                        redrawMaskDisplay();
+                    }
+                }
+            } catch (err) {
+                showToast('Could not load source image', err.message, 'error');
+            }
+        }
+
+        function closeMaskEditor() {
+            document.getElementById('maskEditorModal').classList.remove('active');
+            maskEditor.drawing = false;
+        }
+
+        async function handleMaskEditorRefUpload(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const image = await loadImageFromBlob(file);
+            setupMaskCanvases(image);
+            const targetField = maskEditor.alphaMode
+                ? document.querySelector(`#workbenchFields [name="${CSS.escape(maskEditor.targetFieldName)}"]`)
+                : findSourceImageInput(maskEditor.targetFieldName);
+            if (targetField) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                targetField.files = dt.files;
+            }
+        }
+
+        function useMaskFromEditor() {
+            if (!maskEditor.strokeCanvas || !maskEditor.targetFieldName) return;
+            const status = document.getElementById(`maskStatus-${maskEditor.targetFieldName}`);
+
+            if (maskEditor.alphaMode) {
+                // Store the raw stroke layer (transparent except opaque-white where
+                // painted) rather than baking it into the source image now. Keeping the
+                // field's file pristine is what lets reopening the painter - and Clear -
+                // keep working: the source is composited with this mask only once, right
+                // before upload (see compositeAlphaMask / submitWorkbenchForm).
+                paintedMasks[maskEditor.targetFieldName] = maskEditor.strokeCanvas.toDataURL('image/png');
+                if (status) status.textContent = 'Mask painted';
+                closeMaskEditor();
+                return;
+            }
+
+            const w = maskEditor.strokeCanvas.width;
+            const h = maskEditor.strokeCanvas.height;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = w;
+            exportCanvas.height = h;
+            const ctx = exportCanvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(maskEditor.strokeCanvas, 0, 0);
+            exportCanvas.toBlob(function(blob) {
+                const file = new File([blob], 'painted-mask.png', { type: 'image/png' });
+                const field = document.querySelector(`#workbenchFields [name="${CSS.escape(maskEditor.targetFieldName)}"]`);
+                if (field) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    field.files = dt.files;
+                    field.dispatchEvent(new Event('change'));
+                }
+                if (status) status.textContent = 'Mask painted';
+                closeMaskEditor();
+            }, 'image/png');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('maskEditorCanvas');
+            if (canvas) {
+                canvas.addEventListener('pointerdown', maskPointerDown);
+                canvas.addEventListener('pointermove', maskPointerMove);
+                window.addEventListener('pointerup', maskPointerUp);
+            }
+            const refUpload = document.getElementById('maskEditorRefUpload');
+            if (refUpload) refUpload.addEventListener('change', handleMaskEditorRefUpload);
+
+            // A saved mask is only valid for the image it was painted against - if the
+            // user manually swaps the source file, drop it rather than compositing it
+            // onto a mismatched image at upload time.
+            const workbenchFields = document.getElementById('workbenchFields');
+            if (workbenchFields) {
+                workbenchFields.addEventListener('change', function(e) {
+                    const field = e.target;
+                    if (field && field.type === 'file' && paintedMasks[field.name]) {
+                        delete paintedMasks[field.name];
+                        const status = document.getElementById(`maskStatus-${field.name}`);
+                        if (status) status.textContent = '';
+                    }
+                });
+            }
+        });
 
         async function refreshWorkbenchOutputs() {
             const type = mediaTypeForWorkflow(workbenchWorkflowDetails || workflowsData.find(function(workflow) {
@@ -4025,6 +4687,16 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
+        async function refreshComfyModelOptions() {
+            try {
+                const response = await fetch('/api/comfy/models');
+                const data = await response.json();
+                if (response.ok) comfyModelOptions = data;
+            } catch (error) {
+                // ComfyUI may not be running yet; checkpoint/LoRA fields fall back to a plain text field.
+            }
+        }
+
         async function refreshModelTuning() {
             const forms = document.getElementById('modelSlotForms');
             const inventory = document.getElementById('localModelInventory');
@@ -4149,6 +4821,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function slotHelpText(slot) {
             if (slot === 'main') return 'Use this for your primary coding/chat model. Save & Switch restarts the main LLM API.';
             if (slot === 'heretic') return 'Use this for the alternate Heretic profile. It keeps separate model and tuning settings.';
+            if (slot === 'heretic27') return 'Use this for the smaller 27B Heretic profile, independent from the 35B Heretic slot above.';
             if (slot === 'sidecar') return 'Use this for a small helper model. CPU sidecar settings avoid competing with ComfyUI for the GPU.';
             return 'Choose a model, apply recommended settings, then Save & Switch.';
         }
@@ -4794,7 +5467,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 const response = await fetch(`/api/workflows/${currentWorkflowId}/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputs: inputs })
+                    body: JSON.stringify({ inputs: inputs, hold_for_slot: true })
                 });
 
                 const data = await response.json();
@@ -5220,6 +5893,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function initComposer() {
             const generate = document.getElementById('composerGenerate');
             if (!generate) return;
+            loadComposerProject();
             generate.addEventListener('click', submitComposerClip);
             document.getElementById('composerClear')?.addEventListener('click', function() {
                 stopComposerTimeline();
@@ -5233,17 +5907,92 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 const part = this.value;
                 const engine = document.getElementById('composerEngine');
                 if (engine && part === 'vocal') engine.value = 'ace';
+                if (engine && part === 'fx') engine.value = 'stableaudio';
+                if (engine && part === 'rhythm' && engine.value === 'stableaudio') engine.value = 'diffrhythm';
+                updateComposerFieldVisibility();
                 updateComposerReadout();
+            });
+            ['composerTags', 'composerKey', 'composerSeedMode', 'composerBaseSeed', 'composerCrossfade', 'composerLockVoice'].forEach(function(id) {
+                document.getElementById(id)?.addEventListener('change', saveComposerProject);
             });
             document.addEventListener('pointermove', dragComposerClip);
             document.addEventListener('pointerup', stopDraggingComposerClip);
             renderComposerBin();
             renderComposerTimeline();
+            updateComposerFieldVisibility();
             updateComposerReadout();
         }
 
+        function loadComposerProject() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('ai-suite:composer-project') || 'null');
+                if (stored) composerState.project = Object.assign({}, composerState.project, stored);
+            } catch (error) {
+                // ignore malformed stored settings
+            }
+            const project = composerState.project;
+            const tags = document.getElementById('composerTags');
+            const key = document.getElementById('composerKey');
+            const seedMode = document.getElementById('composerSeedMode');
+            const baseSeed = document.getElementById('composerBaseSeed');
+            const crossfade = document.getElementById('composerCrossfade');
+            const lockVoice = document.getElementById('composerLockVoice');
+            if (tags) tags.value = project.tags;
+            if (key) key.value = project.key;
+            if (seedMode) seedMode.value = project.seedMode;
+            if (baseSeed) baseSeed.value = project.baseSeed;
+            if (crossfade) crossfade.value = project.crossfade;
+            if (lockVoice) lockVoice.checked = project.lockVoice;
+        }
+
+        function saveComposerProject() {
+            composerState.project = {
+                tags: document.getElementById('composerTags')?.value.trim() || '',
+                key: document.getElementById('composerKey')?.value || 'E minor',
+                seedMode: document.getElementById('composerSeedMode')?.value || 'random',
+                baseSeed: Math.max(0, Number(document.getElementById('composerBaseSeed')?.value || 0)),
+                crossfade: Math.max(0, Math.min(4, Number(document.getElementById('composerCrossfade')?.value || 0))),
+                lockVoice: !!document.getElementById('composerLockVoice')?.checked,
+                voiceSeed: composerState.project.voiceSeed
+            };
+            localStorage.setItem('ai-suite:composer-project', JSON.stringify(composerState.project));
+        }
+
+        function updateComposerFieldVisibility() {
+            const part = document.getElementById('composerPart')?.value || 'rhythm';
+            const promptLabel = document.getElementById('composerPromptLabel');
+            const lyricsGroup = document.getElementById('composerLyricsGroup');
+            const negativeGroup = document.getElementById('composerNegativeGroup');
+            if (promptLabel) promptLabel.textContent = part === 'vocal' ? 'Style / tags' : 'Sound prompt';
+            if (lyricsGroup) lyricsGroup.style.display = part === 'vocal' ? '' : 'none';
+            if (negativeGroup) negativeGroup.style.display = part === 'fx' ? '' : 'none';
+        }
+
         function composerWorkflowId(engine) {
-            return engine === 'ace' ? 'audio.ace-step-1-5' : 'audio.diffrhythm';
+            if (engine === 'ace') return 'audio.ace-step-1-5';
+            if (engine === 'stableaudio') return 'audio.stable-audio-sfx';
+            return 'audio.diffrhythm';
+        }
+
+        function composerResolveSeed(engine, part) {
+            const project = composerState.project;
+            const randomSentinel = engine === 'diffrhythm' ? 0 : -1;
+            if (project.seedMode === 'fixed') return project.baseSeed;
+            if (project.seedMode === 'evolving') {
+                const takeIndex = composerState.bin.filter(function(clip) { return clip.part === part && clip.engine === engine; }).length;
+                return project.baseSeed + takeIndex;
+            }
+            return randomSentinel;
+        }
+
+        function composerResolveVoiceSeed(part) {
+            const project = composerState.project;
+            if (part !== 'vocal' || !project.lockVoice) return -1;
+            if (project.voiceSeed === -1) {
+                project.voiceSeed = Math.floor(Math.random() * 2147483647);
+                localStorage.setItem('ai-suite:composer-project', JSON.stringify(project));
+            }
+            return project.voiceSeed;
         }
 
         function composerWorkflowAvailable(workflowId) {
@@ -5266,31 +6015,51 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             return `Composer/${engine}/${part}/${stamp}-${label}`;
         }
 
-        function composerInputs(engine, part, prompt, lyrics, duration, bpm) {
+        function composerInputs(engine, part, prompt, lyrics, negative, duration, bpm) {
             const filenamePrefix = composerFilenamePrefix(engine, part, prompt, lyrics);
+            const project = composerState.project;
+            const sharedTags = project.tags ? `${project.tags}, ` : '';
+            const seed = composerResolveSeed(engine, part);
+
             if (engine === 'ace') {
                 const words = part === 'vocal' ? lyrics || prompt : prompt || lyrics;
                 const tags = part === 'vocal'
-                    ? `short vocal part, ${prompt || 'clean hook'}, ${bpm} bpm`
-                    : `${prompt || 'short rhythmic music part'}, ${bpm} bpm`;
+                    ? `${sharedTags}short vocal part, ${prompt || 'clean hook'}, ${bpm} bpm`
+                    : `${sharedTags}${prompt || 'short rhythmic music part'}, ${bpm} bpm`;
                 return {
                     prompt: words,
                     tags: tags,
                     duration: String(duration),
                     conditioning_duration: String(duration),
                     bpm: String(bpm),
+                    key: project.key,
+                    seed: String(seed),
+                    voice_seed: String(composerResolveVoiceSeed(part)),
                     steps: '8',
                     filename_prefix: filenamePrefix
                 };
             }
+
+            if (engine === 'stableaudio') {
+                return {
+                    prompt: `${sharedTags}${prompt || 'short foley sound effect, dry room'}`,
+                    negative_prompt: negative || 'music, melody, tonal',
+                    duration: String(duration),
+                    steps: '50',
+                    cfg: '4.98',
+                    seed: String(seed),
+                    filename_prefix: filenamePrefix
+                };
+            }
+
             return {
-                style_prompt: prompt || 'short rhythmic percussion loop, punchy drums, clean mix',
+                style_prompt: `${sharedTags}${prompt || 'short rhythmic percussion loop, punchy drums, clean mix'}`,
                 model: 'cfm_model_v1_2.pt',
                 steps: '30',
                 cfg: '4',
                 quality_or_speed: 'speed',
                 odeint_method: 'euler',
-                seed: '0',
+                seed: String(seed),
                 unload_model: true,
                 filename_prefix: filenamePrefix
             };
@@ -5303,27 +6072,29 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const engine = document.getElementById('composerEngine')?.value || 'diffrhythm';
             const prompt = document.getElementById('composerPrompt')?.value.trim() || '';
             const lyrics = document.getElementById('composerLyrics')?.value.trim() || '';
+            const negative = document.getElementById('composerNegative')?.value.trim() || '';
             const duration = Math.max(2, Math.min(60, Number(document.getElementById('composerDuration')?.value || 8)));
             const bpm = Math.max(40, Math.min(220, Number(document.getElementById('composerBpm')?.value || 120)));
             const workflowId = composerWorkflowId(engine);
+            const engineLabel = { ace: 'Ace', stableaudio: 'Stable Audio' }[engine] || 'DiffRhythm';
 
             if (!composerWorkflowAvailable(workflowId)) {
                 showToast('Composer workflow unavailable', workflowId, 'error');
                 return;
             }
             if (!prompt && !lyrics) {
-                showToast('Add a prompt first', 'Describe the rhythm or vocal part.', 'error');
+                showToast('Add a prompt first', 'Describe the rhythm, vocal, or FX part.', 'error');
                 return;
             }
 
             button.disabled = true;
             setComposerProgress('Starting clip...', 4);
-            if (status) status.textContent = `Submitting ${engine === 'ace' ? 'Ace' : 'DiffRhythm'} clip...`;
+            if (status) status.textContent = `Submitting ${engineLabel} clip...`;
 
             try {
                 const output = await runComfyWorkflow(
                     workflowId,
-                    composerInputs(engine, part, prompt, lyrics, duration, bpm),
+                    composerInputs(engine, part, prompt, lyrics, negative, duration, bpm),
                     'audio',
                     { label: 'Composer clip', progressStart: 4, progressEnd: 100 },
                     setComposerProgress
@@ -5411,7 +6182,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             if (!timeline) return;
             const pxPerSecond = 80;
             const laneOffset = 96;
-            const lanes = ['rhythm', 'vocal'];
+            const lanes = ['rhythm', 'vocal', 'fx'];
             const length = Math.max(12, Math.ceil(composerState.clips.reduce(function(max, clip) {
                 return Math.max(max, clip.start + clip.duration);
             }, 0)));
@@ -5492,19 +6263,46 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             });
         }
 
+        function fadeComposerVolume(audio, from, to, durationMs) {
+            if (durationMs <= 0) {
+                audio.volume = Math.max(0, Math.min(1, to));
+                return;
+            }
+            const stepMs = 50;
+            const steps = Math.max(1, Math.round(durationMs / stepMs));
+            let step = 0;
+            audio.volume = Math.max(0, Math.min(1, from));
+            const interval = setInterval(function() {
+                step++;
+                audio.volume = Math.max(0, Math.min(1, from + (to - from) * (step / steps)));
+                if (step >= steps) clearInterval(interval);
+            }, stepMs);
+            composerState.intervals.push(interval);
+        }
+
         function playComposerTimeline() {
             stopComposerTimeline();
             if (!composerState.clips.length) {
                 showToast('Timeline empty', 'Add or generate a clip first.', 'error');
                 return;
             }
+            const crossfade = Math.max(0, Math.min(4, Number(document.getElementById('composerCrossfade')?.value || 0)));
             composerState.clips.forEach(function(clip) {
+                const fade = Math.min(crossfade, clip.duration / 2);
                 const timer = setTimeout(function() {
                     const audio = new Audio(clip.url);
+                    audio.volume = fade > 0 ? 0 : 1;
                     composerState.audio.push(audio);
                     audio.play().catch(function(error) {
                         showToast('Playback failed', error.message, 'error');
                     });
+                    fadeComposerVolume(audio, 0, 1, fade * 1000);
+                    if (fade > 0) {
+                        const fadeOutTimer = setTimeout(function() {
+                            fadeComposerVolume(audio, 1, 0, fade * 1000);
+                        }, (clip.duration - fade) * 1000);
+                        composerState.timers.push(fadeOutTimer);
+                    }
                 }, clip.start * 1000);
                 composerState.timers.push(timer);
             });
@@ -5514,6 +6312,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function stopComposerTimeline() {
             composerState.timers.forEach(clearTimeout);
             composerState.timers = [];
+            composerState.intervals.forEach(clearInterval);
+            composerState.intervals = [];
             composerState.audio.forEach(function(audio) {
                 audio.pause();
                 audio.currentTime = 0;
@@ -5526,7 +6326,48 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function updateComposerReadout() {
             const engine = document.getElementById('composerEngine')?.value || 'diffrhythm';
             const readout = document.getElementById('composerEngineReadout');
-            if (readout) readout.textContent = engine === 'ace' ? 'Ace' : 'DiffRhythm';
+            const labels = { ace: 'Ace', stableaudio: 'Stable Audio (SFX)' };
+            if (readout) readout.textContent = labels[engine] || 'DiffRhythm';
+        }
+
+        // ComfyUI health badge (Runtime tab) - reuses the same 2s poll as
+        // updateJobList() rather than a separate interval.
+        function renderComfyHealth(health) {
+            const badge = document.getElementById('comfyHealthBadge');
+            if (!badge || !health) return;
+            const byStatus = {
+                ok: { label: 'ComfyUI: OK', cls: 'status-stable' },
+                degraded: { label: 'ComfyUI: slow to respond', cls: 'status-beta' },
+                down: { label: 'ComfyUI: unresponsive', cls: 'status-experimental' },
+                unknown: { label: 'ComfyUI: checking...', cls: 'status-legacy' }
+            };
+            const info = byStatus[health.status] || byStatus.unknown;
+            badge.className = `status-badge ${info.cls}`;
+            let label = info.label;
+            if (health.status === 'down' && health.down_since) {
+                const downSeconds = Math.max(0, Math.round((Date.now() - new Date(health.down_since).getTime()) / 1000));
+                const minutes = Math.floor(downSeconds / 60);
+                label += minutes > 0 ? ` (${minutes}m)` : ` (${downSeconds}s)`;
+            }
+            badge.textContent = label;
+            badge.title = health.last_error
+                ? `Last error: ${health.last_error}`
+                : `Last confirmed OK: ${health.last_ok_at ? new Date(health.last_ok_at).toLocaleTimeString() : 'never'}`;
+        }
+
+        async function retryJob(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/retry`, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) {
+                    showToast('Retry failed', data.error || 'Could not resubmit the job.', 'error');
+                    return;
+                }
+                showToast('Job resubmitted', `Queued as ${data.job_id}.`, 'success');
+                updateJobList();
+            } catch (error) {
+                showToast('Retry failed', error.message, 'error');
+            }
         }
 
         // Update job list
@@ -5540,6 +6381,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 checkForNewlyCompletedJobs(data.completed || []);
                 renderWorkbenchHistory();
                 renderEditorProgress();
+                renderComfyHealth(data.comfy_health);
 
                 const jobList = document.getElementById('jobList');
 
@@ -5574,6 +6416,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                                 <button class="job-move-btn" type="button" title="Move up" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'up')" ${isFirst ? 'disabled' : ''}>Up</button>
                                 <button class="job-move-btn" type="button" title="Move down" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'down')" ${isLast ? 'disabled' : ''}>Down</button>
                                 <button class="job-move-btn" type="button" title="Move to bottom" onclick="moveQueuedJob('${escapeHtml(job.job_id)}', 'bottom')" ${isLast ? 'disabled' : ''}>Bottom</button>
+                                <button class="job-move-btn job-cancel-btn" type="button" title="Cancel job" onclick="cancelJob('${escapeHtml(job.job_id)}')">Cancel</button>
                             </div>
                         </div>
                     `;
@@ -5598,6 +6441,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Up</button>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Down</button>
                                     <button class="job-move-btn" type="button" title="Already submitted to ComfyUI" disabled>Bottom</button>
+                                    <button class="job-move-btn job-cancel-btn" type="button" title="Cancel job" onclick="cancelJob('${escapeHtml(job.job_id)}')">Cancel</button>
                                 </div>
                             </div>
                         </div>
@@ -5619,17 +6463,34 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                         }
                         return `<a href="${escapedUrl}" target="_blank" style="color: #4fc3f7;">${escapedName}</a>`;
                     }).join('');
+                    const badgeByStatus = {
+                        cancelled: { label: 'CANCELLED', background: '#616161' },
+                        failed: { label: 'FAILED', background: '#c62828' },
+                        stalled: { label: 'STALLED', background: '#ef6c00' }
+                    };
+                    const badge = badgeByStatus[job.status] || { label: 'DONE', background: '#2e7d32' };
+                    const retryable = job.status === 'failed' || job.status === 'stalled' || job.status === 'cancelled';
+                    const errorHtml = job.error
+                        ? `<div style="color: #ffab91; font-size: 0.75rem; margin-top: 0.25rem;">${escapeHtml(job.error)}</div>`
+                        : '';
+                    const retryHtml = retryable
+                        ? `<button class="job-move-btn" type="button" title="Resubmit with the same inputs" onclick="retryJob('${escapeHtml(job.job_id)}')">Retry</button>`
+                        : '';
                     html += `
                         <div class="job-item">
                             <div class="job-info" style="align-items: flex-start;">
-                                <span class="status-badge status-stable" style="background: #2e7d32; color: #fff;">DONE</span>
+                                <span class="status-badge status-stable" style="background: ${badge.background}; color: #fff;">${badge.label}</span>
                                 <div class="job-title">
                                     <div>${escapeHtml(job.workflow_id)}</div>
                                     <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${escapeHtml(result.prompt_id || job.job_id)}</div>
+                                    ${errorHtml}
                                     <div class="job-thumb-row">${outputHtml || '<span style="color: rgba(255,255,255,0.5);">No output files yet</span>'}</div>
                                 </div>
                             </div>
-                            <span class="job-time">${new Date(job.completed_at).toLocaleString()}</span>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+                                <span class="job-time">${new Date(job.completed_at).toLocaleString()}</span>
+                                ${retryHtml}
+                            </div>
                         </div>
                     `;
                 });
@@ -5659,6 +6520,23 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 await updateJobList();
             } catch (error) {
                 showToast('Queue move failed', error.message, 'error');
+            }
+        }
+
+        async function cancelJob(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Could not cancel job');
+                }
+                showToast('Job cancelled', jobId, 'success', 1600);
+                await updateJobList();
+            } catch (error) {
+                showToast('Cancel failed', error.message, 'error');
             }
         }
 

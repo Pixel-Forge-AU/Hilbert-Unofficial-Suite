@@ -73,7 +73,7 @@ Enhanced: "a fluffy ginger tabby cat sitting gracefully on a windowsill, sunligh
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/llm.prompt-engineer/run \
+curl -X POST http://localhost:39000/workflows/llm.prompt-engineer/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "a beautiful landscape",

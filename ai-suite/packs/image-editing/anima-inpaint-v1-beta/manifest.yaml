@@ -1,0 +1,126 @@
+id: editing.anima-inpaint-v1-beta
+name: Anima Inpaint (v1 Beta, PotatCats)
+version: 1.0.0
+category: image-editing
+subcategory: anima
+description: >
+  Imported from a user-authored ComfyUI export (comfyuiInpaintWorkflow_animaV1Beta/PotatCats-inpaint_
+  workflow-ANIMA-V1Beta-rel.json), preserved as-is: mask-based segment inpainting over the Anima
+  architecture, with automatic segment cropping, growth/blur, and color-matched compositing back onto
+  the source image. The original UNETLoader pointed at anima-base-v1.0.safetensors, which was never
+  installed in this suite — repointed to the Anima Aesthetic v1.1 checkpoint used as the default Anima
+  base elsewhere in this suite. Beyond core ComfyUI, rgthree-comfy, and Impact-Pack, this graph depends
+  on ComfyUI-KJNodes (ColorMatchV2), ComfyI2I (Inpaint Segments, GrowMaskWithBlur), Comfyroll
+  CustomNodes (CR Color Panel), masquerade-nodes-comfyui (Cut By Mask, Combine and Paste), and
+  ComfyUI-Cosmos-Reference (ApplyCosmosReferenceLatent) — all resolved via ComfyUI-Manager's
+  deps-in-workflow against this file and installed.
+status: experimental
+media_type: image
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 36.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: Positive prompt
+    node_id: '36'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 37.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: jpeg artifacts, lowres, worst quality, low quality, bad hands
+    node_id: '37'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 18.image
+    label: Input image
+    type: file
+    required: true
+    default: example.png
+    node_id: '18'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    alpha_mask: true
+  - id: 111.seed
+    label: Seed
+    type: int
+    required: false
+    default: 33
+    node_id: '111'
+    node_type: KSampler
+    input: seed
+  - id: 111.steps
+    label: Steps
+    type: int
+    required: false
+    default: 20
+    minimum: 1
+    maximum: 100
+    node_id: '111'
+    node_type: KSampler
+    input: steps
+  - id: 111.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 5
+    minimum: 0
+    maximum: 20
+    node_id: '111'
+    node_type: KSampler
+    input: cfg
+  - id: 111.denoise
+    label: Denoise
+    type: float
+    required: false
+    default: 0.7
+    minimum: 0
+    maximum: 1
+    node_id: '111'
+    node_type: KSampler
+    input: denoise
+outputs:
+  - id: image
+    type: image
+    description: Generated image output
+models:
+  required:
+  - node_id: '118'
+    node_type: UNETLoader
+    name: anima_aestheticV11.safetensors
+    directory: diffusion_models
+  - node_id: '119'
+    node_type: CLIPLoader
+    name: qwen_3_06b_base.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors
+  - node_id: '120'
+    node_type: VAELoader
+    name: qwen_image_vae.safetensors
+    directory: vae
+  - node_id: '171'
+    node_type: LoraLoaderModelOnly
+    name: anima/AnimaNo/AnimeEditV2.safetensors
+    directory: loras
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  - rgthree-comfy
+  - comfyui-impact-pack
+  - comfyui-kjnodes
+  - comfyi2i
+  - comfyui_comfyroll_customnodes
+  - masquerade-nodes-comfyui
+  - comfyui-cosmos-reference
+  - was-node-suite-comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

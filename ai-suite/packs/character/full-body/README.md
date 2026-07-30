@@ -86,7 +86,7 @@ extra legs, malformed limbs, missing limbs, drawing, cartoon, graphic, 3d, rende
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/character.full-body/run \
+curl -X POST http://localhost:39000/workflows/character.full-body/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "full body portrait of a young warrior with silver armor",

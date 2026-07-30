@@ -12,7 +12,7 @@ entrypoints:
   ui: workflow.json
 inputs:
 - id: 108_sg_23.text
-  label: Negative prompt (CLIPTextEncode 108_sg_23)
+  label: Prompt (CLIPTextEncode 108_sg_23)
   type: textarea
   required: false
   default: 'Remove the girl''s hat
@@ -24,7 +24,7 @@ inputs:
   input: text
   accept: image/png,image/jpeg,image/webp,image/bmp
 - id: 110_sg_74.text
-  label: Negative prompt (CLIPTextEncode 110_sg_74)
+  label: Prompt (CLIPTextEncode 110_sg_74)
   type: textarea
   required: false
   default: ''
@@ -36,13 +36,14 @@ inputs:
 - id: 17.image
   label: Input image
   type: file
-  required: false
+  required: true
   default: image_flux.1_fill_dev_OneReward_input_image.png
   legacy_kind: file
   node_id: '17'
   node_type: LoadImage
   input: image
   accept: image/png,image/jpeg,image/webp,image/bmp
+  alpha_mask: true
 - id: 108_sg_3.steps
   label: Steps (KSampler 108_sg_3)
   type: int

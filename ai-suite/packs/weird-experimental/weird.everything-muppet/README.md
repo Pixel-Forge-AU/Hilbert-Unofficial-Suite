@@ -25,7 +25,7 @@ This workflow applies the iconic Muppet aesthetic to any image or concept:
 ### API Usage
 
 ```bash
-curl -X POST http://localhost:8188/workflows/weird.everything-muppet/run \
+curl -X POST http://localhost:39000/workflows/weird.everything-muppet/run \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A cyberpunk city",

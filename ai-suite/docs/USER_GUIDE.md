@@ -513,7 +513,7 @@ Each workflow has unique parameters. Check the workflow documentation for:
 1. **Start ComfyUI**:
    ```bash
    cd ComfyUI
-   python main.py --listen 0.0.0.0 --port 8188
+   python main.py --listen 0.0.0.0 --port 39003
    ```
 
 2. **Check ComfyUI Settings**:

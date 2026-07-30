@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 
 
@@ -48,6 +49,14 @@ def load_config():
         "LLAMA_HERETIC_CTX": "65536",
         "LLAMA_HERETIC_GPU_LAYERS": "999",
         "LLAMA_HERETIC_EXTRA_ARGS": "",
+        "LLAMA_HERETIC27_MODEL": str(default_models / "qwen3.5-27b-heretic/Qwen3.5-27B-heretic.Q4_K_M.gguf"),
+        "LLAMA_HERETIC27_HF_REPO": "mradermacher/Qwen3.5-27B-heretic-GGUF:Q4_K_M",
+        "LLAMA_HERETIC27_ALIAS": "qwen3.5-27b-heretic",
+        "LLAMA_HERETIC27_CTX": "65536",
+        "LLAMA_HERETIC27_GPU_LAYERS": "999",
+        "LLAMA_HERETIC27_EXTRA_ARGS": "",
+        "LLAMA_HERETIC27_MMPROJ_MODEL": str(default_models / "qwen3.5-27b-heretic/Qwen3.5-27B-heretic.mmproj-f16.gguf"),
+        "LLAMA_HERETIC27_MMPROJ_URL": "https://huggingface.co/mradermacher/Qwen3.5-27B-heretic-GGUF/resolve/main/Qwen3.5-27B-heretic.mmproj-f16.gguf",
         "OLLAMA_HOST": "127.0.0.1",
         "OLLAMA_PORT": "11434",
         "OLLAMA_MODEL": "qwen3:0.6b",
@@ -64,6 +73,17 @@ def load_config():
         "COMFY_PORT": "39003",
         "COMFY_MODE": "gpu",
         "COMFY_PREFLIGHT": "1",
+        # Hard ceiling on ComfyUI's own memory cgroup (see start_comfy). A
+        # 2026-07-27 incident: a long overnight render left ComfyUI wedged
+        # for 11+ hours, thrashing 6.8GB into swap with no ceiling to stop
+        # it, pegging a CPU core and making the whole machine laggy. These
+        # give it as much of the box's 124G as is safe to hand over, while
+        # MemorySwapMax=0 means hitting the ceiling gets it OOM-killed
+        # instantly instead of swap-thrashing for hours again. Set
+        # COMFY_MEMORY_MAX="" to disable the cgroup wrap entirely.
+        "COMFY_MEMORY_MAX": "100G",
+        "COMFY_MEMORY_HIGH": "90G",
+        "COMFY_MEMORY_SWAP_MAX": "0",
         "CHAT_HOST": "0.0.0.0",
         "CHAT_PORT": "39004",
         "STUDIO_HOST": "127.0.0.1",
@@ -119,6 +139,18 @@ def llama_profile(config, name):
             "ctx": config.get("LLAMA_HERETIC_CTX", config["LLAMA_CTX"]),
             "gpu_layers": config.get("LLAMA_HERETIC_GPU_LAYERS", config["LLAMA_GPU_LAYERS"]),
             "extra_args": config.get("LLAMA_HERETIC_EXTRA_ARGS", config.get("LLAMA_EXTRA_ARGS", "")),
+        },
+        "heretic27": {
+            "name": "heretic27",
+            "label": "Qwen3.5 27B Heretic",
+            "model": config["LLAMA_HERETIC27_MODEL"],
+            "hf_repo": config["LLAMA_HERETIC27_HF_REPO"],
+            "alias": config.get("LLAMA_HERETIC27_ALIAS", "qwen3.5-27b-heretic"),
+            "ctx": config.get("LLAMA_HERETIC27_CTX", config["LLAMA_CTX"]),
+            "gpu_layers": config.get("LLAMA_HERETIC27_GPU_LAYERS", config["LLAMA_GPU_LAYERS"]),
+            "extra_args": config.get("LLAMA_HERETIC27_EXTRA_ARGS", config.get("LLAMA_EXTRA_ARGS", "")),
+            "mmproj_model": config.get("LLAMA_HERETIC27_MMPROJ_MODEL", ""),
+            "mmproj_url": config.get("LLAMA_HERETIC27_MMPROJ_URL", ""),
         },
         "qwen-small": {
             "name": "qwen-small",
@@ -410,11 +442,22 @@ def start_llama(config, profile_name="qwen"):
     else:
         raise SystemExit(f"Missing model shard: {model}")
 
+    mmproj_model = profile.get("mmproj_model", "")
+    mmproj_url = profile.get("mmproj_url", "")
+    if mmproj_model:
+        mmproj_path = Path(mmproj_model)
+        if mmproj_path.exists():
+            cmd.extend(["--mmproj", str(mmproj_path)])
+        elif mmproj_url:
+            cmd.extend(["--mmproj-url", mmproj_url])
+
     start_process("llama", cmd, llama_cpp, base_env(config))
     url = f"http://{config['LLAMA_HOST']}:{config['LLAMA_PORT']}/health"
     print(f"llama starting ({profile['label']}): {url}")
     if not model.exists() and profile["hf_repo"]:
         print(f"using Hugging Face repo: {profile['hf_repo']}")
+    if mmproj_model and not Path(mmproj_model).exists() and mmproj_url:
+        print(f"using mmproj URL: {mmproj_url}")
     wait_http(url)
 
 
@@ -498,6 +541,38 @@ def stop_ollama():
     print(result.stdout.strip() or ("ollama stopped" if result.returncode == 0 else "Could not stop ollama. Run: sudo systemctl stop ollama"))
 
 
+def memory_cgroup_prefix(config, unit_name):
+    """Build a `systemd-run --user --scope` prefix that puts the process in
+    its own memory cgroup, so it can't repeat the 2026-07-27 incident where
+    ComfyUI ran uncapped, filled RAM, and thrashed 6.8GB into swap for 11+
+    hours straight (pegging a CPU core, no OOM-kill, nothing to recover
+    from). MemorySwapMax=0 is the actual fix: hitting the ceiling now means
+    an instant OOM-kill of this cgroup instead of swap-thrashing - the
+    launcher's ComfyHealthMonitor picks up the resulting connection-refused
+    within about a minute and marks any in-flight job "stalled" for retry.
+
+    Returns [] (uncapped) if COMFY_MEMORY_MAX is unset/blank or systemd-run
+    isn't available, so this degrades gracefully on machines without a
+    delegated user cgroup (e.g. no systemd, or MemoryMax="" to opt out).
+    """
+    memory_max = (config.get("COMFY_MEMORY_MAX") or "").strip()
+    if not memory_max or not shutil.which("systemd-run"):
+        return []
+    args = [
+        "systemd-run", "--user", "--scope", "--quiet",
+        f"--unit={unit_name}-{uuid.uuid4().hex[:8]}",
+        "-p", f"MemoryMax={memory_max}",
+    ]
+    memory_high = (config.get("COMFY_MEMORY_HIGH") or "").strip()
+    if memory_high:
+        args += ["-p", f"MemoryHigh={memory_high}"]
+    memory_swap_max = (config.get("COMFY_MEMORY_SWAP_MAX") or "").strip()
+    if memory_swap_max:
+        args += ["-p", f"MemorySwapMax={memory_swap_max}"]
+    args.append("--")
+    return args
+
+
 def start_comfy(config):
     stop_llama(config, quiet=True)
     if is_running(read_pid("comfyui")):
@@ -531,6 +606,7 @@ def start_comfy(config):
     ]
     if comfy_mode == "cpu":
         cmd.append("--cpu")
+    cmd = memory_cgroup_prefix(config, "comfyui") + cmd
     start_process("comfyui", cmd, comfyui, env)
     url = f"http://{config['COMFY_HOST']}:{config['COMFY_PORT']}/"
     print(f"comfyui starting: {url}")
@@ -612,10 +688,10 @@ def start_studio(config):
         str(python),
         str(ROOT / "launcher.py"),
         "--host", config.get("STUDIO_HOST", "127.0.0.1"),
-        "--port", config.get("STUDIO_PORT", "8000"),
+        "--port", config.get("STUDIO_PORT", "39000"),
     ]
     start_process("studio", cmd, ROOT, base_env(config))
-    url = f"http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '8000')}/"
+    url = f"http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '39000')}/"
     print(f"AI Suite studio starting: {url}")
     wait_http(url)
 
@@ -953,7 +1029,7 @@ def diagnostics(config):
     print(f"  ollama: http://{config.get('OLLAMA_HOST', '127.0.0.1')}:{config.get('OLLAMA_PORT', '11434')} ({config.get('OLLAMA_MODEL', 'qwen3:0.6b')})")
     print(f"  comfy:  http://{config['COMFY_HOST']}:{config['COMFY_PORT']}")
     print(f"  chat:   http://{config['CHAT_HOST']}:{config['CHAT_PORT']}")
-    print(f"  studio: http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '8000')}")
+    print(f"  studio: http://{config.get('STUDIO_HOST', '127.0.0.1')}:{config.get('STUDIO_PORT', '39000')}")
     print(f"  browser: http://{config.get('PLAYWRIGHT_HOST', '127.0.0.1')}:{config.get('PLAYWRIGHT_PORT', '39005')}")
     print(f"  planner: http://{config.get('PLANNER_HOST', '127.0.0.1')}:{config.get('PLANNER_PORT', '39006')} (docs at /docs)")
     print(f"  orchestrator: http://{config.get('ORCHESTRATOR_HOST', '127.0.0.1')}:{config.get('ORCHESTRATOR_PORT', '39007')}")
@@ -984,6 +1060,8 @@ def main(argv=None):
             "llama-restart",
             "llama-heretic",
             "llama-heretic-restart",
+            "llama-heretic27",
+            "llama-heretic27-restart",
             "llama-small",
             "qwen-sidecar",
             "qwen-sidecar-stop",
@@ -1010,6 +1088,7 @@ def main(argv=None):
             "pipeline-status",
             "hilbert",
             "hilbert-heretic",
+            "hilbert-heretic27",
             "hilbert-small",
             "hilbert-ollama",
             "comfy",
@@ -1041,6 +1120,11 @@ def main(argv=None):
     elif args.command == "llama-heretic-restart":
         stop_llama(config, quiet=True)
         start_llama(config, "heretic")
+    elif args.command == "llama-heretic27":
+        start_llama(config, "heretic27")
+    elif args.command == "llama-heretic27-restart":
+        stop_llama(config, quiet=True)
+        start_llama(config, "heretic27")
     elif args.command == "llama-small":
         start_llama(config, "qwen-small")
     elif args.command == "qwen-sidecar":
@@ -1096,6 +1180,9 @@ def main(argv=None):
     elif args.command == "hilbert-heretic":
         start_llama(config, "heretic")
         start_chat(config, "heretic")
+    elif args.command == "hilbert-heretic27":
+        start_llama(config, "heretic27")
+        start_chat(config, "heretic27")
     elif args.command == "hilbert-small":
         start_llama(config, "qwen-small")
         start_chat(config, "qwen-small")
