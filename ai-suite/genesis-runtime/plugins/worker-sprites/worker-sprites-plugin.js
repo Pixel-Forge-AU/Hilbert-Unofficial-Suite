@@ -172,8 +172,8 @@ export function createWorkerSpritesPlugin(options = {}) {
           return payload;
         });
       }
-      if (typeof api.registerUiNovaTab === "function") {
-        api.registerUiNovaTab({
+      if (typeof api.registerUiIdentityTab === "function") {
+        api.registerUiIdentityTab({
           id: "worker-sprites",
           title: "Worker Sprites",
           order: 43,

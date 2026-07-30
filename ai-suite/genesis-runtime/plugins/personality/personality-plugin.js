@@ -115,26 +115,26 @@ export function createPersonalityPlugin(options = {}) {
           return [...next];
         });
       }
-      if (typeof api.registerUiNovaTab === "function") {
-        api.registerUiNovaTab({
+      if (typeof api.registerUiIdentityTab === "function") {
+        api.registerUiIdentityTab({
           id: "behavior",
           title: "Behavior",
           order: 39,
           scriptUrl: "/api/plugin-ui/personality/nova-tab.js"
         });
-        api.registerUiNovaTab({
+        api.registerUiIdentityTab({
           id: "environment",
           title: "Environment",
           order: 40,
           scriptUrl: "/api/plugin-ui/personality/nova-tab.js"
         });
-        api.registerUiNovaTab({
+        api.registerUiIdentityTab({
           id: "props",
           title: "Props",
           order: 41,
           scriptUrl: "/api/plugin-ui/personality/nova-tab.js"
         });
-        api.registerUiNovaTab({
+        api.registerUiIdentityTab({
           id: "recreation",
           title: "Recreation",
           order: 42,

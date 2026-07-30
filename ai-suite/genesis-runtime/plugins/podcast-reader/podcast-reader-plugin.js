@@ -289,7 +289,7 @@ export function createPodcastReaderPlugin(options = {}) {
           };
         }
       });
-      api.registerUiNovaTab?.({
+      api.registerUiIdentityTab?.({
         id: "podcast-reader",
         title: "Podcast Reader",
         order: 47,
