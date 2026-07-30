@@ -469,9 +469,14 @@ async function mountActiveTab() {
   try {
     const moduleExports = await import(tab.scriptUrl);
     if (token !== mountToken) return; // a newer tab was selected while this was loading
+    // A fresh child element (not the reused #tab-content node itself) so a tab script's own
+    // "already mounted" dataset flag can't survive from a previous visit and skip rebuilding
+    // into an innerHTML that was just wiped — every mount starts from a genuinely empty root.
     contentEl.innerHTML = "";
+    const root = document.createElement("div");
+    contentEl.appendChild(root);
     if (!host) host = buildHost();
-    await mountObserverPluginTab(moduleExports, { root: contentEl, tab, host });
+    await mountObserverPluginTab(moduleExports, { root, tab, host });
   } catch (err) {
     if (token !== mountToken) return;
     contentEl.innerHTML = `<p class="plugin-failure">Failed to load tab: ${escapeHtml(String(err?.message || err))}</p>`;
