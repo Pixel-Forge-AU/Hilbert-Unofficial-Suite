@@ -42,14 +42,42 @@ const DEFAULT_ASSETS_DIR = path.join(__dirname, "..", "public", "assets");
 // rather than a committed copy — nothing three.js-related needs to live in git.
 const THREE_VENDOR_ROOT = path.join(__dirname, "..", "node_modules", "three");
 
-// Emotion vocabulary the annotator/animation map understands. Values are intentionally
-// blank by default (see class comment above) — the deployer fills in clip names that match
-// whatever character rig they configure.
+// Emotion vocabulary the annotator/animation map understands.
 const EMOTION_KEYS = [
   "idle", "calm", "agree", "angry", "love", "celebrate", "confused", "dance", "sass",
   "hurt", "reflect", "run", "scheme", "shrug", "rant", "passionate", "explain", "walk",
   "wave", "slam"
 ];
+
+// The real emotion -> animation-clip-name mapping for the bundled characters/Nova.glb
+// model, ported as-is from avatar.js's DEFAULT_ANIMATION_CATALOG (the original's own
+// comment: "Names will not match, these were remapped due to incorrect naming in .glb" —
+// i.e. these clip names are already the correct, working mapping for this exact asset,
+// not placeholders).
+const DEFAULT_EMOTION_TO_CLIP = {
+  idle: "Charged_Ground_Slam",
+  calm: "Cheer_with_Both_Hands_Up",
+  agree: "Talk_with_Left_Hand_Raised",
+  angry: "Head_Hold_in_Pain",
+  love: "Agree_Gesture",
+  celebrate: "Angry_Stomp",
+  confused: "Walking",
+  dance: "Idle_3",
+  sass: "Big_Heart_Gesture",
+  hurt: "Scheming_Hand_Rub",
+  reflect: "Idle_6",
+  run: "Shrug",
+  scheme: "Wave_One_Hand",
+  shrug: "Confused_Scratch",
+  rant: "Stand_Talking_Angry",
+  passionate: "Mirror_Viewing",
+  explain: "FunnyDancing_01",
+  walk: "Hand_on_Hip_Gesture",
+  wave: "Talk_Passionately",
+  slam: "Running"
+};
+const DEFAULT_TALKING_CLIPS = ["Mirror_Viewing", "Talk_with_Left_Hand_Raised", "FunnyDancing_01"];
+const DEFAULT_IDLE_CLIP = DEFAULT_EMOTION_TO_CLIP.idle;
 
 const STYLIZATION_FILTER_PRESETS = [
   "none", "soft", "cinematic", "noir", "vivid", "dream", "retro_vhs", "haunted",
@@ -120,17 +148,17 @@ function defaultPropSlots() {
 
 function defaultReactionClips() {
   return {
-    idleClip: "",
-    talkingClips: [],
-    paths: Object.fromEntries(EMOTION_KEYS.map((key) => [key, ""]))
+    idleClip: DEFAULT_IDLE_CLIP,
+    talkingClips: [...DEFAULT_TALKING_CLIPS],
+    paths: { ...DEFAULT_EMOTION_TO_CLIP }
   };
 }
 
 function defaultSceneConfig() {
   return {
-    // No bundled/default character asset ships with Genesis — the deployer supplies their
-    // own model and points this at it (e.g. "/assets/characters/my-avatar.glb").
-    characterModelPath: "",
+    // The real bundled character + sky asset, same as the original monolith shipped.
+    characterModelPath: "/assets/characters/Nova.glb",
+    backgroundImagePath: "/assets/skies/sky-pink.png",
     roomTextures: defaultRoomTextures(),
     propSlots: defaultPropSlots(),
     reactionClips: defaultReactionClips(),
@@ -183,6 +211,9 @@ function normalizeSceneConfig(value = {}, current = defaultSceneConfig()) {
   return {
     characterModelPath: String(
       source.characterModelPath !== undefined ? source.characterModelPath : current.characterModelPath || ""
+    ).trim(),
+    backgroundImagePath: String(
+      source.backgroundImagePath !== undefined ? source.backgroundImagePath : current.backgroundImagePath || ""
     ).trim(),
     roomTextures: normalizeRoomTextures(source.roomTextures !== undefined ? source.roomTextures : current.roomTextures),
     propSlots: normalizePropSlots(source.propSlots !== undefined ? source.propSlots : current.propSlots),
