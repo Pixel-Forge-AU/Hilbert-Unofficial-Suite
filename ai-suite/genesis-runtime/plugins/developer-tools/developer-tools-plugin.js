@@ -549,6 +549,16 @@ export function createDeveloperToolsPlugin(options = {}) {
         });
       }
 
+      // Capabilities — System subtab, aggregating every plugin's registered tools
+      if (typeof api.registerUiSystemTab === "function") {
+        api.registerUiSystemTab({
+          id: "capabilities",
+          title: "Capabilities",
+          order: 95,
+          scriptUrl: "/api/plugin-ui/capabilities/tab.js"
+        });
+      }
+
       // Hook Explorer — capabilities
       api.provideCapability("getHookExplorerStats", () => buildStats());
       api.provideCapability("readHookExplorerEvents", (query) => readEvents(query));
@@ -807,6 +817,11 @@ export function createDeveloperToolsPlugin(options = {}) {
       app.get("/api/plugin-ui/state-browser/tab.js", async (_req, res) => {
         res.type("application/javascript");
         res.sendFile(path.join(__dirname, "public", "state-browser-tab.js"));
+      });
+
+      app.get("/api/plugin-ui/capabilities/tab.js", async (_req, res) => {
+        res.type("application/javascript");
+        res.sendFile(path.join(__dirname, "public", "capabilities-tab.js"));
       });
     }
   };
