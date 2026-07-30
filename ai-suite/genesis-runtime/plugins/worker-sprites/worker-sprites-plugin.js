@@ -75,16 +75,12 @@ function isBusyWorkerTask(task = {}) {
 }
 
 async function buildBusyWorkerPayload(api) {
-  const runtime = api.getRuntimeContext();
-  const listAllTasks = runtime && typeof runtime.listAllTasks === "function"
-    ? runtime.listAllTasks
-    : null;
-  if (!listAllTasks) {
-    throw new Error("worker sprite runtime context is unavailable");
+  const listTasks = api.getCapability("tasks:list");
+  if (typeof listTasks !== "function") {
+    throw new Error("no plugin provides the tasks:list capability (install agent-runtime)");
   }
-  const allTasks = await listAllTasks();
-  const inProgress = Array.isArray(allTasks?.inProgress) ? allTasks.inProgress : [];
-  const workers = inProgress
+  const inProgress = await listTasks({ status: "in_progress" });
+  const workers = (Array.isArray(inProgress) ? inProgress : [])
     .filter(isBusyWorkerTask)
     .map(normalizeBusyTask)
     .filter((task) => task.id)
@@ -120,13 +116,12 @@ export function createWorkerSpritesPlugin(options = {}) {
         ],
         hooks: ["queue:task-created"],
         runtimeContext: [
-          "listAllTasks",
           "broadcastObserverEvent"
         ]
       },
       dependencies: {
         requiredCapabilities: [],
-        optionalCapabilities: []
+        optionalCapabilities: ["tasks:list"]
       },
       security: {
         isolation: "inprocess"
