@@ -12,6 +12,7 @@ import {
   normalizeUiPanelDescriptor,
   normalizeUiSecretsTabDescriptor,
   normalizeUiSystemTabDescriptor,
+  normalizeUiIdentityTabDescriptor,
   normalizeUiTabDescriptor
 } from "./plugin-ui-descriptors.js";
 import {
@@ -58,6 +59,7 @@ export function createGenesisPluginManager(context = {}) {
   const uiPrimaryTabs = new Map();
   const uiSecretsTabs = new Map();
   const uiSystemTabs = new Map();
+  const uiIdentityTabs = new Map();
   const regressionSuites = new Map();
   const internalRegressionRunners = new Map();
   const pluginRoutes = new Map();
@@ -858,6 +860,10 @@ export function createGenesisPluginManager(context = {}) {
     return listPluginUiEntries(uiSystemTabs, pluginId);
   }
 
+  function listPluginUiIdentityTabs(pluginId = "") {
+    return listPluginUiEntries(uiIdentityTabs, pluginId);
+  }
+
   function normalizeRegressionSuiteDescriptor(pluginId = "", suite = {}) {
     const normalizedPluginId = normalizePluginId(pluginId);
     if (!normalizedPluginId || !suite || typeof suite !== "object") {
@@ -938,6 +944,7 @@ export function createGenesisPluginManager(context = {}) {
     const uiTabsForPlugin = listPluginUiTabs(plugin.id);
     const uiSecretsTabsForPlugin = listPluginUiSecretsTabs(plugin.id);
     const uiSystemTabsForPlugin = listPluginUiSystemTabs(plugin.id);
+    const uiIdentityTabsForPlugin = listPluginUiIdentityTabs(plugin.id);
     const regressionSuitesForPlugin = listPluginRegressionSuites(plugin.id);
     const internalRegressionModesForPlugin = listPluginInternalRegressionModes(plugin.id);
     const failuresForPlugin = listPluginFailures(plugin.id);
@@ -971,6 +978,8 @@ export function createGenesisPluginManager(context = {}) {
       uiSecretsTabCount: uiSecretsTabsForPlugin.length,
       uiSystemTabs: uiSystemTabsForPlugin,
       uiSystemTabCount: uiSystemTabsForPlugin.length,
+      uiIdentityTabs: uiIdentityTabsForPlugin,
+      uiIdentityTabCount: uiIdentityTabsForPlugin.length,
       regressionSuiteCount: regressionSuitesForPlugin.length,
       internalRegressionModes: internalRegressionModesForPlugin,
       internalRegressionModeCount: internalRegressionModesForPlugin.length,
@@ -1287,6 +1296,23 @@ export function createGenesisPluginManager(context = {}) {
           ? existing.map((entry) => (entry.id === normalizedTab.id ? normalizedTab : entry))
           : [...existing, normalizedTab];
         uiSystemTabs.set(pluginId, nextTabs);
+        return normalizedTab;
+      },
+      registerUiIdentityTab: (tab = {}) => {
+        if (!canRegisterUiPanels) {
+          recordPluginFailure(pluginId, "manifest:ui-identity-tab-denied", "Identity tab registration is not permitted");
+          return null;
+        }
+        const normalizedTab = normalizeUiIdentityTabDescriptor(pluginId, tab);
+        if (!normalizedTab) {
+          return null;
+        }
+        const existing = uiIdentityTabs.get(pluginId) || [];
+        const duplicate = existing.find((entry) => entry.id === normalizedTab.id);
+        const nextTabs = duplicate
+          ? existing.map((entry) => (entry.id === normalizedTab.id ? normalizedTab : entry))
+          : [...existing, normalizedTab];
+        uiIdentityTabs.set(pluginId, nextTabs);
         return normalizedTab;
       },
       registerRegressionSuite: (suiteOrFactory = null) => {
@@ -1643,6 +1669,13 @@ export function createGenesisPluginManager(context = {}) {
         ),
         uiSystemTabs: activePlugins.filter((plugin) => isPluginVisible(plugin.id)).flatMap((plugin) =>
           listPluginUiSystemTabs(plugin.id).map((tab) => ({
+            ...tab,
+            pluginName: plugin.name,
+            enabled: isPluginEnabled(plugin.id)
+          }))
+        ),
+        uiIdentityTabs: activePlugins.filter((plugin) => isPluginVisible(plugin.id)).flatMap((plugin) =>
+          listPluginUiIdentityTabs(plugin.id).map((tab) => ({
             ...tab,
             pluginName: plugin.name,
             enabled: isPluginEnabled(plugin.id)

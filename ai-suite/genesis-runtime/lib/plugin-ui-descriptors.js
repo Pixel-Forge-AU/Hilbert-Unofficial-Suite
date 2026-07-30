@@ -121,6 +121,13 @@ export function normalizeUiSystemTabDescriptor(pluginId = "", tab = {}) {
   return normalizeUiSecretsTabDescriptor(pluginId, tab);
 }
 
+// A plugin's own identity/persona/behavior customization tab (the generic, unbranded
+// replacement for what used to be called a "Nova tab" — see
+// docs/GENESIS-EXTRACTION-CLASSIFICATION.md's note to rename this category on extraction).
+export function normalizeUiIdentityTabDescriptor(pluginId = "", tab = {}) {
+  return normalizeUiTabDescriptorBase(pluginId, tab, { includeIcon: true });
+}
+
 export function listPluginUiEntries(store, pluginId = "") {
   const normalizedPluginId = normalizePluginId(pluginId);
   if (!normalizedPluginId) {
