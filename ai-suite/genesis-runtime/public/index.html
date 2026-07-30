@@ -5,102 +5,182 @@
 <title>Genesis</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 920px; color: #1a1a1a; }
-  h1 { font-size: 1.4rem; }
-  h2 { font-size: 1.1rem; margin-bottom: 0.5rem; }
-  section { margin-bottom: 1.75rem; }
-  dt { font-weight: 600; margin-top: 0.5rem; }
-  dd { margin: 0 0 0.25rem 0; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
-  .empty { color: #777; font-style: italic; }
-  code { background: #f2f2f2; padding: 0 0.15rem; border-radius: 3px; font-size: 0.85em; }
+  /*
+   * Visual identity ported from the original monolith's observer.css (custom properties,
+   * card/panel treatment, tab-button styling) — not the self-hosted Manrope font files or
+   * the floating drawer-over-chat layout, since Genesis's shell has no chat surface to float
+   * over. This is a persistent sidebar instead. Categories below (Plugins/Primary/Secrets/
+   * System/Identity) are the ONLY things this file knows about — it has zero knowledge of
+   * what any specific tab is; every actual dashboard is a plugin's own contribution.
+   */
+  :root {
+    color-scheme: dark;
+    --bg: #0b0f1a;
+    --panel: rgba(255, 255, 255, 0.07);
+    --panel-strong: rgba(255, 255, 255, 0.11);
+    --ink: #e4eaf4;
+    --muted: #6b7894;
+    --accent: #c8a96a;
+    --accent-soft: rgba(200, 169, 106, 0.2);
+    --border: rgba(255, 255, 255, 0.11);
+    --ok: #4fc97a;
+    --warn: #e6b04a;
+    --bad: #e8605e;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 65% 45% at 15% 5%, rgba(99, 82, 200, 0.22) 0%, transparent 100%),
+      radial-gradient(ellipse 55% 40% at 88% 92%, rgba(59, 110, 200, 0.18) 0%, transparent 100%),
+      radial-gradient(ellipse 40% 35% at 55% 50%, rgba(18, 24, 48, 0.5) 0%, transparent 100%),
+      linear-gradient(160deg, #0c1220 0%, #07090f 100%);
+    min-height: 100vh;
+    font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+  }
+  h1, h2, h3 { margin: 0; }
+  code { background: rgba(255, 255, 255, 0.08); padding: 0 0.2rem; border-radius: 3px; font-size: 0.85em; }
+  a { color: var(--accent); }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-radius: 12px;
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    padding: 14px;
+  }
+  .metric-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .metric-value { font-size: 0.95rem; font-weight: 600; line-height: 1.25; }
+  .tone-ok { color: var(--ok); } .tone-warn { color: var(--warn); } .tone-bad { color: var(--bad); }
+  .status-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .panel-subtle { color: var(--muted); font-size: 0.85rem; }
+  .empty { color: var(--muted); font-style: italic; }
+
+  #app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+  #sidebar {
+    background: rgba(8, 12, 24, 0.6);
+    border-right: 1px solid var(--border);
+    padding: 16px 10px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  #sidebar h1 { font-size: 1.15rem; letter-spacing: 0.02em; padding: 0 8px; margin-bottom: 4px; }
+  .nav-group-label { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0 8px; margin-bottom: 4px; }
+  .nav-group { display: flex; flex-direction: column; gap: 4px; }
+  .nav-group:empty, .nav-group-label:has(+ .nav-group:empty) { display: none; }
+  .nav-button {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    background: transparent; color: var(--ink); border: 1px solid transparent; border-radius: 10px;
+    padding: 7px 8px; font: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer;
+    transition: background 140ms, color 140ms, border-color 140ms;
+  }
+  .nav-button:hover { background: rgba(255, 255, 255, 0.06); }
+  .nav-button[aria-current="true"] {
+    background: linear-gradient(135deg, rgba(212, 179, 116, 0.92), rgba(176, 128, 48, 0.92));
+    color: #1a0f00; border-color: rgba(212, 179, 116, 0.45);
+    box-shadow: 0 4px 18px rgba(200, 169, 106, 0.35);
+  }
+  .nav-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.3rem; height: 1.3rem; border-radius: 5px; background: rgba(255, 255, 255, 0.08);
+    font-size: 0.7rem; font-weight: 700; flex: none;
+  }
+  .nav-button[aria-current="true"] .nav-icon { background: rgba(0, 0, 0, 0.15); }
+  .nav-sub { font-size: 0.72rem; opacity: 0.7; }
+
+  #main { padding: 22px 28px; overflow-x: auto; }
+  #main > section { display: none; }
+  #main > section.active { display: block; }
 
   .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
-  #plugin-search { flex: 1; min-width: 12rem; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+  #plugin-search { flex: 1; min-width: 12rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: rgba(255,255,255,0.05); color: var(--ink); }
   .chip-filter { display: flex; gap: 0.35rem; }
-  .chip { border: 1px solid #ccc; background: #fff; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.8rem; cursor: pointer; color: inherit; }
-  .chip[aria-pressed="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .chip { border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--ink); border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.8rem; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: #1a0f00; border-color: var(--accent); }
 
-  .plugin-card { border: 1px solid #ddd; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.6rem; }
-  .plugin-card.attention { border-color: #c77700; }
+  .plugin-card { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.03); }
+  .plugin-card.attention { border-color: var(--warn); }
   .plugin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
   .plugin-title { font-weight: 600; }
-  .plugin-id { color: #777; font-weight: 400; font-size: 0.85em; }
-  .plugin-desc { color: #555; font-size: 0.88rem; margin: 0.2rem 0 0.5rem; }
+  .plugin-id { color: var(--muted); font-weight: 400; font-size: 0.85em; }
+  .plugin-desc { color: var(--muted); font-size: 0.88rem; margin: 0.2rem 0 0.5rem; }
 
   .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex: none; }
   .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 999px; cursor: pointer; transition: background 0.15s; }
+  .slider { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 999px; cursor: pointer; transition: background 0.15s; }
   .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.15s; }
-  .switch input:checked + .slider { background: #2f8f3f; }
+  .switch input:checked + .slider { background: var(--ok); }
   .switch input:checked + .slider::before { transform: translateX(16px); }
   .switch input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
   .badge-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
   .badge { font-size: 0.75rem; padding: 0.12rem 0.5rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
-  .badge.ok { background: #e5f5e8; color: #1e6b2c; border-color: #bfe5c6; }
-  .badge.missing-required { background: #fdeceb; color: #a12a20; border-color: #f5c6c1; }
-  .badge.missing-optional { background: #fff6e5; color: #8a5a00; border-color: #f2ddab; }
-  .badge.provides { background: #eef1fb; color: #33408c; border-color: #d3d9f3; }
+  .badge.ok { background: rgba(79, 201, 122, 0.15); color: var(--ok); border-color: rgba(79, 201, 122, 0.3); }
+  .badge.missing-required { background: rgba(232, 96, 94, 0.15); color: var(--bad); border-color: rgba(232, 96, 94, 0.3); }
+  .badge.missing-optional { background: rgba(230, 176, 74, 0.15); color: var(--warn); border-color: rgba(230, 176, 74, 0.3); }
+  .badge.provides { background: var(--accent-soft); color: var(--accent); border-color: rgba(200, 169, 106, 0.3); }
 
-  .plugin-meta { font-size: 0.78rem; color: #888; margin-top: 0.35rem; }
-  .plugin-failure { font-size: 0.8rem; color: #a12a20; margin-top: 0.35rem; }
+  .plugin-meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; }
+  .plugin-failure { font-size: 0.8rem; color: var(--bad); margin-top: 0.35rem; }
 
-  .tab-strip { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-  .tab-strip button { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.85rem; cursor: pointer; color: inherit; }
-  .tab-strip button[aria-selected="true"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  .tab-strip .tab-group-label { font-size: 0.75rem; color: #888; align-self: center; margin-right: 0.15rem; }
-  #tab-content { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; min-height: 4rem; }
-
-  @media (prefers-color-scheme: dark) {
-    body { color: #eaeaea; }
-    th, td { border-color: #333; }
-    code { background: #2a2a2a; }
-    #plugin-search, .chip { background: #1e1e1e; border-color: #444; color: #eaeaea; }
-    .chip[aria-pressed="true"] { background: #eaeaea; color: #111; border-color: #eaeaea; }
-    .plugin-card { border-color: #333; }
-    .plugin-card.attention { border-color: #d98a2b; }
-    .plugin-desc, .plugin-meta { color: #aaa; }
-    .plugin-id { color: #999; }
-    .slider { background: #444; }
-    .badge.ok { background: #143d1c; color: #8fd39d; border-color: #1f5a2b; }
-    .badge.missing-required { background: #3d1815; color: #f3a89f; border-color: #5a221d; }
-    .badge.missing-optional { background: #3d3113; color: #f0c877; border-color: #5a4a1c; }
-    .badge.provides { background: #1c2140; color: #b7c0f0; border-color: #2c3564; }
-    .tab-strip button { background: #1e1e1e; border-color: #444; color: #eaeaea; }
-    .tab-strip button[aria-selected="true"] { background: #eaeaea; color: #111; border-color: #eaeaea; }
-    #tab-content { border-color: #333; }
+  .subtab-strip { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .subtab-strip button { border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--ink); border-radius: 8px; padding: 0.35rem 0.75rem; font-size: 0.85rem; cursor: pointer; }
+  .subtab-strip button[aria-selected="true"] {
+    background: linear-gradient(135deg, rgba(212, 179, 116, 0.92), rgba(176, 128, 48, 0.92));
+    color: #1a0f00; border-color: transparent;
   }
+  #tab-content { border: 1px solid var(--border); border-radius: 12px; padding: 1rem; min-height: 4rem; background: rgba(255,255,255,0.03); }
 </style>
 </head>
 <body>
-<h1>Genesis Runtime</h1>
-
-<section>
-  <h2>Status</h2>
-  <dl id="status"><dt>Loading&hellip;</dt></dl>
-</section>
-
-<section>
-  <h2>Plugins</h2>
-  <div class="toolbar">
-    <input id="plugin-search" type="search" placeholder="Search plugins by name, id, or capability&hellip;">
-    <div class="chip-filter" role="group" aria-label="Filter plugins">
-      <button class="chip" data-filter="all" aria-pressed="true">All</button>
-      <button class="chip" data-filter="enabled" aria-pressed="false">Enabled</button>
-      <button class="chip" data-filter="attention" aria-pressed="false">Needs attention</button>
+<div id="app">
+  <nav id="sidebar">
+    <h1>Genesis</h1>
+    <div class="nav-group" id="nav-core">
+      <button class="nav-button" data-section="plugins" aria-current="true"><span class="nav-icon">P</span> Plugins</button>
     </div>
-  </div>
-  <div id="plugin-list"><p class="empty">Loading&hellip;</p></div>
-</section>
 
-<section id="plugin-tabs-section" style="display:none">
-  <h2>Open</h2>
-  <div id="tab-strip" class="tab-strip"></div>
-  <div id="tab-content"><p class="empty">Select a tab above.</p></div>
-</section>
+    <div class="nav-group-label">Primary</div>
+    <div class="nav-group" id="nav-primary"></div>
+
+    <div class="nav-group-label">Identity</div>
+    <div class="nav-group" id="nav-identity"></div>
+
+    <div class="nav-group-label">Secrets</div>
+    <div class="nav-group" id="nav-secrets"></div>
+
+    <div class="nav-group-label">System</div>
+    <div class="nav-group" id="nav-system"></div>
+  </nav>
+
+  <main id="main">
+    <section id="section-status" class="card" style="margin-bottom:18px;">
+      <div class="status-strip" id="status"><div class="empty">Loading&hellip;</div></div>
+    </section>
+
+    <section id="section-plugins" class="active">
+      <div class="panel-head"><h2>Plugins</h2></div>
+      <div class="toolbar">
+        <input id="plugin-search" type="search" placeholder="Search plugins by name, id, or capability&hellip;">
+        <div class="chip-filter" role="group" aria-label="Filter plugins">
+          <button class="chip" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip" data-filter="enabled" aria-pressed="false">Enabled</button>
+          <button class="chip" data-filter="attention" aria-pressed="false">Needs attention</button>
+        </div>
+      </div>
+      <div id="plugin-list"><p class="empty">Loading&hellip;</p></div>
+    </section>
+
+    <section id="section-tab">
+      <div class="subtab-strip" id="tab-strip"></div>
+      <div id="tab-content"><p class="empty">Select a tab from the sidebar.</p></div>
+    </section>
+  </main>
+</div>
 
 <script type="module">
 import { mountObserverPluginTab, createObserverBrowserHost } from "/observer-compat/browser/plugin-host.js";
@@ -236,7 +316,7 @@ function renderPluginCard(plugin, capabilityProviders, plugins) {
     </div>`;
 }
 
-function render() {
+function renderPlugins() {
   const container = document.getElementById("plugin-list");
   if (!pluginsData || !pluginsData.plugins?.length) {
     container.innerHTML = `<p class="empty">No plugins installed &mdash; this is a zero-plugin Genesis instance.</p>`;
@@ -271,13 +351,27 @@ function render() {
 async function loadPlugins() {
   const pluginsRes = await fetch("/api/plugins/list", { headers });
   pluginsData = await pluginsRes.json();
-  render();
-  renderTabStrip();
+  renderPlugins();
+  renderNav();
 }
 
-// --- Plugin-contributed UI tabs (observer-compat/browser/plugin-host.js contract) ---
+// --- Sidebar navigation: purely generic category rendering ------------------------
+//
+// This section has NO knowledge of what any specific tab is. It only knows about the
+// five categories the core computes (uiTabs+uiPrimaryTabs merged as "Primary",
+// uiIdentityTabs, uiSecretsTabs, uiSystemTabs) plus its own built-in Plugins view. Every
+// actual dashboard (Queue, Brains, Capabilities, anything else) is a plugin registering
+// into one of these — this file must stay this way; do not special-case a tab by name here.
 
-let uiTabsFlat = [];
+const NAV_GROUPS = [
+  { key: "primary", navId: "nav-primary", fields: ["uiTabs", "uiPrimaryTabs"] },
+  { key: "identity", navId: "nav-identity", fields: ["uiIdentityTabs"] },
+  { key: "secrets", navId: "nav-secrets", fields: ["uiSecretsTabs"] },
+  { key: "system", navId: "nav-system", fields: ["uiSystemTabs"] }
+];
+
+let tabsByKey = new Map();
+let activeSection = "plugins";
 let activeTabKey = null;
 let host = null;
 
@@ -294,56 +388,80 @@ function buildHost() {
   });
 }
 
-function collectUiTabs(data) {
-  const feature = [
-    ...(data.uiTabs || []),
-    ...(data.uiPrimaryTabs || []),
-    ...(data.uiSystemTabs || [])
-  ].filter((t) => t.enabled);
-  const secrets = (data.uiSecretsTabs || []).filter((t) => t.enabled).map((t) => ({ ...t, group: "secrets" }));
+function collectGroupTabs(data, fields) {
   const seen = new Set();
-  const all = [...feature, ...secrets].filter((t) => {
-    const key = `${t.pluginId}:${t.id}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  all.sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.title.localeCompare(b.title));
-  return all;
+  const tabs = [];
+  for (const field of fields) {
+    for (const tab of data[field] || []) {
+      if (!tab.enabled) continue;
+      const key = `${tab.pluginId}:${tab.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tabs.push({ ...tab, key });
+    }
+  }
+  tabs.sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.title.localeCompare(b.title));
+  return tabs;
 }
 
-function renderTabStrip() {
-  const section = document.getElementById("plugin-tabs-section");
-  const strip = document.getElementById("tab-strip");
-  uiTabsFlat = collectUiTabs(pluginsData || {});
-  if (!uiTabsFlat.length) {
-    section.style.display = "none";
-    return;
-  }
-  section.style.display = "";
-  if (!activeTabKey || !uiTabsFlat.some((t) => `${t.pluginId}:${t.id}` === activeTabKey)) {
-    activeTabKey = `${uiTabsFlat[0].pluginId}:${uiTabsFlat[0].id}`;
-  }
-  strip.innerHTML = uiTabsFlat.map((t) => {
-    const key = `${t.pluginId}:${t.id}`;
-    const label = `${t.icon ? t.icon + " " : ""}${t.title}`;
-    return `<button data-tab-key="${escapeHtml(key)}" aria-selected="${key === activeTabKey}">${escapeHtml(label)} <span style="opacity:.6">(${escapeHtml(t.pluginName)})</span></button>`;
-  }).join("");
-  strip.querySelectorAll("button[data-tab-key]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeTabKey = btn.getAttribute("data-tab-key");
-      renderTabStrip();
-    });
+function showSection(sectionId) {
+  activeSection = sectionId;
+  document.querySelectorAll("#main > section").forEach((el) => el.classList.remove("active"));
+  document.getElementById(`section-${sectionId === "plugins" ? "plugins" : "tab"}`)?.classList.add("active");
+  document.querySelectorAll(".nav-button").forEach((btn) => {
+    btn.setAttribute("aria-current", String(btn.dataset.section === sectionId || btn.dataset.tabKey === activeTabKey));
   });
-  mountActiveTab();
+}
+
+function renderNav() {
+  tabsByKey = new Map();
+  document.getElementById("nav-core").querySelector('[data-section="plugins"]').onclick = () => {
+    activeTabKey = null;
+    showSection("plugins");
+  };
+
+  for (const group of NAV_GROUPS) {
+    const tabs = collectGroupTabs(pluginsData || {}, group.fields);
+    const navEl = document.getElementById(group.navId);
+    navEl.innerHTML = tabs.map((tab) => {
+      const label = `${tab.icon ? tab.icon + " " : ""}${tab.title}`;
+      return `<button class="nav-button" data-tab-key="${escapeHtml(tab.key)}" title="${escapeHtml(tab.pluginName)}">
+        <span class="nav-icon">${escapeHtml((tab.icon || tab.title[0] || "?").slice(0, 2))}</span>
+        <span>${escapeHtml(label)}</span>
+      </button>`;
+    }).join("");
+    navEl.querySelectorAll("[data-tab-key]").forEach((btn) => {
+      const key = btn.getAttribute("data-tab-key");
+      const tab = tabs.find((t) => t.key === key);
+      tabsByKey.set(key, tab);
+      btn.addEventListener("click", () => {
+        activeTabKey = key;
+        showSection("tab");
+        mountActiveTab();
+      });
+    });
+  }
+
+  if (activeTabKey && !tabsByKey.has(activeTabKey)) {
+    activeTabKey = null;
+    showSection("plugins");
+  }
+  document.querySelectorAll(".nav-button").forEach((btn) => {
+    btn.setAttribute("aria-current", String(
+      (btn.dataset.section && btn.dataset.section === activeSection && !activeTabKey)
+      || btn.dataset.tabKey === activeTabKey
+    ));
+  });
 }
 
 let mountToken = 0;
 async function mountActiveTab() {
-  const tab = uiTabsFlat.find((t) => `${t.pluginId}:${t.id}` === activeTabKey);
+  const tab = tabsByKey.get(activeTabKey);
   const contentEl = document.getElementById("tab-content");
+  const stripEl = document.getElementById("tab-strip");
+  stripEl.innerHTML = "";
   if (!tab) {
-    contentEl.innerHTML = `<p class="empty">Select a tab above.</p>`;
+    contentEl.innerHTML = `<p class="empty">Select a tab from the sidebar.</p>`;
     return;
   }
   const token = ++mountToken;
@@ -369,29 +487,29 @@ async function main() {
   const status = await statusRes.json();
   const statusEl = document.getElementById("status");
   statusEl.innerHTML = `
-    <dt>Core version</dt><dd>${status.coreVersion}</dd>
-    <dt>Node version</dt><dd>${status.nodeVersion}</dd>
-    <dt>Uptime</dt><dd>${Math.round(status.uptimeMs / 1000)}s</dd>
-    <dt>Profile</dt><dd>${status.profile?.name} (${status.profile?.id})</dd>
-    <dt>Plugin load errors</dt><dd>${status.pluginLoadErrors?.length || 0}</dd>
+    <div><div class="metric-label">Core version</div><div class="metric-value">${escapeHtml(status.coreVersion)}</div></div>
+    <div><div class="metric-label">Node version</div><div class="metric-value">${escapeHtml(status.nodeVersion)}</div></div>
+    <div><div class="metric-label">Uptime</div><div class="metric-value">${Math.round(status.uptimeMs / 1000)}s</div></div>
+    <div><div class="metric-label">Profile</div><div class="metric-value">${escapeHtml(status.profile?.name)} <span class="panel-subtle">(${escapeHtml(status.profile?.id)})</span></div></div>
+    <div><div class="metric-label">Plugin load errors</div><div class="metric-value ${status.pluginLoadErrors?.length ? 'tone-warn' : 'tone-ok'}">${status.pluginLoadErrors?.length || 0}</div></div>
   `;
 
   document.getElementById("plugin-search").addEventListener("input", (event) => {
     searchTerm = event.target.value;
-    render();
+    renderPlugins();
   });
   document.querySelectorAll(".chip-filter .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       activeFilter = chip.getAttribute("data-filter");
       document.querySelectorAll(".chip-filter .chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
-      render();
+      renderPlugins();
     });
   });
 
   await loadPlugins();
 }
 main().catch((err) => {
-  document.getElementById("status").innerHTML = `<dt>Error</dt><dd>${err}</dd>`;
+  document.getElementById("status").innerHTML = `<div class="tone-bad">${err}</div>`;
 });
 </script>
 </body>
