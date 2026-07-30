@@ -302,7 +302,15 @@ export function resolveProfilePluginState(profile = getActiveProfile(), pluginId
   if (enabled.has(id)) {
     return { enabled: true, source: "profile-enabled" };
   }
-  return { enabled: manualEnabled !== false, source: manualEnabled === true ? "manual-enabled" : "default" };
+  // A plugin the profile never mentions at all (not enabled, not disabled, not force-
+  // enabled) defaults to OFF, not on — only an explicit manual toggle (via the plugin
+  // list's enable switch) turns it on from here. Profiles that want broad coverage
+  // (full.json, developer.json, etc.) already enumerate every plugin id explicitly in
+  // enabledPlugins/disabledPlugins, so this only changes behavior for ids a profile
+  // genuinely never accounted for — e.g. default.json's empty lists, which previously
+  // fell through to "enabled" here despite the profile's own description promising
+  // nothing is on by default.
+  return { enabled: manualEnabled === true, source: manualEnabled === true ? "manual-enabled" : "default" };
 }
 
 export function isPluginEnabledByProfile(pluginId = "", manualEnabled = undefined) {

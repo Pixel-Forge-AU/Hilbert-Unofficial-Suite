@@ -12,6 +12,7 @@ import {
   normalizeUiPanelDescriptor,
   normalizeUiSecretsTabDescriptor,
   normalizeUiSystemTabDescriptor,
+  normalizeUiIdentityTabDescriptor,
   normalizeUiTabDescriptor
 } from "./plugin-ui-descriptors.js";
 import {
@@ -58,11 +59,13 @@ export function createGenesisPluginManager(context = {}) {
   const uiPrimaryTabs = new Map();
   const uiSecretsTabs = new Map();
   const uiSystemTabs = new Map();
+  const uiIdentityTabs = new Map();
   const regressionSuites = new Map();
   const internalRegressionRunners = new Map();
   const pluginRoutes = new Map();
   const failedPlugins = [];
   const pluginStateById = new Map();
+  const routeRegisteredPluginIds = new Set();
   const knownPluginIds = new Set();
   const pluginRuntimeStatsById = new Map();
   const hookRuntimeStatsByName = new Map();
@@ -222,6 +225,10 @@ export function createGenesisPluginManager(context = {}) {
     setPluginEnabled(normalizedPluginId, nextEnabled);
     await savePluginState();
     if (nextEnabled) {
+      const plugin = activePlugins.find((entry) => normalizePluginId(entry?.id || "") === normalizedPluginId);
+      if (plugin) {
+        await registerRoutesForPlugin(plugin);
+      }
       await invokePluginLifecycleCallback(normalizedPluginId, "onEnable", payload);
     }
     await appendPluginAudit({
@@ -241,6 +248,13 @@ export function createGenesisPluginManager(context = {}) {
       knownPluginIds: [...knownPluginIds].sort((left, right) => left.localeCompare(right)),
       disabledPluginIds: [...pluginStateById.entries()]
         .filter(([, enabled]) => enabled === false)
+        .map(([pluginId]) => pluginId)
+        .sort((left, right) => left.localeCompare(right)),
+      // Symmetric with disabledPluginIds: a manual "enable" toggle on a plugin the active
+      // profile doesn't itself enable (e.g. turning one thing on from the "default"
+      // profile) needs to survive a restart the same way a manual "disable" already does.
+      enabledPluginIds: [...pluginStateById.entries()]
+        .filter(([, enabled]) => enabled === true)
         .map(([pluginId]) => pluginId)
         .sort((left, right) => left.localeCompare(right))
     };
@@ -269,6 +283,15 @@ export function createGenesisPluginManager(context = {}) {
         }
         knownPluginIds.add(normalizedPluginId);
         pluginStateById.set(normalizedPluginId, false);
+      }
+      const enabledPluginIds = Array.isArray(parsed?.enabledPluginIds) ? parsed.enabledPluginIds : [];
+      for (const pluginId of enabledPluginIds) {
+        const normalizedPluginId = normalizePluginId(pluginId);
+        if (!normalizedPluginId) {
+          continue;
+        }
+        knownPluginIds.add(normalizedPluginId);
+        pluginStateById.set(normalizedPluginId, true);
       }
     } catch {
       // Missing or malformed plugin state should never block startup.
@@ -858,6 +881,10 @@ export function createGenesisPluginManager(context = {}) {
     return listPluginUiEntries(uiSystemTabs, pluginId);
   }
 
+  function listPluginUiIdentityTabs(pluginId = "") {
+    return listPluginUiEntries(uiIdentityTabs, pluginId);
+  }
+
   function normalizeRegressionSuiteDescriptor(pluginId = "", suite = {}) {
     const normalizedPluginId = normalizePluginId(pluginId);
     if (!normalizedPluginId || !suite || typeof suite !== "object") {
@@ -938,6 +965,7 @@ export function createGenesisPluginManager(context = {}) {
     const uiTabsForPlugin = listPluginUiTabs(plugin.id);
     const uiSecretsTabsForPlugin = listPluginUiSecretsTabs(plugin.id);
     const uiSystemTabsForPlugin = listPluginUiSystemTabs(plugin.id);
+    const uiIdentityTabsForPlugin = listPluginUiIdentityTabs(plugin.id);
     const regressionSuitesForPlugin = listPluginRegressionSuites(plugin.id);
     const internalRegressionModesForPlugin = listPluginInternalRegressionModes(plugin.id);
     const failuresForPlugin = listPluginFailures(plugin.id);
@@ -971,6 +999,8 @@ export function createGenesisPluginManager(context = {}) {
       uiSecretsTabCount: uiSecretsTabsForPlugin.length,
       uiSystemTabs: uiSystemTabsForPlugin,
       uiSystemTabCount: uiSystemTabsForPlugin.length,
+      uiIdentityTabs: uiIdentityTabsForPlugin,
+      uiIdentityTabCount: uiIdentityTabsForPlugin.length,
       regressionSuiteCount: regressionSuitesForPlugin.length,
       internalRegressionModes: internalRegressionModesForPlugin,
       internalRegressionModeCount: internalRegressionModesForPlugin.length,
@@ -1289,6 +1319,23 @@ export function createGenesisPluginManager(context = {}) {
         uiSystemTabs.set(pluginId, nextTabs);
         return normalizedTab;
       },
+      registerUiIdentityTab: (tab = {}) => {
+        if (!canRegisterUiPanels) {
+          recordPluginFailure(pluginId, "manifest:ui-identity-tab-denied", "Identity tab registration is not permitted");
+          return null;
+        }
+        const normalizedTab = normalizeUiIdentityTabDescriptor(pluginId, tab);
+        if (!normalizedTab) {
+          return null;
+        }
+        const existing = uiIdentityTabs.get(pluginId) || [];
+        const duplicate = existing.find((entry) => entry.id === normalizedTab.id);
+        const nextTabs = duplicate
+          ? existing.map((entry) => (entry.id === normalizedTab.id ? normalizedTab : entry))
+          : [...existing, normalizedTab];
+        uiIdentityTabs.set(pluginId, nextTabs);
+        return normalizedTab;
+      },
       registerRegressionSuite: (suiteOrFactory = null) => {
         if (!(suiteOrFactory && (typeof suiteOrFactory === "function" || typeof suiteOrFactory === "object"))) {
           return null;
@@ -1466,10 +1513,13 @@ export function createGenesisPluginManager(context = {}) {
         knownPluginIds.add(pluginId);
         pluginStateChanged = true;
       }
-      if (!pluginStateById.has(pluginId)) {
-        pluginStateById.set(pluginId, true);
-        pluginStateChanged = true;
-      }
+      // Deliberately NOT defaulting pluginStateById to true here: leaving it unset lets
+      // isPluginEnabled() fall through to the active profile's own enabledPlugins/
+      // disabledPlugins/fallback resolution (see resolveProfilePluginState) instead of
+      // this map silently overriding it with a permanent "manually enabled" record for
+      // every plugin the very first time it's ever loaded — which is what previously
+      // made every profile behave like "everything on" regardless of its own
+      // enabledPlugins list.
       const pluginApi = buildPluginApi(pluginMeta);
       if (typeof plugin.init === "function") {
         try {
@@ -1648,6 +1698,13 @@ export function createGenesisPluginManager(context = {}) {
             enabled: isPluginEnabled(plugin.id)
           }))
         ),
+        uiIdentityTabs: activePlugins.filter((plugin) => isPluginVisible(plugin.id)).flatMap((plugin) =>
+          listPluginUiIdentityTabs(plugin.id).map((tab) => ({
+            ...tab,
+            pluginName: plugin.name,
+            enabled: isPluginEnabled(plugin.id)
+          }))
+        ),
         uiTabs: activePlugins.filter((plugin) => isPluginVisible(plugin.id)).flatMap((plugin) =>
           listPluginUiTabs(plugin.id).map((tab) => ({
             ...tab,
@@ -1798,31 +1855,43 @@ export function createGenesisPluginManager(context = {}) {
     await Promise.allSettled(
       activePlugins
         .filter((plugin) => plugin.registerRoutes && isPluginEnabled(plugin.id))
-        .map(async (plugin) => {
-          const pluginApi = buildPluginApi(plugin);
-          if (pluginApi.canRegisterRoutes && pluginApi.canRegisterRoutes() !== true) {
-            recordPluginFailure(plugin.id, "manifest:routes-denied", "route registration is not permitted");
-            return;
-          }
-          const routeAwareApp = buildPluginRouteAwareApp(plugin.id) || app;
-          try {
-            await plugin.registerRoutes({
-              app: routeAwareApp,
-              fs,
-              path,
-              runtimeRoot,
-              plugin: {
-                id: plugin.id,
-                name: plugin.name,
-                version: plugin.version
-              },
-              api: pluginApi
-            });
-          } catch (error) {
-            recordPluginFailure(plugin.id, "registerRoutes", error);
-          }
-        })
+        .map((plugin) => registerRoutesForPlugin(plugin))
     );
+  }
+
+  // Runs a single plugin's registerRoutes callback exactly once (tracked via
+  // routeRegisteredPluginIds), regardless of whether that happens during the startup
+  // sweep above or later, when a plugin disabled at boot gets manually enabled — without
+  // this, a plugin toggled on after startup would show its UI tab (registerUiTab already
+  // ran unconditionally in init()) but every route that tab actually calls (its own
+  // scriptUrl included) would 404 until the process was restarted.
+  async function registerRoutesForPlugin(plugin) {
+    if (!plugin || !plugin.registerRoutes || routeRegisteredPluginIds.has(plugin.id)) {
+      return;
+    }
+    routeRegisteredPluginIds.add(plugin.id);
+    const pluginApi = buildPluginApi(plugin);
+    if (pluginApi.canRegisterRoutes && pluginApi.canRegisterRoutes() !== true) {
+      recordPluginFailure(plugin.id, "manifest:routes-denied", "route registration is not permitted");
+      return;
+    }
+    const routeAwareApp = buildPluginRouteAwareApp(plugin.id) || app;
+    try {
+      await plugin.registerRoutes({
+        app: routeAwareApp,
+        fs,
+        path,
+        runtimeRoot,
+        plugin: {
+          id: plugin.id,
+          name: plugin.name,
+          version: plugin.version
+        },
+        api: pluginApi
+      });
+    } catch (error) {
+      recordPluginFailure(plugin.id, "registerRoutes", error);
+    }
   }
 
   function listPlugins() {

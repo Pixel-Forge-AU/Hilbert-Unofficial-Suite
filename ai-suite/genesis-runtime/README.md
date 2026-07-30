@@ -53,7 +53,7 @@ whichever registers second wins on conflicting routes. Recommend deleting the fl
 
 ## Starter profiles
 
-Five profiles in `profiles/`, all validated against the 46-plugin catalog at
+Four profiles in `profiles/`, all validated against the 46-plugin catalog at
 `E:\AI\genesis-plugins` (boots clean, 0 load errors):
 
 | Profile | `GENESIS_PROFILE=` | Enables |
@@ -61,7 +61,6 @@ Five profiles in `profiles/`, all validated against the 46-plugin catalog at
 | Minimal | `minimal` | `secrets`, `model-provider` only — verify the runtime boots before adding anything |
 | Personal Assistant | `personal-assistant` | agent-runtime, memory, mail, calendar, voice/avatar, presence, home automation (Home Assistant/Matter/MQTT), skills, philosophy/personality — no dev or business tooling |
 | Developer | `developer` | agent-runtime, sandbox, workspace, code-review, deploy, github, qa, security-audit, vscode bridge, sprint/design tooling |
-| 3D Printing Ballarat | `3dpb-business` | agent-runtime, mail, calendar, the `3dpb-hub` business API bridge, finance, payments, wordpress, social-media-manager, projects — successor to `genesis-core`'s old `printshop.json` |
 | Full Catalog | `full` | everything — for integration testing, not a real deployment (broad tool/capability surface) |
 
 Each profile's `disabledPlugins` list is the full-catalog complement of its `enabledPlugins`
