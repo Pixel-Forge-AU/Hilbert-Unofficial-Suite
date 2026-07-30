@@ -493,6 +493,11 @@ export default function createVoiceAvatarPlugin() {
         res.sendFile(path.join(__dirname, "voice-avatar", "public", "avatar-tab.js"));
       });
 
+      app.get("/api/plugin-ui/voice-avatar/avatar-original.js", async (_req, res) => {
+        res.type("application/javascript");
+        res.sendFile(path.join(__dirname, "voice-avatar", "public", "avatar-original.js"));
+      });
+
       app.get("/api/voice/trust-profiles", async (_req, res) => {
         try {
           res.json({ ok: true, profiles: await getTrustProfiles() });
