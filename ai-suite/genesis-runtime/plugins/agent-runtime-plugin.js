@@ -80,13 +80,18 @@
 // pushed off onto a hook/plugin the way the actually-optional behaviors were.
 
 import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const MANIFEST = {
   schemaVersion: 1,
   startupPriority: 150, // load after model-provider/sandbox/workspace/memory
   permissions: {
     routes: true,
-    uiPanels: false,
+    uiPanels: true,
     data: true,
     capabilities: ["tasks:create", "tasks:get", "tasks:list", "tasks:stop", "tasks:answer", "tasks:history", "agent:run"],
     hooks: [],
@@ -876,10 +881,25 @@ export default function createAgentRuntimePlugin() {
         parameters: { type: "object", properties: { url: { type: "string" }, method: { type: "string" } }, required: ["url"] }
       });
 
+      if (typeof api.registerUiTab === "function") {
+        api.registerUiTab({
+          id: "queue",
+          title: "Queue",
+          icon: "Q",
+          order: 5,
+          scriptUrl: "/api/plugin-ui/agent-runtime/queue-tab.js"
+        });
+      }
+
       startTimers();
     },
 
     async registerRoutes({ app }) {
+      app.get("/api/plugin-ui/agent-runtime/queue-tab.js", async (_req, res) => {
+        res.type("application/javascript");
+        res.sendFile(path.join(__dirname, "agent-runtime", "public", "queue-tab.js"));
+      });
+
       app.post("/api/tasks", async (req, res) => {
         try {
           res.json({ ok: true, task: await createTask(req.body || {}) });
