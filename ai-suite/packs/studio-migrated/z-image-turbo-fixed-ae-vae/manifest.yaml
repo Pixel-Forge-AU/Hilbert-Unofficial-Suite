@@ -2,7 +2,7 @@ id: studio.z-image-turbo-fixed-ae-vae
 name: Z image turbo fixed ae vae
 version: 2.0.0
 category: core-generation
-description: Migrated V1 Studio image workflow from z-image-turbo-fixed-ae-vae.json
+description: Migrated image workflow from z-image-turbo-fixed-ae-vae.json
 status: migrated
 media_type: image
 source:

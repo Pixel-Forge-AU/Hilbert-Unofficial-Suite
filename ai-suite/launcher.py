@@ -1073,7 +1073,8 @@ class WorkflowManager:
                 'status': manifest.get('status', 'unknown'),
                 'thumbnail': manifest.get('thumbnail', ''),
                 'version': manifest.get('version', '1.0.0'),
-                'hardware': self._workflow_hardware(manifest)
+                'hardware': self._workflow_hardware(manifest),
+                'speed': self._workflow_speed_tier(manifest, workflow_id)
             })
 
         return result
@@ -1179,6 +1180,50 @@ class WorkflowManager:
             'supports_low_vram': requirements.get('supports_low_vram'),
             'supports_cpu_offload': requirements.get('supports_cpu_offload'),
         }
+
+    # Manifests in the wild use `runtime.class` inconsistently (light/medium/heavy
+    # per the schema, but also large/high/low/batch from packs authored before it
+    # was tightened up) - normalize whatever's there instead of trusting the enum.
+    _SPEED_CLASS_ALIASES = {
+        'light': 'fast', 'low': 'fast', 'fast': 'fast',
+        'medium': 'medium', 'batch': 'medium',
+        'heavy': 'slow', 'large': 'slow', 'high': 'slow', 'slow': 'slow',
+    }
+    _SPEED_LABELS = {
+        'fast': 'Fast',
+        'medium': 'Medium',
+        'slow': 'Slow (may take a while)',
+    }
+
+    def _workflow_speed_tier(self, manifest: Dict[str, Any], workflow_id: str) -> Dict[str, str]:
+        """Classify how long a workflow's generations tend to take.
+
+        Prefers an explicit `runtime.class` from the manifest; falls back to a
+        heuristic from media type and VRAM footprint for the majority of packs
+        (mostly video/3D imports) that don't set one.
+        """
+        runtime = manifest.get('runtime') or {}
+        raw_class = str(runtime.get('class', '')).strip().lower()
+        tier = self._SPEED_CLASS_ALIASES.get(raw_class)
+
+        if not tier:
+            media_type = self._infer_workflow_media_type(manifest, workflow_id)
+            hardware = self._workflow_hardware(manifest)
+            try:
+                vram = float(hardware.get('recommended_vram_gb') or hardware.get('minimum_vram_gb') or 0)
+            except (TypeError, ValueError):
+                vram = 0
+
+            if media_type in ('video', 'model'):
+                tier = 'slow'
+            elif vram >= 20:
+                tier = 'slow'
+            elif vram >= 12:
+                tier = 'medium'
+            else:
+                tier = 'fast'
+
+        return {'tier': tier, 'label': self._SPEED_LABELS[tier]}
 
     def _infer_workflow_media_type(self, manifest: Dict[str, Any], workflow_id: str) -> str:
         """Infer the primary output media class used by Studio."""
@@ -2553,7 +2598,8 @@ def api_workflow_details(workflow_id: str) -> jsonify:
         'presets': workflow_manager.get_presets(workflow_id),
         'models': manifest.get('models', {}),
         'custom_nodes': manifest.get('custom_nodes', {}),
-        'hardware': workflow_manager._workflow_hardware(manifest)
+        'hardware': workflow_manager._workflow_hardware(manifest),
+        'speed': workflow_manager._workflow_speed_tier(manifest, workflow_id)
     })
 
 
@@ -2725,6 +2771,14 @@ def _reconcile_running_jobs() -> None:
         state = payload.get('state')
         if state == 'cancelled':
             job_queue.update_job(job['job_id'], status='cancelled', progress=0)
+            if progress_monitor:
+                progress_monitor.clear(prompt_id)
+            continue
+        if state == 'error':
+            job_queue.update_job(
+                job['job_id'], status='failed', progress=job.get('progress') or 0,
+                error=payload.get('error') or f"ComfyUI reported an error ({payload.get('status', 'error')}).",
+            )
             if progress_monitor:
                 progress_monitor.clear(prompt_id)
             continue
@@ -3312,6 +3366,12 @@ def api_health() -> jsonify:
     })
 
 
+@app.route('/api/system/stats')
+def api_system_stats() -> jsonify:
+    """Live CPU/RAM/GPU readout for the Runtime tab."""
+    return jsonify(system_resource_stats())
+
+
 @app.route('/api/services')
 def api_services() -> jsonify:
     """Get local runtime service status from the migrated switcher."""
@@ -3679,6 +3739,142 @@ def _ok_item(label: str, ok: bool, detail: str, recommendation: str = "") -> Dic
         'status': 'ok' if ok else 'attention',
         'detail': detail,
         'recommendation': recommendation,
+    }
+
+
+def _cpu_times() -> Tuple[float, float]:
+    """Return (idle, total) jiffies from the aggregate 'cpu' line of /proc/stat."""
+    line = next((row for row in _read_text(Path('/proc/stat'), 4000).splitlines() if row.startswith('cpu ')), '')
+    parts = line.split()
+    if len(parts) < 5:
+        return 0.0, 0.0
+    values = [float(value) for value in parts[1:]]
+    idle = values[3] + (values[4] if len(values) > 4 else 0.0)  # idle + iowait
+    return idle, sum(values)
+
+
+def _cpu_percent(sample_seconds: float = 0.1) -> Optional[float]:
+    idle_start, total_start = _cpu_times()
+    if total_start == 0:
+        return None
+    time.sleep(sample_seconds)
+    idle_end, total_end = _cpu_times()
+    total_delta = total_end - total_start
+    if total_delta <= 0:
+        return None
+    percent = (1 - (idle_end - idle_start) / total_delta) * 100
+    return round(max(0.0, min(100.0, percent)), 1)
+
+
+def _ram_stats() -> Dict[str, Any]:
+    meminfo = _read_text(Path('/proc/meminfo'), 8000)
+    kb = {}
+    for key in ('MemTotal', 'MemAvailable'):
+        match = re.search(rf'^{key}:\s+(\d+)\s+kB', meminfo, re.MULTILINE)
+        kb[key] = int(match.group(1)) if match else 0
+    total_gb = kb['MemTotal'] / 1024 / 1024
+    available_gb = kb['MemAvailable'] / 1024 / 1024
+    used_gb = max(0.0, total_gb - available_gb)
+    return {
+        'used_gb': round(used_gb, 1),
+        'total_gb': round(total_gb, 1),
+        'percent': round((used_gb / total_gb) * 100, 1) if total_gb else 0.0,
+    }
+
+
+def _amd_gpu_device_dir() -> Optional[Path]:
+    """Find the sysfs device dir for the first AMD GPU with usage counters."""
+    drm = Path('/sys/class/drm')
+    if not drm.exists():
+        return None
+    for entry in sorted(drm.glob('card[0-9]*')):
+        if '-' in entry.name:
+            continue
+        device = entry / 'device'
+        if _read_text(device / 'vendor').strip() == '0x1002' and (device / 'gpu_busy_percent').exists():
+            return device
+    return None
+
+
+def _gpu_stats() -> Dict[str, Any]:
+    device = _amd_gpu_device_dir()
+    if not device:
+        return {'available': False}
+
+    def read_int(path: Path) -> Optional[int]:
+        text = _read_text(path).strip()
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    def to_gb(value: Optional[int]) -> Optional[float]:
+        return round(value / (1024 ** 3), 2) if value is not None else None
+
+    temp_c = None
+    power_w = None
+    for hwmon in sorted((device / 'hwmon').glob('hwmon*')) if (device / 'hwmon').exists() else []:
+        temp_raw = read_int(hwmon / 'temp1_input')
+        power_raw = read_int(hwmon / 'power1_average')
+        if temp_raw is not None:
+            temp_c = round(temp_raw / 1000, 1)
+        if power_raw is not None:
+            power_w = round(power_raw / 1_000_000, 1)
+        break
+
+    return {
+        'available': True,
+        'busy_percent': read_int(device / 'gpu_busy_percent'),
+        'vram_used_gb': to_gb(read_int(device / 'mem_info_vram_used')),
+        'vram_total_gb': to_gb(read_int(device / 'mem_info_vram_total')),
+        'gtt_used_gb': to_gb(read_int(device / 'mem_info_gtt_used')),
+        'gtt_total_gb': to_gb(read_int(device / 'mem_info_gtt_total')),
+        'temp_c': temp_c,
+        'power_w': power_w,
+    }
+
+
+def _npu_device_dir() -> Optional[Path]:
+    """Find the sysfs device dir for the AMD XDNA NPU (Ryzen AI), if present."""
+    accel = Path('/sys/class/accel')
+    if not accel.exists():
+        return None
+    for entry in sorted(accel.glob('accel*')):
+        device = entry / 'device'
+        driver_link = device / 'driver'
+        if driver_link.is_symlink() and driver_link.resolve().name == 'amdxdna':
+            return device
+    return None
+
+
+def _npu_stats() -> Dict[str, Any]:
+    device = _npu_device_dir()
+    if not device:
+        return {'available': False}
+
+    power_state = _read_text(device / 'power_state').strip()
+    return {
+        'available': True,
+        'name': _read_text(device / 'vbnv').strip() or 'AMD Ryzen AI NPU',
+        'fw_version': _read_text(device / 'fw_version').strip() or None,
+        'power_state': power_state or None,
+        # The amdxdna driver doesn't expose a busy/utilization counter outside
+        # debugfs (root-only), so runtime PM state is the best proxy we have:
+        # D0 means the NPU is powered up and actively doing work; D3hot/D3cold
+        # means it's idle and suspended.
+        'active': power_state.upper() == 'D0',
+    }
+
+
+def system_resource_stats() -> Dict[str, Any]:
+    return {
+        'cpu': {
+            'percent': _cpu_percent(),
+            'count': os.cpu_count(),
+        },
+        'ram': _ram_stats(),
+        'gpu': _gpu_stats(),
+        'npu': _npu_stats(),
     }
 
 

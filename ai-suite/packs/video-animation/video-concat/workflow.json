@@ -1,0 +1,59 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "smoke-input.mp4"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": ["1", 0]
+    }
+  },
+  "3": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "smoke-input.mp4"
+    }
+  },
+  "4": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": ["3", 0]
+    }
+  },
+  "5": {
+    "class_type": "ImageBatch",
+    "inputs": {
+      "image1": ["2", 0],
+      "image2": ["4", 0]
+    }
+  },
+  "6": {
+    "class_type": "AudioConcat",
+    "inputs": {
+      "audio1": ["2", 1],
+      "audio2": ["4", 1],
+      "direction": "after"
+    }
+  },
+  "7": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["5", 0],
+      "fps": ["2", 2],
+      "audio": ["6", 0],
+      "bit_depth": 8
+    }
+  },
+  "8": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["7", 0],
+      "filename_prefix": "video/video-concat",
+      "format": "auto",
+      "codec": "auto"
+    }
+  }
+}

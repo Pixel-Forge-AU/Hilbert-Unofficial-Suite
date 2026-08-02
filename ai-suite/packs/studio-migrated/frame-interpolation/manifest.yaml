@@ -2,7 +2,7 @@ id: studio.frame-interpolation
 name: Frame interpolation
 version: 2.0.0
 category: video-animation
-description: Migrated V1 Studio video workflow from frame-interpolation.json
+description: Migrated video workflow from frame-interpolation.json
 status: migrated
 media_type: video
 source:

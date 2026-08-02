@@ -25,6 +25,14 @@ dist/
 *.tsbuildinfo
 
 # Local runtime data, logs, and model weights (not source)
+ai-suite/genesis-runtime/runtime-data/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/ffmpeg/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/whisper/
+ai-suite/genesis-runtime/plugins/multilingual-voice/vendor/models/
+
+# Recovery reference snapshots (not part of the actual codebase)
+ai-suite/genesis-runtime/source genesis/
+ai-suite/genesis-runtime/source plugins/
 ai-suite/.pids/
 ai-suite/.venv-playwright/
 ai-suite/archive/

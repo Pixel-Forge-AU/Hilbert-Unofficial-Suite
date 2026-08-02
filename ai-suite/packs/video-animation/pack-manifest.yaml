@@ -19,6 +19,7 @@ workflows:
   - video.animation
   - video.mux
   - video.extend
+  - video.concat
   - video.wan22-multi-lora-i2v
   - video.wan22-fastest-i2v-8step
   - video.bernini-multimodal-video
@@ -26,6 +27,7 @@ workflows:
   - video.ltx2-director-i2v
   - video.wan21-vace-causvid-1.3b
   - video.wan21-vace-causvid-14b
+  - video.wan21-vace-character-in-scene
   - video.wan21-jibmix-t2v
   - video.wan22-longvideo-6step-gguf-combo
   - video.scail2-character-replacement

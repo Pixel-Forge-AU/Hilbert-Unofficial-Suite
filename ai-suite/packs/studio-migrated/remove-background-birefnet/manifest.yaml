@@ -2,7 +2,7 @@ id: studio.remove-background-birefnet
 name: Remove background birefnet
 version: 2.0.0
 category: image-editing
-description: Migrated V1 Studio image workflow from remove-background-birefnet.json
+description: Migrated image workflow from remove-background-birefnet.json
 status: migrated
 media_type: image
 source:
