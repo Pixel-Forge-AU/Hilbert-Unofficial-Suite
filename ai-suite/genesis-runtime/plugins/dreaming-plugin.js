@@ -80,7 +80,7 @@ function classifyMemoryLine(line = "", context = {}) {
   if (/\b(error|failed|timeout|crash)\b/i.test(stripped) && !/\b(user prefers|remember|standing|long[- ]term|important)\b/i.test(stripped)) {
     return { kind: "keep", reason: "transient_error_context" };
   }
-  if (/\b(remember|long[- ]term|stable fact|standing instruction|preference|prefers?|likes?|dislikes?|always|never|timezone|ongoing project|current priority|Derek|Nova should|user wants|user asked)\b/i.test(stripped)) {
+  if (/\b(remember|long[- ]term|stable fact|standing instruction|preference|prefers?|likes?|dislikes?|always|never|timezone|ongoing project|current priority|Nova should|user wants|user asked)\b/i.test(stripped)) {
     return {
       kind: "long_term",
       section,
@@ -114,7 +114,7 @@ function parseMarkdownLines(content = "", filePath = "") {
       heading = String(headingMatch[1] || "").trim();
     }
     const bulletMatch = line.match(/^\s*(?:[-*]\s+|\d+\.\s+|\[[ xX]\]\s*)(.+?)\s*$/);
-    const looksLikeMemorySentence = /\b(remember|prefer|standing|ongoing|priority|always|never|Derek|Nova should|user wants)\b/i.test(line);
+    const looksLikeMemorySentence = /\b(remember|prefer|standing|ongoing|priority|always|never|Nova should|user wants)\b/i.test(line);
     const personalNoteLine = personalFile && String(line || "").trim() && !headingMatch;
     if (bulletMatch || looksLikeMemorySentence || personalNoteLine || /^\s*-\s*$/.test(line)) {
       entries.push({

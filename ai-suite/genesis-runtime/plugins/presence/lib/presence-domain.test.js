@@ -29,7 +29,7 @@ test("presence condenses related fragments into a thread and keeps key notes", a
     }
   });
 
-  const sourceIdentity = { label: "Derek", trustLevel: "known" };
+  const sourceIdentity = { label: "Alex", trustLevel: "known" };
   const first = await domain.observe({
     text: "Alpha launch meeting with Mia tomorrow.",
     sourceIdentity,
@@ -70,7 +70,7 @@ test("presence does not queue low-signal question fragments", async () => {
 
   const result = await domain.observe({
     text: "What about it?",
-    sourceIdentity: { label: "Derek", trustLevel: "known" },
+    sourceIdentity: { label: "Alex", trustLevel: "known" },
     observedAt: 200_000
   });
 
@@ -83,7 +83,7 @@ test("presence records task notes without auto-creating todos by default", async
   const domain = createPresenceDomain({ data: createMemoryData() });
   const result = await domain.observe({
     text: "Please follow up with Sam about the design review notes.",
-    sourceIdentity: { label: "Derek", trustLevel: "known" },
+    sourceIdentity: { label: "Alex", trustLevel: "known" },
     observedAt: 300_000
   });
 

@@ -1048,7 +1048,7 @@ function classifyMailMessage({
   if (/\b(invoice|refund|receipt|security alert|password reset|verification code)\b/.test(combined)) {
     addReason(-1, "transactional wording");
   }
-  if (recipients.some((entry) => /\bhello@derek\.net\.au\b/.test(entry))) {
+  if (recipients.some((entry) => /\bhello@example\.com\b/.test(entry))) {
     addReason(1, "forwarded-to-user mailbox");
   }
 
@@ -1061,7 +1061,7 @@ function classifyMailMessage({
     category = "transactional";
   } else if (/\b(marketing|seo|traffic growth|sale|discount|offer|promo|newsletter|advertis)\b/.test(combined)) {
     category = "promotion";
-  } else if (/\b(hello|hi derek|let me know|thanks|regards)\b/.test(combined) && !/\b(unsubscribe|sale|discount)\b/.test(combined)) {
+  } else if (/\b(hello|hi there|let me know|thanks|regards)\b/.test(combined) && !/\b(unsubscribe|sale|discount)\b/.test(combined)) {
     category = "personal";
   } else if (/\b(alert|warning|security|system|notification|update)\b/.test(combined)) {
     category = "system";
