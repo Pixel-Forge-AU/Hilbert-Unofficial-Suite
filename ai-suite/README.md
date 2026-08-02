@@ -3,7 +3,7 @@
 A local, offline-first AI workstation: a coding LLM, an uncensored "Heretic"
 LLM, ComfyUI (image/video/3D/audio generation) and a browser automation
 service, all driven from one switcher so only one GPU-heavy stack runs at a
-time. Includes a workflow launcher/studio web UI (`:39000`) with 48 curated
+time. Includes a workflow launcher/studio web UI (`:39000`) with 67 curated
 workflow packs (character, core-generation, image-editing, horror-gore,
 three-d, video-animation, audio, and more) plus the original 24 migrated V1
 Studio workflows, two chained-generation pipelines built on top of them
