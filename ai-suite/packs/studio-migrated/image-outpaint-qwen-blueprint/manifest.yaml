@@ -2,7 +2,7 @@ id: studio.image-outpaint-qwen-blueprint
 name: Image outpaint qwen blueprint
 version: 2.0.0
 category: image-editing
-description: Migrated V1 Studio image workflow from image-outpaint-qwen-blueprint.json
+description: Migrated image workflow from image-outpaint-qwen-blueprint.json
 status: migrated
 media_type: image
 source:

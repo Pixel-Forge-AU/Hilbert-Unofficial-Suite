@@ -2,7 +2,7 @@ id: studio.image-upscale-basic
 name: Image upscale basic
 version: 2.0.0
 category: image-enhancement
-description: Migrated V1 Studio image workflow from image-upscale-basic.json
+description: Migrated image workflow from image-upscale-basic.json
 status: migrated
 media_type: image
 source:

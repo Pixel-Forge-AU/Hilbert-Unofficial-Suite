@@ -2,7 +2,7 @@ id: studio.text-to-3d-local-zimage-hunyuan3d
 name: Text to 3d local zimage hunyuan3d
 version: 2.0.0
 category: three-d
-description: Migrated V1 Studio model workflow from text-to-3d-local-zimage-hunyuan3d.json
+description: Migrated model workflow from text-to-3d-local-zimage-hunyuan3d.json
 status: migrated
 media_type: model
 source:

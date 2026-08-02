@@ -3,18 +3,7 @@ name: Text to Image (HQ, high RAM)
 version: 1.0.0
 category: core-generation
 description: >
-  Higher-fidelity text-to-image generation using the non-distilled Qwen-Image
-  checkpoint (~20B params). Unlike core.text-to-image (a step/cfg-distilled
-  "turbo" model), this is a full diffusion model: steps and cfg are real
-  quality levers here, not just speed knobs.
-
-  WARNING: this machine's BIOS reserves a fixed ~96GB block as GPU-exclusive
-  VRAM, leaving only ~30GB of "System RAM" for the OS. Loading this
-  checkpoint's ~20GB UNet on top of its ~8GB text encoder has previously
-  exhausted that 30GB pool and OOM-killed the ComfyUI process (and an
-  unrelated process on the machine) rather than failing gracefully. Close
-  other memory-heavy apps before running this, or check whether the BIOS's
-  UMA/VRAM allocation can be switched from a fixed size to "Auto".
+  Higher-fidelity text-to-image generation using the non-distilled Qwen-Image checkpoint (~20B params). Unlike core.text-to-image (a step/cfg-distilled "turbo" model), this is a full diffusion model: steps and cfg are real quality levers here, not just speed knobs.
 status: experimental
 media_type: image
 source:
@@ -27,8 +16,7 @@ inputs:
   label: Prompt
   type: textarea
   required: false
-  default: A breathtaking cinematic landscape at golden hour, dramatic clouds, rich
-    detail, painterly light, high fidelity, evocative atmosphere
+  default: A breathtaking cinematic landscape at golden hour, dramatic clouds, rich detail, painterly light, high fidelity, evocative atmosphere
   legacy_kind: textarea
   node_id: '67'
   node_type: CLIPTextEncode
@@ -38,8 +26,7 @@ inputs:
   label: Negative prompt
   type: textarea
   required: false
-  default: low quality, bad anatomy, extra digits, missing digits, extra limbs, missing
-    limbs, blurry, watermark, text
+  default: low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark, text
   legacy_kind: textarea
   node_id: '71'
   node_type: CLIPTextEncode

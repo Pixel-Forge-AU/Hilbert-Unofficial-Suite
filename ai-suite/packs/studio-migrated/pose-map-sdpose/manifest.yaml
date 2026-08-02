@@ -2,7 +2,7 @@ id: studio.pose-map-sdpose
 name: Pose map sdpose
 version: 2.0.0
 category: image-analysis
-description: Migrated V1 Studio image workflow from pose-map-sdpose.json
+description: Migrated image workflow from pose-map-sdpose.json
 status: migrated
 media_type: image
 source:

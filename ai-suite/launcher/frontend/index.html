@@ -101,10 +101,37 @@
 
         .tab-bar {
             display: flex;
-            gap: 0.5rem;
+            align-items: flex-start;
+            gap: 1.5rem;
             margin-bottom: 1.25rem;
             overflow-x: auto;
             padding-bottom: 0.25rem;
+        }
+
+        .tab-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            flex: 0 0 auto;
+        }
+
+        .tab-group + .tab-group {
+            padding-left: 1.5rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .tab-group-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            padding: 0 0.15rem;
+            opacity: 0.9;
+        }
+
+        .tab-group-buttons {
+            display: flex;
+            gap: 0.5rem;
         }
 
         .tab-btn {
@@ -116,12 +143,34 @@
             padding: 0.7rem 1rem;
             cursor: pointer;
             font-weight: 650;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         }
 
-        .tab-btn.active {
+        /* Runtime & Performance: cyan/blue */
+        .tab-group-runtime .tab-group-label { color: #4fc3f7; }
+        .tab-group-runtime .tab-btn:hover:not(.active) { border-color: rgba(79, 195, 247, 0.55); }
+        .tab-group-runtime .tab-btn.active {
             background: #4fc3f7;
             border-color: #4fc3f7;
             color: #102032;
+        }
+
+        /* Automation: pipeline / genesis / chat - amber */
+        .tab-group-automation .tab-group-label { color: #ffb74d; }
+        .tab-group-automation .tab-btn:hover:not(.active) { border-color: rgba(255, 183, 77, 0.55); }
+        .tab-group-automation .tab-btn.active {
+            background: #ffb74d;
+            border-color: #ffb74d;
+            color: #2b1a02;
+        }
+
+        /* Creative: everything else - violet */
+        .tab-group-creative .tab-group-label { color: #ce93d8; }
+        .tab-group-creative .tab-btn:hover:not(.active) { border-color: rgba(206, 147, 216, 0.55); }
+        .tab-group-creative .tab-btn.active {
+            background: #ce93d8;
+            border-color: #ce93d8;
+            color: #2a0a30;
         }
 
         .tab-panel {
@@ -870,6 +919,30 @@
             color: #fff;
         }
 
+        .speed-badge {
+            display: inline-block;
+            padding: 0.2rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .speed-fast {
+            background: rgba(102, 187, 106, 0.18);
+            color: #66bb6a;
+        }
+
+        .speed-medium {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .speed-slow {
+            background: rgba(249, 168, 37, 0.18);
+            color: #f9a825;
+        }
+
         .generation-panel {
             display: none;
             gap: 1rem;
@@ -936,6 +1009,54 @@
             border-radius: 12px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
+        }
+
+        .resource-readout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .resource-stat {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0.65rem 0.8rem;
+        }
+
+        .resource-stat-label {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+        }
+
+        .resource-stat-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .resource-stat-detail {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.72rem;
+            margin-top: 0.15rem;
+        }
+
+        .resource-stat-bar {
+            margin-top: 0.4rem;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .resource-stat-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: #4fc3f7;
+            transition: width 0.4s ease;
         }
 
         .library-toolbar {
@@ -1958,6 +2079,19 @@
                 padding: 1rem;
             }
 
+            .tab-bar {
+                flex-wrap: wrap;
+            }
+
+            .tab-group + .tab-group {
+                padding-left: 0;
+                border-left: none;
+            }
+
+            .tab-group-buttons {
+                flex-wrap: wrap;
+            }
+
             .performance-layout {
                 grid-template-columns: 1fr;
             }
@@ -2006,20 +2140,71 @@
 
     <main class="main">
         <nav class="tab-bar" aria-label="Main sections">
-            <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
-            <button class="tab-btn" type="button" data-tab="pipeline">Pipeline</button>
-            <button class="tab-btn" type="button" data-tab="genesis">Genesis</button>
-            <button class="tab-btn" type="button" data-tab="chat">Chat</button>
-            <button class="tab-btn" type="button" data-tab="performance">Performance</button>
-            <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
-            <button class="tab-btn" type="button" data-tab="studio">Studio</button>
-            <button class="tab-btn" type="button" data-tab="composer">Composer</button>
-            <button class="tab-btn" type="button" data-tab="musicvideo">Music Video</button>
-            <button class="tab-btn" type="button" data-tab="storyboard">Storyboard</button>
-            <button class="tab-btn" type="button" data-tab="library">Library</button>
+            <div class="tab-group tab-group-runtime">
+                <span class="tab-group-label">Runtime</span>
+                <div class="tab-group-buttons">
+                    <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
+                    <button class="tab-btn" type="button" data-tab="performance">Performance</button>
+                </div>
+            </div>
+            <div class="tab-group tab-group-automation">
+                <span class="tab-group-label">Automation</span>
+                <div class="tab-group-buttons">
+                    <button class="tab-btn" type="button" data-tab="pipeline">Pipeline</button>
+                    <button class="tab-btn" type="button" data-tab="genesis">Genesis</button>
+                    <button class="tab-btn" type="button" data-tab="chat">Chat</button>
+                </div>
+            </div>
+            <div class="tab-group tab-group-creative">
+                <span class="tab-group-label">Creative</span>
+                <div class="tab-group-buttons">
+                    <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
+                    <button class="tab-btn" type="button" data-tab="studio">Studio</button>
+                    <button class="tab-btn" type="button" data-tab="composer">Composer</button>
+                    <button class="tab-btn" type="button" data-tab="musicvideo">Music Video</button>
+                    <button class="tab-btn" type="button" data-tab="storyboard">Storyboard</button>
+                    <button class="tab-btn" type="button" data-tab="library">Library</button>
+                </div>
+            </div>
         </nav>
 
         <section class="tab-panel active" id="tab-runtime">
+        <section class="service-panel">
+            <h3>System</h3>
+            <div class="resource-readout" id="resourceReadout">
+                <div class="resource-stat">
+                    <div class="resource-stat-label">CPU</div>
+                    <div class="resource-stat-value" id="resourceCpuValue">--</div>
+                    <div class="resource-stat-detail" id="resourceCpuDetail">&nbsp;</div>
+                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceCpuBar" style="width: 0%;"></div></div>
+                </div>
+                <div class="resource-stat">
+                    <div class="resource-stat-label">RAM</div>
+                    <div class="resource-stat-value" id="resourceRamValue">--</div>
+                    <div class="resource-stat-detail" id="resourceRamDetail">&nbsp;</div>
+                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceRamBar" style="width: 0%;"></div></div>
+                </div>
+                <div class="resource-stat">
+                    <div class="resource-stat-label">GPU</div>
+                    <div class="resource-stat-value" id="resourceGpuValue">--</div>
+                    <div class="resource-stat-detail" id="resourceGpuDetail">&nbsp;</div>
+                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceGpuBar" style="width: 0%;"></div></div>
+                </div>
+                <div class="resource-stat">
+                    <div class="resource-stat-label">GPU Memory</div>
+                    <div class="resource-stat-value" id="resourceGpuMemValue">--</div>
+                    <div class="resource-stat-detail" id="resourceGpuMemDetail">&nbsp;</div>
+                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceGpuMemBar" style="width: 0%;"></div></div>
+                </div>
+                <div class="resource-stat">
+                    <div class="resource-stat-label">NPU</div>
+                    <div class="resource-stat-value" id="resourceNpuValue">--</div>
+                    <div class="resource-stat-detail" id="resourceNpuDetail">&nbsp;</div>
+                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceNpuBar" style="width: 0%;"></div></div>
+                </div>
+            </div>
+        </section>
+
         <section class="service-panel">
             <h3>Runtime Services
                 <span id="comfyHealthBadge" class="status-badge status-legacy" style="margin-left: 0.5rem; vertical-align: middle;" title="ComfyUI connectivity, checked every 20s">ComfyUI: checking...</span>
@@ -2101,7 +2286,8 @@
             <h3>Genesis Runtime</h3>
             <p style="color: rgba(255,255,255,0.6); margin-top: -0.5rem;">
                 Genesis Runtime is a standalone plugin-host runtime, independent of the Planner/Orchestrator/
-                OpenHands build pipeline.
+                OpenHands build pipeline. It ships with zero plugins enabled by default - infrastructure only,
+                no built-in agents, chat, or memory. Behavior comes entirely from whatever plugins it's pointed at.
             </p>
             <div class="service-actions">
                 <button class="btn btn-primary" onclick="runServiceCommand('genesis', 'genesisOutput')">Genesis: Start</button>
@@ -2109,6 +2295,27 @@
                 <a class="btn btn-secondary" href="http://{{ request_host }}:39008/" target="_blank" rel="noopener">Genesis: Open</a>
                 <button class="btn btn-secondary" onclick="refreshServiceStatus('genesisOutput')">Status</button>
             </div>
+            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
+                <strong>Start</strong> runs <code>ai-switch genesis</code>, which launches
+                <code>genesis-runtime/server.js</code> on the host/port set by <code>GENESIS_HOST</code> /
+                <code>GENESIS_PORT</code> in <code>config.env</code> (default <code>0.0.0.0:39008</code>).
+                <strong>Stop</strong> kills it. <strong>Genesis: Open</strong> loads its minimal status page,
+                listing runtime status and installed plugins. <strong>Status</strong> refreshes the shared
+                status panel for every suite service, not just Genesis.
+            </p>
+            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
+                With no further config, Start gives you a clean boot with 0 plugins and 0 capabilities - there's
+                nothing to do with it yet. To make it useful: set <code>GENESIS_PLUGIN_DIR</code> in
+                <code>config.env</code> to point at a plugin catalog (11 ship in <code>genesis-runtime/plugins/</code>:
+                secrets, model-provider, home-assistant, memory, retrieval, sandbox, skills-marketplace,
+                voice-avatar, workspace, mail, agent-runtime), and set <code>GENESIS_PROFILE</code> to choose which
+                plugins are enabled - <code>minimal</code>, <code>personal-assistant</code>, <code>developer</code>,
+                <code>full</code>, <code>default</code>, or <code>3dpb-business</code>
+                (see <code>genesis-runtime/profiles/</code>). Plugins outside this repo's own
+                <code>plugins/</code> directory need to be on a hash allowlist unless you set
+                <code>GENESIS_EXTERNAL_PLUGIN_IMPORT_MODE=permissive</code> for a trusted directory. See
+                <code>genesis-runtime/README.md</code> for the full picture.
+            </p>
             <pre class="service-output" id="genesisOutput">Use Start to launch Genesis Runtime. Status shows every suite service.</pre>
         </section>
         </section>
@@ -2329,6 +2536,9 @@
                                 <span class="icon">●</span>
                                 <span>{{ 'Not wired' if workflow.runnable == false else 'Ready' }}</span>
                             </div>
+                            <div class="workflow-meta-item">
+                                <span class="speed-badge speed-{{ workflow.speed.tier }}">{{ workflow.speed.label }}</span>
+                            </div>
                         </div>
                         <div class="workflow-actions">
                             <button class="btn btn-primary" onclick="event.stopPropagation(); focusWorkbench('{{ workflow.id }}')">Use</button>
@@ -2374,6 +2584,7 @@
                             <p id="workbenchDescription">Choose from the catalogue or the Studio list.</p>
                         </div>
                         <span class="media-badge" id="workbenchMedia">Image</span>
+                        <span class="speed-badge" id="workbenchSpeed"></span>
                     </div>
                     <div id="workbenchFields"></div>
                     <div class="inline-form-actions">
@@ -3429,6 +3640,14 @@
             return type.charAt(0).toUpperCase() + type.slice(1);
         }
 
+        function applySpeedBadge(workflow) {
+            const el = document.getElementById('workbenchSpeed');
+            const tier = workflow?.speed?.tier || 'fast';
+            const label = workflow?.speed?.label || 'Fast';
+            el.className = `speed-badge speed-${tier}`;
+            el.textContent = label;
+        }
+
         async function selectWorkbenchWorkflow(workflowId) {
             workbenchWorkflowId = workflowId;
             Object.keys(paintedMasks).forEach(function(key) { delete paintedMasks[key]; });
@@ -3436,6 +3655,7 @@
             document.getElementById('workbenchTitle').textContent = summary?.name || workflowId;
             document.getElementById('workbenchDescription').textContent = summary?.description || 'Loading workflow controls...';
             document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(summary);
+            applySpeedBadge(summary);
             document.getElementById('workbenchFields').innerHTML = '<div class="preview-empty">Loading controls...</div>';
 
             try {
@@ -3443,12 +3663,11 @@
                 const details = await response.json();
                 if (!response.ok) throw new Error(details.error || 'Failed to load workflow');
                 workbenchWorkflowDetails = details;
-                if (!Object.keys(comfyModelOptions).length) {
-                    await refreshComfyModelOptions();
-                }
+                await refreshComfyModelOptions();
                 document.getElementById('workbenchTitle').textContent = details.name;
                 document.getElementById('workbenchDescription').textContent = details.description || '';
                 document.getElementById('workbenchMedia').textContent = mediaLabelForWorkflow(details);
+                applySpeedBadge(details);
                 document.getElementById('workbenchRun').disabled = details.runnable === false;
                 const missingNodes = details.missing_nodes || [];
                 document.getElementById('workbenchStatus').textContent = details.runnable === false
@@ -4676,11 +4895,32 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
+        async function copyTextToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                if (!document.execCommand('copy')) {
+                    throw new Error('Clipboard is unavailable in this browser context.');
+                }
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
         async function copyPerformanceCommand(index) {
             const node = document.getElementById('performanceCommand' + index);
             if (!node) return;
             try {
-                await navigator.clipboard.writeText(node.textContent || '');
+                await copyTextToClipboard(node.textContent || '');
                 showToast('Command copied', 'Review it before running in a terminal.', 'success');
             } catch (error) {
                 showToast('Copy failed', error.message, 'error');
@@ -5026,7 +5266,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const model = (modelTuningData.known_tuned_models || [])[index];
             if (!model?.download_command) return;
             try {
-                await navigator.clipboard.writeText(model.download_command);
+                await copyTextToClipboard(model.download_command);
                 showToast('Download command copied', model.name, 'success');
             } catch (error) {
                 showToast('Copy failed', error.message, 'error');
@@ -5037,7 +5277,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const model = (modelTuningData.known_tuned_models || [])[index];
             if (!model?.extra_args) return;
             try {
-                await navigator.clipboard.writeText(model.extra_args);
+                await copyTextToClipboard(model.extra_args);
                 showToast('llama-server args copied', model.name, 'success');
             } catch (error) {
                 showToast('Copy failed', error.message, 'error');
@@ -5259,6 +5499,9 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                         <div class="workflow-meta-item">
                             <span class="icon">●</span>
                             <span>${workflow.runnable === false ? 'Not wired' : 'Ready'}</span>
+                        </div>
+                        <div class="workflow-meta-item">
+                            <span class="speed-badge speed-${workflow.speed?.tier || 'fast'}">${workflow.speed?.label || 'Fast'}</span>
                         </div>
                     </div>
                             <div class="workflow-actions">
@@ -5843,7 +6086,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             root.querySelectorAll('[data-copy-value]').forEach(function(button) {
                 button.addEventListener('click', async function() {
                     try {
-                        await navigator.clipboard.writeText(this.dataset.copyValue || '');
+                        await copyTextToClipboard(this.dataset.copyValue || '');
                         showToast('Copied', this.dataset.copyValue || '', 'success', 2200);
                     } catch (error) {
                         showToast('Copy failed', this.dataset.copyValue || '', 'error');
@@ -6353,6 +6596,69 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             badge.title = health.last_error
                 ? `Last error: ${health.last_error}`
                 : `Last confirmed OK: ${health.last_ok_at ? new Date(health.last_ok_at).toLocaleTimeString() : 'never'}`;
+        }
+
+        // CPU/RAM/GPU readout (Runtime tab) - polled on the same 2s cadence as updateJobList.
+        function setResourceStat(prefix, valueText, detailText, percent) {
+            const value = document.getElementById(`resource${prefix}Value`);
+            const detail = document.getElementById(`resource${prefix}Detail`);
+            const bar = document.getElementById(`resource${prefix}Bar`);
+            if (value) value.textContent = valueText;
+            if (detail) detail.textContent = detailText || ' ';
+            if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent || 0))}%`;
+        }
+
+        async function updateResourceReadout() {
+            try {
+                const response = await fetch('/api/system/stats');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                const cpu = data.cpu || {};
+                setResourceStat('Cpu',
+                    cpu.percent != null ? `${cpu.percent}%` : 'n/a',
+                    cpu.count ? `${cpu.count} threads` : '',
+                    cpu.percent);
+
+                const ram = data.ram || {};
+                setResourceStat('Ram',
+                    ram.total_gb != null ? `${ram.used_gb} / ${ram.total_gb} GB` : 'n/a',
+                    ram.percent != null ? `${ram.percent}% used` : '',
+                    ram.percent);
+
+                const gpu = data.gpu || {};
+                if (gpu.available) {
+                    setResourceStat('Gpu',
+                        gpu.busy_percent != null ? `${gpu.busy_percent}%` : 'n/a',
+                        gpu.temp_c != null || gpu.power_w != null
+                            ? `${gpu.temp_c != null ? gpu.temp_c + '°C' : ''}${gpu.temp_c != null && gpu.power_w != null ? ' · ' : ''}${gpu.power_w != null ? gpu.power_w + ' W' : ''}`
+                            : '',
+                        gpu.busy_percent);
+                    // Strix Halo/APU-style unified memory reports through GTT, not the small VRAM carve-out.
+                    const memUsed = gpu.gtt_total_gb ? gpu.gtt_used_gb : gpu.vram_used_gb;
+                    const memTotal = gpu.gtt_total_gb || gpu.vram_total_gb;
+                    const memPercent = memTotal ? (memUsed / memTotal) * 100 : null;
+                    setResourceStat('GpuMem',
+                        memTotal != null ? `${memUsed} / ${memTotal} GB` : 'n/a',
+                        gpu.gtt_total_gb ? 'shared (GTT)' : 'VRAM',
+                        memPercent);
+                } else {
+                    setResourceStat('Gpu', 'n/a', 'no AMD GPU found', 0);
+                    setResourceStat('GpuMem', 'n/a', '', 0);
+                }
+
+                const npu = data.npu || {};
+                if (npu.available) {
+                    setResourceStat('Npu',
+                        npu.active ? 'Active' : 'Idle',
+                        [npu.name, npu.fw_version ? `fw ${npu.fw_version}` : ''].filter(Boolean).join(' · '),
+                        npu.active ? 100 : 0);
+                } else {
+                    setResourceStat('Npu', 'n/a', 'no NPU found', 0);
+                }
+            } catch (error) {
+                // Keep last known values on transient failures.
+            }
         }
 
         async function retryJob(jobId) {
@@ -7420,6 +7726,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function initJobMonitor() {
             updateJobList();
             setInterval(updateJobList, 2000);
+            updateResourceReadout();
+            setInterval(updateResourceReadout, 2000);
         }
 
         // Modal controls
@@ -7433,8 +7741,9 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         }
 
         function launchSelectedWorkflow() {
+            const workflowId = currentWorkflowId;
             closeModal();
-            launchWorkflow(currentWorkflowId);
+            launchWorkflow(workflowId);
         }
 
         // Close modals on outside click

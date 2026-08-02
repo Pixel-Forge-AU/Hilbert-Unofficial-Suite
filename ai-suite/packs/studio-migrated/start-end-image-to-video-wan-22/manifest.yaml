@@ -2,7 +2,7 @@ id: studio.start-end-image-to-video-wan-22
 name: Start end image to video wan 22
 version: 2.0.0
 category: video-animation
-description: Migrated V1 Studio video workflow from start-end-image-to-video-wan-22.json
+description: Migrated video workflow from start-end-image-to-video-wan-22.json
 status: migrated
 media_type: video
 source:

@@ -2,7 +2,7 @@ id: studio.ltxv-095-text-to-video
 name: Ltxv 095 text to video
 version: 2.0.0
 category: video-animation
-description: Migrated V1 Studio video workflow from ltxv-095-text-to-video.json
+description: Migrated video workflow from ltxv-095-text-to-video.json
 status: migrated
 media_type: video
 source:

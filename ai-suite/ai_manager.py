@@ -535,10 +535,13 @@ def start_ollama(config):
 
 
 def stop_ollama():
-    result = subprocess.run(["systemctl", "stop", "ollama"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
-    if result.returncode != 0:
-        result = subprocess.run(["sudo", "-n", "systemctl", "stop", "ollama"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
-    print(result.stdout.strip() or ("ollama stopped" if result.returncode == 0 else "Could not stop ollama. Run: sudo systemctl stop ollama"))
+    try:
+        result = subprocess.run(["systemctl", "stop", "ollama"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
+        if result.returncode != 0:
+            result = subprocess.run(["sudo", "-n", "systemctl", "stop", "ollama"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
+        print(result.stdout.strip() or ("ollama stopped" if result.returncode == 0 else "Could not stop ollama. Run: sudo systemctl stop ollama"))
+    except subprocess.TimeoutExpired:
+        print("Could not stop ollama: systemctl timed out")
 
 
 def memory_cgroup_prefix(config, unit_name):

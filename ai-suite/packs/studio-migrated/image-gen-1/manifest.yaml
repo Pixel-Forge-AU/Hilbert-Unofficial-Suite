@@ -2,7 +2,7 @@ id: studio.image-gen-1
 name: Image gen 1
 version: 2.0.0
 category: core-generation
-description: Migrated V1 Studio image workflow from image-gen-1.json
+description: Migrated image workflow from image-gen-1.json
 status: migrated
 media_type: image
 source:

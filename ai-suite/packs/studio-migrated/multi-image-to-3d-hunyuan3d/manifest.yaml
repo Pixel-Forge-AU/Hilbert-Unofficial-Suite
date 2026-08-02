@@ -2,7 +2,7 @@ id: studio.multi-image-to-3d-hunyuan3d
 name: Multi image to 3d hunyuan3d
 version: 2.0.0
 category: three-d
-description: Migrated V1 Studio model workflow from multi-image-to-3d-hunyuan3d.json
+description: Migrated model workflow from multi-image-to-3d-hunyuan3d.json
 status: migrated
 media_type: model
 source:

@@ -539,17 +539,25 @@ MODEL_COMBO_INPUTS = ("ckpt_name", "unet_name", "lora_name", "vae_name", "clip_n
 
 def available_model_options(config):
     """Map ComfyUI combo input names (ckpt_name, lora_name, ...) to the model
-    filenames currently on disk, sourced from ComfyUI's /object_info."""
+    filenames currently on disk, sourced from ComfyUI's /object_info.
+
+    Different node types (core loaders, custom nodes) can each expose their own
+    combo for the same input name, and they don't always agree on the full set
+    of files on disk. Union across every node type instead of taking whichever
+    one happens to be listed first, so the picker offers every option any node
+    type recognizes."""
     object_info = comfy_object_info(config) or {}
     options = {}
     for node_info in object_info.values():
         required = (node_info.get("input") or {}).get("required", {})
         for input_name in MODEL_COMBO_INPUTS:
-            if input_name in options:
-                continue
             values = combo_options(required.get(input_name))
-            if values:
-                options[input_name] = values
+            if not values:
+                continue
+            existing = options.setdefault(input_name, [])
+            for value in values:
+                if value not in existing:
+                    existing.append(value)
     return options
 
 
@@ -1529,6 +1537,24 @@ def progress(config, prompt_id):
                 "status": status_text,
                 "elapsed": elapsed,
                 "outputs": [],
+            }
+        if status_text == "error":
+            # ComfyUI reports completed=false for a prompt that errored out, same
+            # as one that's still running - without checking status_str == "error"
+            # explicitly here, callers can't tell "still going" from "died", and a
+            # failed render sits looking like it's still in progress forever.
+            error_message = next(
+                (msg[1].get("exception_message") for msg in messages if msg[0] == "execution_error"),
+                None,
+            )
+            return {
+                "prompt_id": prompt_id,
+                "state": "error",
+                "completed": True,
+                "status": status_text,
+                "elapsed": elapsed,
+                "outputs": [],
+                "error": error_message,
             }
         if is_terminal:
             outputs = flatten_outputs(history_payload)

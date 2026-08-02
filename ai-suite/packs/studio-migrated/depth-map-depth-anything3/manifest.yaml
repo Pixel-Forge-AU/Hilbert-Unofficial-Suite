@@ -2,7 +2,7 @@ id: studio.depth-map-depth-anything3
 name: Depth map depth anything3
 version: 2.0.0
 category: image-analysis
-description: Migrated V1 Studio image workflow from depth-map-depth-anything3.json
+description: Migrated image workflow from depth-map-depth-anything3.json
 status: migrated
 media_type: image
 source:
