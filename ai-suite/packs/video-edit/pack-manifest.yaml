@@ -1,0 +1,19 @@
+# Video Editing Pack Manifest
+
+id: video-edit
+name: Video Editing
+version: "1.0.0"
+
+description: >
+  Workflows that transform an existing input video in place: identity/character
+  edits, frame interpolation, character replacement, and upscaling.
+
+workflows:
+  - video.bernini-multimodal-video
+  - video.scail2-character-replacement
+  - video.video-to-video
+  - video.frame-interpolation
+  - studio.extract-video-frame-blueprint
+  - studio.video-inpaint-void
+
+default_enabled: true

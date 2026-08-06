@@ -39,6 +39,10 @@ import yaml
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tools import pack_mover
+from tools.registry_generator import generate_registry
+
 # Try to import optional dependencies
 try:
     import requests
@@ -975,7 +979,12 @@ class WorkflowManager:
         self.dependency_manager = dependency_manager
         self.hardware_manager = hardware_manager
         self.workflows: Dict[str, Dict[str, Any]] = {}
-        self._comfy_node_types_cache: Optional[set] = None
+        self._comfy_object_info_cache: Optional[Dict[str, Any]] = None
+        self._load_workflows()
+
+    def reload(self) -> None:
+        """Re-scan the packs directory from scratch (e.g. after a pack was moved between categories)."""
+        self.workflows = {}
         self._load_workflows()
 
     def _load_workflows(self) -> None:
@@ -1096,18 +1105,7 @@ class WorkflowManager:
         if not workflow:
             return []
 
-        if manifest.get('source', {}).get('suite') == 'v1':
-            try:
-                from comfy_studio import workflow_to_api
-                prompt = workflow_to_api(workflow) if 'nodes' in workflow else workflow
-                node_types = [
-                    node.get('class_type')
-                    for node in prompt.values()
-                    if isinstance(node, dict)
-                ]
-            except Exception:
-                node_types = []
-        elif 'nodes' in workflow:
+        if 'nodes' in workflow:
             from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES, expand_subgraphs
             expanded = expand_subgraphs(workflow)
             node_types = [
@@ -1140,9 +1138,15 @@ class WorkflowManager:
         runtime = manifest.get('runtime') or {}
         return runtime.get('type') == 'llm_service'
 
-    def _available_comfy_node_types(self) -> Optional[set]:
-        if self._comfy_node_types_cache is not None:
-            return self._comfy_node_types_cache
+    def _get_comfy_object_info(self) -> Optional[Dict[str, Any]]:
+        """Process-lifetime cache of ComfyUI's full /object_info payload - drives
+        both node-type availability checks and widget-schema-based prompt
+        conversion (see _build_comfy_prompt). No TTL/invalidation: a stale cache
+        (e.g. after installing a new custom node) just means it's not recognized
+        until this process restarts, same tradeoff the old node-name-only cache
+        already made."""
+        if self._comfy_object_info_cache is not None:
+            return self._comfy_object_info_cache
         if not REQUESTS_AVAILABLE:
             return None
 
@@ -1154,10 +1158,16 @@ class WorkflowManager:
             )
             if response.status_code != 200:
                 return None
-            self._comfy_node_types_cache = set(response.json().keys())
-            return self._comfy_node_types_cache
+            self._comfy_object_info_cache = response.json()
+            return self._comfy_object_info_cache
         except Exception:
             return None
+
+    def _available_comfy_node_types(self) -> Optional[set]:
+        object_info = self._get_comfy_object_info()
+        if object_info is None:
+            return None
+        return set(object_info.keys())
 
     def _workflow_category(self, manifest: Dict[str, Any], workflow_id: str) -> str:
         category = manifest.get('category')
@@ -1642,6 +1652,29 @@ class WorkflowManager:
                 f"Evaluation criteria: {inputs.get('evaluation_criteria', 'quality, creativity, relevance')}\n\n"
                 'Return JSON with selected_variant, variant_scores, evaluation_reasoning, and all_variants.'
             )
+        if workflow_id == 'llm.song-structure':
+            return (
+                'Plan a song structure and lyrics for a chained music-video generation pipeline.\n\n'
+                f"Concept: {inputs.get('concept', '')}\n"
+                f"Style tags: {inputs.get('tags', '')}\n"
+                f"Target total duration (seconds): {inputs.get('duration', 180)}\n\n"
+                'Break the song into an ordered list of sections (e.g. intro, verse-1, chorus-1, '
+                'verse-2, chorus-2, bridge, outro - adapt to what suits the concept). For each '
+                'section give: "name", a rough "duration_seconds" guess (all sections should sum to '
+                'roughly the target total duration), "lyrics" (actual lyric lines for that section, '
+                'joined with \\n; use an empty string for instrumental sections like intro/outro), '
+                'and "scene" (a short, concrete visual description of album-art/film-still quality '
+                'for that section, distinct from the other sections\' scenes so the video has real '
+                'visual variety across the song).\n\n'
+                'Also suggest an overall "bpm" (integer, a tempo that fits the concept and style tags) '
+                'and "key" (one of: C major, C minor, C# major, C# minor, D major, D minor, D# major, '
+                'D# minor, E major, E minor, F major, F minor, F# major, F# minor, G major, G minor, '
+                'G# major, G# minor, A major, A minor, A# major, A# minor, B major, B minor).\n\n'
+                'Return JSON only, shaped exactly as: '
+                '{"bpm": <int>, "key": <string>, "sections": ['
+                '{"name": <string>, "duration_seconds": <number>, "lyrics": <string>, "scene": <string>}, ...'
+                ']}'
+            )
         if workflow_id == 'llm.image-critic':
             return (
                 'Critique an image-generation result from the available metadata.\n\n'
@@ -1662,6 +1695,7 @@ class WorkflowManager:
             'llm.iterative-refinement': 'final_content',
             'llm.best-of-n': 'selected_variant',
             'llm.image-critic': 'critique',
+            'llm.song-structure': 'sections',
         }.get(workflow_id, 'text')
         outputs = {
             primary: text,
@@ -1702,80 +1736,55 @@ class WorkflowManager:
         manifest = workflow_data.get('manifest') or {}
         inputs = self._prepare_workflow_inputs(manifest, inputs)
         workflow = workflow_data.get('workflow_api') or workflow_data.get('workflow')
-        if manifest.get('source', {}).get('suite') == 'v1' and workflow:
-            from comfy_studio import workflow_to_api
 
-            prompt = workflow_to_api(workflow) if 'nodes' in workflow else workflow
-            self._apply_manifest_controls(prompt, manifest, inputs)
-            self._finalize_workflow_prompt(prompt, manifest, inputs)
-            return prompt
-
-        if workflow and 'nodes' not in workflow:
-            prompt = copy.deepcopy(workflow)
-            self._apply_manifest_controls(prompt, manifest, inputs)
-            self._finalize_workflow_prompt(prompt, manifest, inputs)
-            return prompt
-
-        if not workflow or 'nodes' not in workflow:
+        if not workflow:
             raise ValueError('Workflow JSON is missing or unsupported')
 
-        from comfy_studio import PRIMITIVE_NODE_TYPES, SKIP_NODE_TYPES, expand_subgraphs, effective_link_map
+        if 'nodes' not in workflow:
+            prompt = copy.deepcopy(workflow)
+        else:
+            from comfy_studio import workflow_to_api
 
-        workflow = expand_subgraphs(workflow)
-        prompt: Dict[str, Any] = {}
-        # Resolves through subgraph instances, bypassed nodes, and passthrough
-        # node types (e.g. Reroute) so a downstream input never ends up
-        # pointing at a node id that got skipped out of the final prompt.
-        resolved_links = effective_link_map(workflow)
-        primitive_values: Dict[str, Any] = {}
-
-        for node in workflow.get('nodes', []):
-            if node.get('type') in PRIMITIVE_NODE_TYPES:
-                values = node.get('widgets_values') or []
-                if values:
-                    primitive_values[str(node.get('id'))] = values[0]
-
-        for node in workflow.get('nodes', []):
-            class_type = node.get('type')
-            if class_type in PRIMITIVE_NODE_TYPES or class_type in SKIP_NODE_TYPES:
-                continue
-            node_id = str(node.get('id'))
-            node_inputs: Dict[str, Any] = {}
-
-            for input_def in node.get('inputs', []) or []:
-                link_id = input_def.get('link')
-                link_value = resolved_links.get(int(link_id)) if link_id is not None else None
-                if link_value is not None:
-                    origin_id = link_value[0]
-                    if origin_id in primitive_values:
-                        node_inputs[input_def.get('name')] = primitive_values[origin_id]
-                    else:
-                        node_inputs[input_def.get('name')] = link_value
-
-            # Fall back to positional widgets_values for any widget-backed input
-            # that has no link. Only trusted when counts line up exactly, since a
-            # seed's "control_after_generate" widget can shift later positions.
-            widget_defs = [i for i in (node.get('inputs') or []) if i.get('widget')]
-            widgets_values = node.get('widgets_values')
-            if isinstance(widgets_values, list) and len(widget_defs) == len(widgets_values):
-                for item, value in zip(widget_defs, widgets_values):
-                    name = item.get('name')
-                    if name and name not in node_inputs:
-                        node_inputs[name] = value
-
-            # setdefault, not update: a name that's already populated came from
-            # a real link (or a primitive value substituted for one) and must
-            # win over a generic widgets_values-derived default.
-            for name, value in self._widget_inputs_for_node(class_type, node, inputs).items():
-                node_inputs.setdefault(name, value)
-            prompt[node_id] = {
-                'class_type': class_type,
-                'inputs': node_inputs,
-            }
+            # Widget names/order/defaults come from ComfyUI's own live
+            # /object_info schema (see workflow_to_api), not a hardcoded table -
+            # this is the one converter for every pack now, "v1" or not.
+            prompt = workflow_to_api(workflow, object_info=self._get_comfy_object_info())
+            self._apply_generic_input_routing(prompt, workflow, inputs)
 
         self._apply_manifest_controls(prompt, manifest, inputs)
         self._finalize_workflow_prompt(prompt, manifest, inputs)
         return prompt
+
+    def _apply_generic_input_routing(
+        self,
+        prompt: Dict[str, Any],
+        workflow: Dict[str, Any],
+        inputs: Dict[str, Any]
+    ) -> None:
+        """Route Studio-level generic control values (inputs.get(...)) onto
+        nodes by type/role - e.g. which CLIPTextEncode is positive vs negative
+        (by title), or which node gets the 'checkpoint' control. This is Studio
+        UX logic, independent of ComfyUI's own widget schema (already applied
+        by workflow_to_api), so it stays as an explicit per-node-type table
+        (_widget_inputs_for_node) rather than being schema-driven."""
+        from comfy_studio import expand_subgraphs
+
+        expanded = expand_subgraphs(workflow)
+        nodes_by_id = {str(node.get('id')): node for node in expanded.get('nodes', [])}
+
+        for node_id, prompt_node in prompt.items():
+            if not isinstance(prompt_node, dict):
+                continue
+            node = nodes_by_id.get(node_id)
+            if node is None:
+                continue
+            node_inputs = prompt_node.setdefault('inputs', {})
+            routed = self._widget_inputs_for_node(prompt_node.get('class_type'), node, inputs)
+            # Plain assignment, not setdefault: _widget_inputs_for_node only ever
+            # returns a key when there's a genuine Studio-level override for it,
+            # so it must win over the schema-derived raw-file default
+            # workflow_to_api already put there.
+            node_inputs.update(routed)
 
     def _finalize_workflow_prompt(
         self,
@@ -1804,6 +1813,20 @@ class WorkflowManager:
                 node_inputs.setdefault('edit', False)
             elif class_type == 'UpscaleModelLoader':
                 node_inputs.setdefault('model_name', inputs.get('model_name') or 'RealESRGAN_x4plus.safetensors')
+
+        if manifest.get('id') == 'video.wan21-vace-character-in-scene':
+            # model_variant is a UI-only control (no node_id/input of its own in
+            # the manifest) since one selection needs to swap two nodes to two
+            # different, unrelated filenames at once - not something the generic
+            # one-control-to-one-input mapping in _apply_manifest_controls can
+            # express. '14' is enough to catch "14B"/"14b"/etc; anything else
+            # (including unset) keeps the 1.3B pair already baked into the
+            # workflow's own saved widgets_values.
+            if str(inputs.get('model_variant') or '').strip().startswith('14'):
+                if '113' in prompt:
+                    prompt['113'].setdefault('inputs', {})['unet_name'] = 'wan2.1_vace_14B_fp16.safetensors'
+                if '115' in prompt:
+                    prompt['115'].setdefault('inputs', {})['lora_name'] = 'Wan21_CausVid_14B_T2V_lora_rank32.safetensors'
 
         if manifest.get('id') == 'editing.background-removal' and 'studio_save_background_removal' not in prompt:
             if '19_sg_16' in prompt:
@@ -2108,228 +2131,102 @@ class WorkflowManager:
         node: Dict[str, Any],
         inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
+        """Studio-level generic control routing: map the flat 'inputs' values a
+        workflow run was called with onto specific nodes by type/role (e.g.
+        which CLIPTextEncode is positive vs negative, by title, based on
+        node.get('title')/its saved default text). Only returns a key when
+        there's an actual Studio-level override to apply for it - the caller
+        (_apply_generic_input_routing) assigns it directly into the prompt, so
+        it wins over the schema-derived raw-file default workflow_to_api
+        already filled in. Widget name/order/default filling for every other
+        input lives in comfy_studio.workflow_to_api instead, driven by
+        ComfyUI's own live /object_info schema rather than a hand-maintained
+        per-node-type table (which is what this function used to also do, and
+        why most of its former branches are gone - they never referenced
+        `inputs` at all, just guessed a widget order)."""
         widgets = list(node.get('widgets_values') or [])
         values: Dict[str, Any] = {}
 
         if class_type == 'CheckpointLoaderSimple':
-            checkpoint = inputs.get('checkpoint') or (widgets[0] if widgets else 'sdxl.safetensors')
-            values['ckpt_name'] = self._normalize_checkpoint(str(checkpoint))
+            if inputs.get('checkpoint'):
+                values['ckpt_name'] = self._normalize_checkpoint(str(inputs['checkpoint']))
         elif class_type == 'CLIPTextEncode':
             title = str(node.get('title') or '').lower()
             default_text = widgets[0] if widgets else ''
-            if 'negative' in title or 'low quality' in str(default_text).lower():
-                values['text'] = inputs.get('negative_prompt', default_text)
-            else:
-                values['text'] = inputs.get('prompt', default_text)
+            is_negative = 'negative' in title or 'low quality' in str(default_text).lower()
+            key = 'negative_prompt' if is_negative else 'prompt'
+            if key in inputs:
+                values['text'] = inputs[key]
         elif class_type == 'EmptyLatentImage':
-            values['width'] = int(inputs.get('width', widgets[0] if len(widgets) > 0 else 512))
-            values['height'] = int(inputs.get('height', widgets[1] if len(widgets) > 1 else 512))
-            values['batch_size'] = int(inputs.get('batch_size', widgets[2] if len(widgets) > 2 else 1))
+            for name in ('width', 'height', 'batch_size'):
+                if name in inputs:
+                    values[name] = int(inputs[name])
         elif class_type == 'ImageScale':
-            if widgets and isinstance(widgets[0], (int, float)):
-                default_width = widgets[0] if len(widgets) > 0 else 512
-                default_height = widgets[1] if len(widgets) > 1 else 512
-                default_method = widgets[2] if len(widgets) > 2 else 'lanczos'
-                default_crop = widgets[3] if len(widgets) > 3 else 'center'
-            else:
-                default_method = widgets[0] if len(widgets) > 0 else 'lanczos'
-                default_width = widgets[1] if len(widgets) > 1 else 512
-                default_height = widgets[2] if len(widgets) > 2 else 512
-                default_crop = widgets[3] if len(widgets) > 3 else 'center'
-            if isinstance(default_crop, bool):
-                default_crop = 'center' if default_crop else 'disabled'
-            values['upscale_method'] = inputs.get('upscale_method', default_method)
-            values['width'] = int(inputs.get('width', default_width))
-            values['height'] = int(inputs.get('height', default_height))
-            values['crop'] = inputs.get('crop', default_crop)
+            if inputs.get('upscale_method'):
+                values['upscale_method'] = inputs['upscale_method']
+            if 'width' in inputs:
+                values['width'] = int(inputs['width'])
+            if 'height' in inputs:
+                values['height'] = int(inputs['height'])
+            if inputs.get('crop'):
+                values['crop'] = inputs['crop']
         elif class_type == 'ImageScaleBy':
-            values['upscale_method'] = inputs.get('upscale_method') or (widgets[0] if len(widgets) > 0 else 'lanczos')
-            values['scale_by'] = float(inputs.get('scale_by', widgets[1] if len(widgets) > 1 else 2.0))
-        elif class_type == 'ImageToMask':
-            values['channel'] = widgets[0] if len(widgets) > 0 else 'red'
+            if inputs.get('upscale_method'):
+                values['upscale_method'] = inputs['upscale_method']
+            if 'scale_by' in inputs:
+                values['scale_by'] = float(inputs['scale_by'])
         elif class_type == 'GrowMask':
-            values['expand'] = int(inputs.get('mask_feather', widgets[0] if len(widgets) > 0 else 0))
-            values['tapered_corners'] = widgets[1] if len(widgets) > 1 else True
-        elif class_type == 'VAEEncodeForInpaint':
-            values['grow_mask_by'] = int(widgets[0] if len(widgets) > 0 else 6)
-        elif class_type == 'ImageCompositeMasked':
-            values['x'] = int(widgets[0] if len(widgets) > 0 else 0)
-            values['y'] = int(widgets[1] if len(widgets) > 1 else 0)
-            values['resize_source'] = bool(widgets[2] if len(widgets) > 2 else False)
-        elif class_type == 'ImageBlend':
-            values['blend_mode'] = widgets[1] if len(widgets) > 1 else 'normal'
-        elif class_type == 'UNETLoader':
-            values['unet_name'] = widgets[0] if len(widgets) > 0 else ''
-            values['weight_dtype'] = widgets[1] if len(widgets) > 1 else 'default'
-        elif class_type == 'CLIPLoader':
-            values['clip_name'] = widgets[0] if len(widgets) > 0 else ''
-            values['type'] = widgets[1] if len(widgets) > 1 else 'stable_diffusion'
-        elif class_type == 'VAELoader':
-            values['vae_name'] = widgets[0] if len(widgets) > 0 else ''
-        elif class_type == 'LoraLoaderModelOnly':
-            values['lora_name'] = widgets[0] if len(widgets) > 0 else 'None'
-            values['strength_model'] = float(widgets[1] if len(widgets) > 1 else 1.0)
-        elif class_type == 'Lora Loader Stack (rgthree)':
-            names = ['lora_01', 'strength_01', 'lora_02', 'strength_02', 'lora_03', 'strength_03', 'lora_04', 'strength_04']
-            defaults = ['None', 1.0, 'None', 1.0, 'None', 1.0, 'None', 1.0]
-            for index, name in enumerate(names):
-                value = widgets[index] if len(widgets) > index else defaults[index]
-                values[name] = float(value) if 'strength' in name else value
-        elif class_type == 'ColorMatchV2':
-            values['method'] = widgets[0] if len(widgets) > 0 else 'mkl'
-            values['multithread'] = bool(widgets[2] if len(widgets) > 2 else True)
-        elif class_type == 'DifferentialDiffusionAdvanced':
-            values['multiplier'] = float(widgets[0] if len(widgets) > 0 else 1.0)
-        elif class_type == 'GrowMaskWithBlur':
-            names = ['expand', 'incremental_expandrate', 'tapered_corners', 'flip_input', 'blur_radius', 'lerp_alpha', 'decay_factor', 'fill_holes']
-            defaults = [0, 0.0, True, False, 0.0, 1.0, 1.0, False]
-            for index, name in enumerate(names):
-                if len(widgets) > index:
-                    values[name] = widgets[index]
-                elif index < 7:
-                    values[name] = defaults[index]
-        elif class_type == 'Cut By Mask':
-            values['force_resize_width'] = int(widgets[0] if len(widgets) > 0 else 0)
-            values['force_resize_height'] = int(widgets[1] if len(widgets) > 1 else 0)
-        elif class_type == 'Inpaint Segments':
-            names = [
-                'force_resize_width', 'force_resize_height', 'kind', 'padding', 'constraints',
-                'constraint_x', 'constraint_y', 'min_width', 'min_height', 'batch_behavior',
-            ]
-            defaults = [1024, 1024, 'mask', 3, 'keep_ratio', 64, 64, 0, 0, 'match_ratio']
-            for index, name in enumerate(names):
-                values[name] = widgets[index] if len(widgets) > index else defaults[index]
-        elif class_type == 'Combine and Paste':
-            names = ['color_xfer_factor', 'op', 'clamp_result', 'round_result', 'resize_behavior']
-            defaults = [1.0, 'union (max)', 'yes', 'no', 'resize']
-            for index, name in enumerate(names):
-                values[name] = widgets[index] if len(widgets) > index else defaults[index]
-        elif class_type == 'CR Color Panel':
-            values['fill_color'] = widgets[2] if len(widgets) > 2 else 'black'
-            if len(widgets) > 3:
-                values['fill_color_hex'] = widgets[3]
-        elif class_type == 'ApplyCosmosReferenceLatent':
-            # No ref-latent slots are wired in this graph - the node falls back
-            # to its plain "latent" input (handled generically via the link),
-            # but the "ref_latents" container is still a required key.
-            values['ref_latents'] = {}
-        elif class_type == 'ImageCompare':
-            if widgets:
-                compare_view = widgets[0]
-                if isinstance(compare_view, dict):
-                    compare_view = 'Slide'
-                values['compare_view'] = compare_view
-            else:
-                values['compare_view'] = 'Slide'
+            if 'mask_feather' in inputs:
+                values['expand'] = int(inputs['mask_feather'])
         elif class_type == 'KSampler':
-            seed = int(inputs.get('seed', widgets[0] if len(widgets) > 0 else -1))
-            if seed < 0:
-                seed = random.randint(0, 2**63 - 1)
-            values.update({
-                'seed': seed,
-                'steps': int(inputs.get('steps', widgets[2] if len(widgets) > 2 else 20)),
-                'cfg': float(inputs.get('cfg', widgets[3] if len(widgets) > 3 else 7.0)),
-                'sampler_name': inputs.get('sampler_name') or inputs.get('sampler') or (widgets[4] if len(widgets) > 4 else 'euler'),
-                'scheduler': inputs.get('scheduler') or (widgets[5] if len(widgets) > 5 else 'simple'),
-                'denoise': float(inputs.get('denoise', inputs.get('edit_strength', widgets[6] if len(widgets) > 6 else 1.0))),
-            })
-        elif class_type == 'SaveImage':
-            prefix = widgets[0] if widgets else 'AI-Suite'
-            values['filename_prefix'] = inputs.get('filename_prefix') or prefix or f"ai-suite/{int(time.time())}"
-        elif class_type == 'SaveVideo':
-            values['filename_prefix'] = inputs.get('filename_prefix') or (widgets[0] if len(widgets) > 0 else 'video/ComfyUI')
-            values['format'] = widgets[1] if len(widgets) > 1 else 'auto'
-            values['codec'] = widgets[2] if len(widgets) > 2 else 'auto'
-        elif class_type == 'CreateCameraInfo':
-            values.update({
-                'mode': widgets[0] if len(widgets) > 0 else 'orbit',
-                'yaw': float(widgets[1] if len(widgets) > 1 else 35.0),
-                'pitch': float(widgets[2] if len(widgets) > 2 else 30.0),
-                'distance': float(widgets[3] if len(widgets) > 3 else 2.5),
-                'target_x': float(widgets[4] if len(widgets) > 4 else 0.0),
-                'target_y': float(widgets[5] if len(widgets) > 5 else 0.0),
-                'target_z': float(widgets[6] if len(widgets) > 6 else 0.0),
-                'roll': float(widgets[7] if len(widgets) > 7 else 0.0),
-                'fov': float(widgets[8] if len(widgets) > 8 else 35.0),
-                'zoom': float(widgets[9] if len(widgets) > 9 else 1.0),
-                'camera_type': widgets[10] if len(widgets) > 10 else 'perspective',
-            })
-        elif class_type == 'RenderSplat':
-            values.update({
-                'width': int(inputs.get('render_width', widgets[0] if len(widgets) > 0 else 1024)),
-                'height': int(inputs.get('render_height', widgets[1] if len(widgets) > 1 else 1024)),
-                'frames': int(inputs.get('render_frames', widgets[2] if len(widgets) > 2 else 1)),
-                'splat_scale': float(widgets[3] if len(widgets) > 3 else 1.0),
-                'sharpen': float(widgets[4] if len(widgets) > 4 else 2.0),
-                'headlight_shading': float(widgets[5] if len(widgets) > 5 else 0.0),
-                'opacity_threshold': float(widgets[6] if len(widgets) > 6 else 0.0),
-                'render_style': widgets[7] if len(widgets) > 7 else 'color',
-                'background': widgets[8] if len(widgets) > 8 else '#000000',
-            })
-        elif class_type == 'TripoSplatPreprocessImage':
-            values['erode_radius'] = int(widgets[0] if len(widgets) > 0 else 1)
-            values['size'] = int(inputs.get('preprocess_size', widgets[1] if len(widgets) > 1 else 1024))
-        elif class_type == 'TripoSplatSamplingPreview':
-            values.update({
-                'octree_level': int(widgets[0] if len(widgets) > 0 else 5),
-                'num_gaussians': int(inputs.get('preview_gaussians', widgets[1] if len(widgets) > 1 else 16384)),
-                'yaw': float(widgets[2] if len(widgets) > 2 else 90.0),
-                'pitch': float(widgets[3] if len(widgets) > 3 else 15.0),
-                'point_size': int(widgets[4] if len(widgets) > 4 else 3),
-            })
-        elif class_type == 'VAEDecodeTripoSplat':
-            values['num_gaussians'] = int(inputs.get('num_gaussians', widgets[0] if len(widgets) > 0 else 262144))
-            values['seed'] = int(inputs.get('splat_seed', widgets[1] if len(widgets) > 1 else 0))
-        elif class_type == 'TextEncodeAceStepAudio1.5':
-            # widgets_values on this node is not reliably ordered against its
-            # declared inputs, so required fields are set explicitly here.
-            values.update({
-                'seed': 0,
-                'bpm': 120,
-                'duration': float(inputs.get('duration', 120.0)),
-                'timesignature': '4',
-                'language': 'en',
-                'generate_audio_codes': True,
-                'cfg_scale': 2.0,
-                'temperature': 0.85,
-                'top_p': 0.9,
-                'top_k': 0,
-                'min_p': 0.0,
-            })
+            if 'seed' in inputs:
+                seed = inputs['seed']
+                values['seed'] = random.randint(0, 2**63 - 1) if seed in (None, '', -1, '-1') else int(seed)
+            if 'steps' in inputs:
+                values['steps'] = int(inputs['steps'])
+            if 'cfg' in inputs:
+                values['cfg'] = float(inputs['cfg'])
+            sampler = inputs.get('sampler_name') or inputs.get('sampler')
+            if sampler:
+                values['sampler_name'] = sampler
+            if inputs.get('scheduler'):
+                values['scheduler'] = inputs['scheduler']
+            denoise = inputs.get('denoise', inputs.get('edit_strength'))
+            if denoise is not None:
+                values['denoise'] = float(denoise)
         elif class_type == 'KSamplerAdvanced':
-            # Widget order: add_noise, noise_seed, control_after_generate, steps,
-            # cfg, sampler_name, scheduler, start_at_step, end_at_step,
-            # return_with_leftover_noise. Trust the pack's own tuned values when
-            # present (e.g. a turbo checkpoint needing few steps/low cfg) instead
-            # of the generic defaults below, but let Studio-provided controls win.
-            node_defaults = {}
-            if isinstance(widgets, list) and len(widgets) == 10:
-                node_defaults = {
-                    'add_noise': widgets[0],
-                    'steps': widgets[3],
-                    'cfg': widgets[4],
-                    'sampler_name': widgets[5],
-                    'scheduler': widgets[6],
-                    'start_at_step': widgets[7],
-                    'end_at_step': widgets[8],
-                    'return_with_leftover_noise': widgets[9],
-                }
-            raw_seed = inputs.get('seed', 0)
-            raw_steps = inputs.get('steps', node_defaults.get('steps', 20))
-            raw_cfg = inputs.get('cfg', node_defaults.get('cfg', 8.0))
-            values.update({
-                'add_noise': node_defaults.get('add_noise', 'enable'),
-                'noise_seed': int(raw_seed) if raw_seed not in ('', None) else 0,
-                'steps': int(raw_steps) if raw_steps not in ('', None) else node_defaults.get('steps', 20),
-                'cfg': float(raw_cfg) if raw_cfg not in ('', None) else node_defaults.get('cfg', 8.0),
-                'sampler_name': inputs.get('sampler_name') or node_defaults.get('sampler_name') or 'euler',
-                'scheduler': inputs.get('scheduler') or node_defaults.get('scheduler') or 'simple',
-                'start_at_step': node_defaults.get('start_at_step', 0),
-                'end_at_step': node_defaults.get('end_at_step', 10000),
-                'return_with_leftover_noise': node_defaults.get('return_with_leftover_noise', 'disable'),
-            })
-        elif class_type == 'ModelSamplingAuraFlow':
-            values['shift'] = float(widgets[0]) if widgets else 3.0
+            if 'seed' in inputs:
+                seed = inputs['seed']
+                values['noise_seed'] = random.randint(0, 2**63 - 1) if seed in (None, '', -1, '-1') else int(seed)
+            if 'steps' in inputs:
+                values['steps'] = int(inputs['steps'])
+            if 'cfg' in inputs:
+                values['cfg'] = float(inputs['cfg'])
+            if inputs.get('sampler_name'):
+                values['sampler_name'] = inputs['sampler_name']
+            if inputs.get('scheduler'):
+                values['scheduler'] = inputs['scheduler']
+        elif class_type in ('SaveImage', 'SaveVideo', 'VHS_VideoCombine'):
+            if inputs.get('filename_prefix'):
+                values['filename_prefix'] = inputs['filename_prefix']
+        elif class_type == 'RenderSplat':
+            for name, key in (('width', 'render_width'), ('height', 'render_height'), ('frames', 'render_frames')):
+                if key in inputs:
+                    values[name] = int(inputs[key])
+        elif class_type == 'TripoSplatPreprocessImage':
+            if 'preprocess_size' in inputs:
+                values['size'] = int(inputs['preprocess_size'])
+        elif class_type == 'TripoSplatSamplingPreview':
+            if 'preview_gaussians' in inputs:
+                values['num_gaussians'] = int(inputs['preview_gaussians'])
+        elif class_type == 'VAEDecodeTripoSplat':
+            if 'num_gaussians' in inputs:
+                values['num_gaussians'] = int(inputs['num_gaussians'])
+            if 'splat_seed' in inputs:
+                values['seed'] = int(inputs['splat_seed'])
+        elif class_type == 'TextEncodeAceStepAudio1.5':
+            if 'duration' in inputs:
+                values['duration'] = float(inputs['duration'])
 
         return values
 
@@ -2614,6 +2511,295 @@ def api_workflow_dependencies(workflow_id: str) -> jsonify:
         'errors': errors,
         'warnings': warnings
     })
+
+
+@app.route('/api/workflows/<workflow_id>/move', methods=['POST'])
+def api_move_workflow(workflow_id: str) -> jsonify:
+    """Move a pack to a different category (creating it if "name" is provided) and reload the Studio in place."""
+    if not workflow_manager or not config_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    workflow_data = workflow_manager.workflows.get(workflow_id)
+    if not workflow_data:
+        return jsonify({'error': 'Workflow not found'}), 404
+
+    body = request.get_json(silent=True) or {}
+    target_category = (body.get('category') or '').strip()
+    if not target_category:
+        return jsonify({'error': 'Missing "category" in request body'}), 400
+    if not re.match(r'^[a-z0-9][a-z0-9-]*$', target_category):
+        return jsonify({'error': 'Category id must be lowercase letters, numbers, and hyphens only'}), 400
+
+    new_category_name = (body.get('name') or '').strip()
+    new_category_description = (body.get('description') or '').strip()
+
+    manifest = workflow_data.get('manifest', {})
+    current_category = manifest.get('category', '')
+
+    if target_category == current_category:
+        return jsonify({'ok': True, 'workflow_id': workflow_id, 'category': current_category, 'message': 'Already in this category'})
+
+    packs_dir = Path(config_manager.get_path('packs'))
+    categories = pack_mover.find_category_manifests(packs_dir)
+    created_category = False
+
+    if target_category not in categories:
+        if not new_category_name:
+            return jsonify({
+                'error': f'Category "{target_category}" doesn\'t exist yet. Pass "name" (and optionally '
+                         f'"description") in the request body to create it.'
+            }), 400
+        try:
+            new_manifest = pack_mover.create_category(
+                packs_dir, target_category, new_category_name, new_category_description or new_category_name
+            )
+        except Exception as e:
+            return jsonify({'error': f'Failed to create category: {e}'}), 500
+        categories[target_category] = new_manifest
+        created_category = True
+
+    try:
+        workflow_dir = Path(workflow_data['workflow_dir'])
+        dst_dir = packs_dir / target_category / workflow_dir.name
+        use_git = pack_mover.git_available(packs_dir)
+        pack_mover.move_dir(workflow_dir, dst_dir, use_git)
+        pack_mover.update_category_field(dst_dir / 'manifest.yaml', target_category)
+
+        old_category_manifest = categories.get(current_category)
+        if old_category_manifest and old_category_manifest.exists():
+            pack_mover.remove_workflow_from_pack_manifest(old_category_manifest, workflow_id)
+        pack_mover.add_workflow_to_pack_manifest(categories[target_category], workflow_id)
+    except Exception as e:
+        return jsonify({'error': f'Move failed: {e}'}), 500
+
+    workflow_manager.reload()
+
+    try:
+        registry_output = Path(config_manager.get_path('registry')) / 'registry.json'
+        generate_registry(packs_dir, None, registry_output)
+    except Exception as e:
+        print(f"Warning: registry.json rebuild after move failed: {e}")
+
+    return jsonify({
+        'ok': True, 'workflow_id': workflow_id, 'from': current_category, 'to': target_category,
+        'created_category': created_category
+    })
+
+
+@app.route('/api/workflows/<workflow_id>', methods=['DELETE'])
+def api_delete_workflow(workflow_id: str) -> jsonify:
+    """Delete a pack entirely."""
+    if not workflow_manager or not config_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    workflow_data = workflow_manager.workflows.get(workflow_id)
+    if not workflow_data:
+        return jsonify({'error': 'Workflow not found'}), 404
+
+    manifest = workflow_data.get('manifest', {})
+    category = manifest.get('category', '')
+    packs_dir = Path(config_manager.get_path('packs'))
+
+    try:
+        workflow_dir = Path(workflow_data['workflow_dir'])
+        categories = pack_mover.find_category_manifests(packs_dir)
+        category_manifest = categories.get(category)
+        if category_manifest and category_manifest.exists():
+            pack_mover.remove_workflow_from_pack_manifest(category_manifest, workflow_id)
+        use_git = pack_mover.git_available(packs_dir)
+        pack_mover.remove_dir(workflow_dir, use_git)
+    except Exception as e:
+        return jsonify({'error': f'Delete failed: {e}'}), 500
+
+    workflow_manager.reload()
+
+    try:
+        registry_output = Path(config_manager.get_path('registry')) / 'registry.json'
+        generate_registry(packs_dir, None, registry_output)
+    except Exception as e:
+        print(f"Warning: registry.json rebuild after delete failed: {e}")
+
+    return jsonify({'ok': True, 'workflow_id': workflow_id, 'category': category})
+
+
+@app.route('/api/categories/<category_id>', methods=['DELETE'])
+def api_delete_category(category_id: str) -> jsonify:
+    """Delete a category, but only if it has no packs left in it."""
+    if not workflow_manager or not config_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    packs_dir = Path(config_manager.get_path('packs'))
+    categories = pack_mover.find_category_manifests(packs_dir)
+
+    if category_id not in categories:
+        return jsonify({'error': f'Category not found: {category_id}'}), 404
+
+    category_dir = categories[category_id].parent
+    remaining = [d.name for d in category_dir.iterdir() if d.is_dir()]
+    if remaining:
+        return jsonify({
+            'error': f'Category "{category_id}" still has packs: {", ".join(remaining)}. '
+                     f'Move or delete them first.'
+        }), 400
+
+    try:
+        manifest_path = categories[category_id]
+        use_git = pack_mover.git_available(packs_dir)
+        if use_git:
+            result = subprocess.run(
+                ['git', 'rm', '-f', '-q', str(manifest_path)],
+                cwd=str(packs_dir.parent), capture_output=True, text=True, timeout=30
+            )
+            if result.returncode != 0:
+                manifest_path.unlink()
+        else:
+            manifest_path.unlink()
+        try:
+            category_dir.rmdir()
+        except OSError:
+            pass
+    except Exception as e:
+        return jsonify({'error': f'Delete failed: {e}'}), 500
+
+    workflow_manager.reload()
+
+    try:
+        registry_output = Path(config_manager.get_path('registry')) / 'registry.json'
+        generate_registry(packs_dir, None, registry_output)
+    except Exception as e:
+        print(f"Warning: registry.json rebuild after category delete failed: {e}")
+
+    return jsonify({'ok': True, 'category': category_id})
+
+
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+
+
+@app.route('/api/workflow-builder/analyze', methods=['POST'])
+def api_analyze_workflow_builder() -> jsonify:
+    """Take a raw uploaded ComfyUI workflow.json and return the block-builder palette:
+    candidate input controls, auto-detected model dependencies, and any node types this
+    ComfyUI install doesn't recognize."""
+    if not workflow_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    body = request.get_json(silent=True) or {}
+    workflow = body.get('workflow')
+    if not isinstance(workflow, dict) or 'nodes' not in workflow:
+        return jsonify({'error': 'Missing or invalid "workflow" (expected a ComfyUI UI-format export with a "nodes" array)'}), 400
+
+    try:
+        import comfy_studio
+    except Exception as e:
+        return jsonify({'error': f'Could not load workflow analysis module: {e}'}), 500
+
+    try:
+        controls = comfy_studio.workflow_controls(None, workflow)
+        models = comfy_studio.model_requirements(workflow)
+    except Exception as e:
+        return jsonify({'error': f'Failed to analyze workflow: {e}'}), 400
+
+    node_types = {n.get('type') for n in workflow.get('nodes', []) if n.get('type')}
+    for subgraph in (workflow.get('definitions') or {}).get('subgraphs', []) or []:
+        node_types.update(n.get('type') for n in subgraph.get('nodes', []) if n.get('type'))
+    # subgraph instance nodes are addressed by a UUID, not a real class_type - exclude those
+    node_types = {t for t in node_types if not _UUID_RE.match(t)}
+
+    object_info = workflow_manager._get_comfy_object_info() or {}
+    missing_nodes = sorted(t for t in node_types if t not in object_info)
+
+    return jsonify({'controls': controls, 'models': models, 'missing_nodes': missing_nodes})
+
+
+@app.route('/api/workflows', methods=['POST'])
+def api_create_workflow() -> jsonify:
+    """Create a new pack from block-builder output: a raw workflow.json plus the
+    inputs/models the user picked from the analyze palette."""
+    if not workflow_manager or not config_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    body = request.get_json(silent=True) or {}
+    category = (body.get('category') or '').strip()
+    pack_id_slug = (body.get('pack_id') or '').strip()
+    name = (body.get('name') or '').strip()
+    description = (body.get('description') or '').strip()
+    status = (body.get('status') or 'experimental').strip()
+    media_type = (body.get('media_type') or 'image').strip()
+    workflow = body.get('workflow')
+    inputs = body.get('inputs') or []
+    models = body.get('models') or []
+
+    if not category or not pack_id_slug or not name or not isinstance(workflow, dict):
+        return jsonify({'error': '"category", "pack_id", "name", and "workflow" are required'}), 400
+    if not re.match(r'^[a-z0-9][a-z0-9-]*$', category):
+        return jsonify({'error': 'category id must be lowercase letters, numbers, and hyphens only'}), 400
+    if not re.match(r'^[a-z0-9][a-z0-9_-]*$', pack_id_slug):
+        return jsonify({'error': 'pack_id must be lowercase letters, numbers, hyphens, and underscores only'}), 400
+    if status not in ('experimental', 'stable', 'deprecated'):
+        return jsonify({'error': 'status must be experimental, stable, or deprecated'}), 400
+
+    packs_dir = Path(config_manager.get_path('packs'))
+    categories = pack_mover.find_category_manifests(packs_dir)
+    created_category = False
+
+    if category not in categories:
+        new_category_name = (body.get('category_name') or '').strip()
+        if not new_category_name:
+            return jsonify({
+                'error': f'Category "{category}" doesn\'t exist yet. Pass "category_name" in the request body to create it.'
+            }), 400
+        try:
+            new_manifest = pack_mover.create_category(
+                packs_dir, category, new_category_name,
+                (body.get('category_description') or '').strip() or new_category_name
+            )
+        except Exception as e:
+            return jsonify({'error': f'Failed to create category: {e}'}), 500
+        categories[category] = new_manifest
+        created_category = True
+
+    workflow_id = f"{category}.{pack_id_slug}"
+    if workflow_id in workflow_manager.workflows:
+        return jsonify({'error': f'Workflow id already exists: {workflow_id}'}), 400
+
+    pack_dir = packs_dir / category / pack_id_slug
+    if pack_dir.exists():
+        return jsonify({'error': f'A pack already exists at packs/{category}/{pack_id_slug}'}), 400
+
+    manifest = {
+        'id': workflow_id,
+        'name': name,
+        'version': '1.0.0',
+        'category': category,
+        'description': description,
+        'status': status,
+        'media_type': media_type,
+        'entrypoints': {'ui': 'workflow.json'},
+        'inputs': inputs,
+        'outputs': body.get('outputs') or [],
+        'models': {'required': models, 'optional': []},
+        'custom_nodes': {'required': ['comfyui'], 'optional': []},
+    }
+
+    try:
+        pack_dir.mkdir(parents=True)
+        (pack_dir / 'workflow.json').write_text(json.dumps(workflow, indent=2), encoding='utf-8')
+        (pack_dir / 'manifest.yaml').write_text(
+            yaml.dump(manifest, sort_keys=False, allow_unicode=True), encoding='utf-8'
+        )
+        pack_mover.add_workflow_to_pack_manifest(categories[category], workflow_id)
+    except Exception as e:
+        return jsonify({'error': f'Failed to create pack: {e}'}), 500
+
+    workflow_manager.reload()
+
+    try:
+        registry_output = Path(config_manager.get_path('registry')) / 'registry.json'
+        generate_registry(packs_dir, None, registry_output)
+    except Exception as e:
+        print(f"Warning: registry.json rebuild after create failed: {e}")
+
+    return jsonify({'ok': True, 'workflow_id': workflow_id, 'category': category, 'created_category': created_category})
 
 
 @app.route('/api/workflows/<workflow_id>/presets', methods=['POST'])
@@ -3207,6 +3393,24 @@ def api_mux_music_video() -> jsonify:
         return jsonify({'error': str(exc)}), 500
 
 
+@app.route('/api/burn-in-lyrics', methods=['POST'])
+def api_burn_in_lyrics() -> jsonify:
+    """Burn synced lyric captions into a generated video.
+
+    `sections` must carry the ACTUAL rendered timing (start/end seconds) for
+    each song section, not the pre-generation beat-grid plan - see
+    comfy_studio.burn_in_lyrics for why that distinction matters.
+    """
+    from comfy_studio import burn_in_lyrics
+
+    body = request.get_json() or {}
+    try:
+        output = burn_in_lyrics(body.get('video'), body.get('sections') or [], title=body.get('title'))
+        return jsonify({'output': _rewrite_media_url(output)})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+
 @app.route('/api/stitch-videos', methods=['POST'])
 def api_stitch_videos() -> jsonify:
     """Concatenate several generated video segments into one clip."""
@@ -3313,6 +3517,100 @@ def api_delete_storyboard(storyboard_id: str) -> jsonify:
     if path and path.exists():
         path.unlink()
     return jsonify({'deleted': storyboard_id})
+
+
+SONGS_DIR = Path(__file__).resolve().parent / 'songs'
+SONGS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _song_path(song_id: str) -> Optional[Path]:
+    safe_id = re.sub(r'[^a-zA-Z0-9_-]', '', song_id or '')
+    if not safe_id:
+        return None
+    return SONGS_DIR / f'{safe_id}.json'
+
+
+@app.route('/api/songs')
+def api_list_songs() -> jsonify:
+    """List saved songs (persisted Composer bins + timeline arrangements)."""
+    items = []
+    for path in SONGS_DIR.glob('*.json'):
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        clips = data.get('clips') or []
+        timeline_length = max((c.get('start', 0) + c.get('duration', 0) for c in clips), default=0)
+        items.append({
+            'id': data.get('id'),
+            'name': data.get('name') or 'Untitled Song',
+            'clip_count': len(clips),
+            'timeline_length': round(timeline_length, 2),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at'),
+        })
+    items.sort(key=lambda item: item.get('updated_at') or '', reverse=True)
+    return jsonify({'songs': items})
+
+
+@app.route('/api/songs', methods=['POST'])
+def api_create_song() -> jsonify:
+    """Create a new song, optionally seeded with the current Composer project settings."""
+    body = request.get_json() or {}
+    song_id = uuid.uuid4().hex[:12]
+    now = datetime.utcnow().isoformat()
+    data = {
+        'id': song_id,
+        'name': (body.get('name') or 'Untitled Song').strip(),
+        'created_at': now,
+        'updated_at': now,
+        'project': body.get('project') or {},
+        'bin': [],
+        'clips': [],
+    }
+    _song_path(song_id).write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/songs/<song_id>')
+def api_get_song(song_id: str) -> jsonify:
+    path = _song_path(song_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Song not found'}), 404
+    return jsonify(json.loads(path.read_text()))
+
+
+@app.route('/api/songs/<song_id>', methods=['PUT'])
+def api_update_song(song_id: str) -> jsonify:
+    """Save the full song (name, project settings, generated bin, timeline clips).
+
+    Mirrors the storyboard save pattern: the client owns the in-memory
+    composerState and PUTs the whole thing back after each change.
+    """
+    path = _song_path(song_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Song not found'}), 404
+    body = request.get_json() or {}
+    data = json.loads(path.read_text())
+    if 'name' in body:
+        data['name'] = (body.get('name') or data.get('name') or 'Untitled Song').strip()
+    if 'project' in body:
+        data['project'] = body['project']
+    if 'bin' in body:
+        data['bin'] = body['bin']
+    if 'clips' in body:
+        data['clips'] = body['clips']
+    data['updated_at'] = datetime.utcnow().isoformat()
+    path.write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/songs/<song_id>', methods=['DELETE'])
+def api_delete_song(song_id: str) -> jsonify:
+    path = _song_path(song_id)
+    if path and path.exists():
+        path.unlink()
+    return jsonify({'deleted': song_id})
 
 
 def _enrich_job_outputs(job: Dict[str, Any]) -> None:

@@ -261,16 +261,17 @@ presets/
 ```
 
 #### `tools/` - Utility Scripts
-Contains Python scripts:
+A unified CLI (`python -m tools <command>`) backed by these modules:
 
 ```
 tools/
-├── validate_workflows.py    # Validate workflow manifests
-├── build_registry.py        # Build registry databases
-├── detect_dependencies.py   # Detect workflow dependencies
-├── compile_workflows.py     # Compile workflows
-├── benchmark_workflows.py   # Benchmark workflow performance
-└── generate_docs.py         # Generate documentation
+├── __main__.py                 # CLI entry point: registry, compile, validate, docs, pack-mover
+├── registry_generator.py       # Build registry.json from pack/workflow manifests
+├── workflow_compiler.py        # Compile workflows for distribution
+├── validator.py                # Validate workflow/pack manifests against schemas
+├── documentation_generator.py  # Generate documentation from manifests
+├── pack_mover.py                # Move/remove packs and categories (list, move, remove, remove-category)
+└── download_models.py          # Fetch required models
 ```
 
 #### `schemas/` - JSON Schemas
@@ -550,13 +551,11 @@ The registry system maintains searchable databases of:
 Registries are automatically generated when manifests change:
 
 ```bash
-# Build all registries
-python tools/build_registry.py
+# Rebuild registry.json from pack/workflow manifests
+python -m tools registry
 
-# Build specific registry
-python tools/build_registry.py --workflows
-python tools/build_registry.py --models
-python tools/build_registry.py --nodes
+# Also triggered automatically by pack-mover after move/remove/remove-category
+python -m tools pack-mover move --pack video.image-to-video --to video-edit
 ```
 
 ### Registry API

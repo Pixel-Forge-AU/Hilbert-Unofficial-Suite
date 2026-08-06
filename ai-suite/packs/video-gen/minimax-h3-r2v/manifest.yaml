@@ -1,0 +1,145 @@
+id: video.minimax-h3-r2v
+name: MiniMax H3 (Reference-to-Video)
+version: 1.0.0
+category: video-gen
+subcategory: minimax-h3
+description: >
+  MiniMax H3's ref2va task: weaves up to 9 reference images, 3 reference videos
+  (each with optional paired audio), and 3 standalone audio clips into the
+  generation to lock in a character's identity, style, motion, camera move, or
+  voice. Reference references in the prompt by tag in connection order, e.g.
+  "<Picture 1>", "<Video 1>", "<Audio 1>". Uses the ref2va diffusion model
+  (different weights from the t2v/i2v fl2va pack). This template wires two
+  reference images. Native stereo audio, up to 2K/24fps/~15s. Day-0 native
+  ComfyUI support, PR #15224.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 138.value
+    label: Prompt
+    type: textarea
+    required: false
+    default: >
+      Reference <Picture 1> and <Picture 2> by tag, then describe the target
+      scene, motion, and audio.
+    node_id: '138'
+    node_type: PrimitiveStringMultiline
+    input: value
+    description: Reference each connected input by tag in connection order, e.g. "<Picture 1>"
+  - id: 137.image
+    label: Reference image 1
+    type: image
+    required: false
+    default: ''
+    node_id: '137'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: First reference image (referenced as "<Picture 1>" in the prompt)
+  - id: 139.image
+    label: Reference image 2
+    type: image
+    required: false
+    default: ''
+    node_id: '139'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Second reference image (referenced as "<Picture 2>" in the prompt)
+  - id: 136.width
+    label: Width
+    type: int
+    required: false
+    default: 1344
+    minimum: 32
+    maximum: 16384
+    step: 32
+    node_id: '136'
+    node_type: MiniMaxH3ReferenceToVideo
+    input: width
+  - id: 136.height
+    label: Height
+    type: int
+    required: false
+    default: 768
+    minimum: 32
+    maximum: 16384
+    step: 32
+    node_id: '136'
+    node_type: MiniMaxH3ReferenceToVideo
+    input: height
+  - id: 136.ref_image_size
+    label: Reference image sizing
+    type: select
+    required: false
+    default: match
+    options: [match, max]
+    node_id: '136'
+    node_type: MiniMaxH3ReferenceToVideo
+    input: ref_image_size
+    description: "'match' scales refs to generation resolution (faster); 'max' keeps up to 2048px short edge for stronger identity fidelity, slower"
+  - id: 132.value
+    label: Duration (seconds)
+    type: float
+    required: false
+    default: 5
+    minimum: 0.5
+    maximum: 15
+    node_id: '132'
+    node_type: PrimitiveFloat
+    input: value
+    description: Converted to a valid frame length by the Math Expression node
+  - id: 129.noise_seed
+    label: Seed
+    type: int
+    required: false
+    default: 157368968253448
+    node_id: '129'
+    node_type: RandomNoise
+    input: noise_seed
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/MiniMax_H3
+    node_id: '92'
+    node_type: SaveVideo
+    input: filename_prefix
+outputs:
+  - id: video
+    type: video
+    description: Generated video with native synced audio
+models:
+  required:
+  - node_id: '127'
+    node_type: UNETLoader
+    name: minimax_h3_ref2va_pruned_int8_convrot.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors
+  - node_id: '128'
+    node_type: CLIPLoader
+    name: qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  - node_id: '119'
+    node_type: VAELoader
+    name: minimax_h3_video_vae_fp16.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors
+  - node_id: '120'
+    node_type: VAELoader
+    name: minimax_h3_audio_vae_fp32.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

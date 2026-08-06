@@ -1,0 +1,137 @@
+id: video.wan22-multi-lora-i2v
+name: Wan 2.2 Multiple LoRAs Template (I2V)
+version: 1.0.0
+category: video-gen
+subcategory: wan22
+description: >
+  Imported from a user-authored ComfyUI export (Wan 2.2 Multiple Loras Template.json). Dual-expert
+  (high-noise/low-noise) Wan 2.2 14B image-to-video pipeline with no LoRAs wired in by default (both
+  LoraLoaderModelOnly slots are empty in the source graph) - swap in any installed Wan LoRA. Every
+  referenced model (UNETLoader high/low noise experts, umt5_xxl text encoder, Wan 2.1 VAE) was already
+  installed in this suite - no substitutions were needed.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 93.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: positive prompt here
+    node_id: '93'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 89.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: overexposed, static, blurred details, subtitles, worst quality, low quality
+    node_id: '89'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 97.image
+    label: Input image
+    type: image
+    required: false
+    default: ''
+    node_id: '97'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 98.width
+    label: Width
+    type: int
+    required: false
+    default: 640
+    minimum: 256
+    maximum: 1920
+    node_id: '98'
+    node_type: WanImageToVideo
+    input: width
+  - id: 98.height
+    label: Height
+    type: int
+    required: false
+    default: 640
+    minimum: 256
+    maximum: 1920
+    node_id: '98'
+    node_type: WanImageToVideo
+    input: height
+  - id: 98.length
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    node_id: '98'
+    node_type: WanImageToVideo
+    input: length
+  - id: 94.fps
+    label: FPS
+    type: int
+    required: false
+    default: 16
+    minimum: 1
+    maximum: 60
+    node_id: '94'
+    node_type: CreateVideo
+    input: fps
+  - id: 86.noise_seed
+    label: Seed (high-noise expert)
+    type: int
+    required: false
+    default: 829822661410591
+    node_id: '86'
+    node_type: KSamplerAdvanced
+    input: noise_seed
+  - id: 85.noise_seed
+    label: Seed (low-noise expert)
+    type: int
+    required: false
+    default: 0
+    node_id: '85'
+    node_type: KSamplerAdvanced
+    input: noise_seed
+  - id: 108.filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/ComfyUI
+    node_id: '108'
+    node_type: SaveVideo
+    input: filename_prefix
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '95'
+    node_type: UNETLoader
+    name: wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '96'
+    node_type: UNETLoader
+    name: wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+    directory: diffusion_models
+  - node_id: '84'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '90'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

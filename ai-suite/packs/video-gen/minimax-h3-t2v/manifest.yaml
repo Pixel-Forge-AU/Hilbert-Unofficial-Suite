@@ -1,0 +1,114 @@
+id: video.minimax-h3-t2v
+name: MiniMax H3 (Text-to-Video)
+version: 1.0.0
+category: video-gen
+subcategory: minimax-h3
+description: >
+  MiniMax H3's t2va task: text-to-video with native stereo audio generated in the
+  same forward pass (voice, SFX, and music, not layered on afterward). Output up
+  to 2K, 24fps, ~15s. Uses the fl2va diffusion model with no image inputs connected,
+  Qwen3-VL-32B as the text encoder. Day-0 native ComfyUI support, PR #15224.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 105_sg_104.prompt
+    label: Prompt
+    type: textarea
+    required: false
+    default: >
+      Realistic live-action cinematic look, action movie trailer: practical film
+      photography style, shallow depth of field, film grain, powerful natural
+      movement. Describe shots, camera moves, and the accompanying audio
+      (dialogue, SFX, music) in one block.
+    node_id: 105_sg_104
+    node_type: MiniMaxH3ImageToVideo
+    input: prompt
+    description: Describe the scene, shot-by-shot camera direction, and audio together
+  - id: 105_sg_104.width
+    label: Width
+    type: int
+    required: false
+    default: 1344
+    minimum: 32
+    maximum: 16384
+    step: 32
+    node_id: 105_sg_104
+    node_type: MiniMaxH3ImageToVideo
+    input: width
+    description: H3's native canvas is a 768px short edge, capped at 768x1344, multiple of 32
+  - id: 105_sg_104.height
+    label: Height
+    type: int
+    required: false
+    default: 768
+    minimum: 32
+    maximum: 16384
+    step: 32
+    node_id: 105_sg_104
+    node_type: MiniMaxH3ImageToVideo
+    input: height
+  - id: 105_sg_111.value
+    label: Duration (seconds)
+    type: float
+    required: false
+    default: 5
+    minimum: 0.5
+    maximum: 15
+    node_id: 105_sg_111
+    node_type: PrimitiveFloat
+    input: value
+    description: Converted to a valid frame length on the model's 17-frame-per-block grid at 24fps
+  - id: 105_sg_15.noise_seed
+    label: Seed
+    type: int
+    required: false
+    default: 556589502035082
+    node_id: 105_sg_15
+    node_type: RandomNoise
+    input: noise_seed
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/MiniMax_H3
+    node_id: '92'
+    node_type: SaveVideo
+    input: filename_prefix
+outputs:
+  - id: video
+    type: video
+    description: Generated video with native synced audio
+models:
+  required:
+  - node_id: 105_sg_6
+    node_type: UNETLoader
+    name: minimax_h3_fl2va_pruned_int8_convrot.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors
+  - node_id: 105_sg_13
+    node_type: CLIPLoader
+    name: qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  - node_id: 105_sg_11
+    node_type: VAELoader
+    name: minimax_h3_video_vae_fp16.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors
+  - node_id: 105_sg_24
+    node_type: VAELoader
+    name: minimax_h3_audio_vae_fp32.safetensors
+    directory: vae
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

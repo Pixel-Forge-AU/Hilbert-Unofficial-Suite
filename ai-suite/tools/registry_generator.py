@@ -74,7 +74,7 @@ def find_workflow_manifests(packs_dir: Path) -> List[Path]:
             continue
         # Check if this is a workflow manifest (not a pack manifest)
         try:
-            with open(manifest_path, 'r') as f:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = yaml.safe_load(f) if yaml else None
                 if content and 'id' in content and '.' in content.get('id', ''):
                     # Workflow manifests have IDs like 'character.character-sheet'
@@ -100,7 +100,7 @@ def load_yaml_file(file_path: Path) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     except yaml.YAMLError as e:
         print(f"Error parsing YAML file {file_path}: {e}")
@@ -253,7 +253,7 @@ def generate_registry(
     if output_path:
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w') as f:
+            with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(registry, f, indent=2)
             print(f"Registry written to: {output_path}")
         except Exception as e:

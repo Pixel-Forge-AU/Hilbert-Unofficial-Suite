@@ -346,13 +346,14 @@ ai-suite/
 │   ├── speed/               # Speed presets
 │   ├── hardware/            # Hardware presets
 │   └── styles/              # Style presets
-├── tools/                     # Utility scripts
-│   ├── validate_workflows.py
-│   ├── build_registry.py
-│   ├── detect_dependencies.py
-│   ├── compile_workflows.py
-│   ├── benchmark_workflows.py
-│   └── generate_docs.py
+├── tools/                     # Unified CLI: python -m tools <command>
+│   ├── __main__.py
+│   ├── registry_generator.py   # registry
+│   ├── workflow_compiler.py    # compile
+│   ├── validator.py            # validate
+│   ├── documentation_generator.py  # docs
+│   ├── pack_mover.py           # pack-mover (list/move/remove/remove-category)
+│   └── download_models.py
 ├── schemas/                   # JSON schemas
 │   ├── workflow-manifest.schema.json
 │   ├── model-manifest.schema.json

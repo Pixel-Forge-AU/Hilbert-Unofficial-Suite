@@ -27,5 +27,7 @@ workflows:
   - core.upscale-high-quality
   - core.multi-model-comparison
   - core.hidream-i1-dev-gguf
+  - community.animepasteldream-soft-bakedvae
+  - community.krea2-masterpieces-v51
 
 default_enabled: true

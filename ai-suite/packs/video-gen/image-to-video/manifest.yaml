@@ -1,0 +1,160 @@
+id: video.image-to-video
+name: Image to Video
+version: 2.0.0
+category: video-gen
+description: Animate a still image into a short video using the migrated LTXV image-to-video
+  workflow.
+status: stable
+media_type: video
+source:
+  suite: v1
+  path: packs/studio-migrated/ltxv-095-image-to-video/workflow.json
+  promoted_from: studio.ltxv-095-image-to-video
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: image
+  label: Input image
+  type: file
+  required: true
+  default: example.png
+  legacy_kind: file
+  node_id: '78'
+  node_type: LoadImage
+  input: image
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Source image to animate
+- id: prompt
+  label: Prompt
+  type: textarea
+  required: false
+  default: The subject begins still, then eases into natural motion with subtle camera
+    movement, smooth lighting changes, and coherent detail across the whole shot.
+  legacy_kind: textarea
+  node_id: '6'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+  description: Motion and scene description
+- id: negative_prompt
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: low quality, worst quality, deformed, distorted, disfigured, motion smear,
+    motion artifacts, fused fingers, bad anatomy, weird hand, ugly
+  legacy_kind: textarea
+  node_id: '7'
+  node_type: CLIPTextEncode
+  input: text
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: width
+  label: Width
+  type: int
+  required: false
+  default: 768
+  legacy_kind: number
+  node_id: '95'
+  node_type: LTXVImgToVideo
+  input: width
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: height
+  label: Height
+  type: int
+  required: false
+  default: 512
+  legacy_kind: number
+  node_id: '95'
+  node_type: LTXVImgToVideo
+  input: height
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: frames
+  label: Frames
+  type: int
+  required: false
+  default: 97
+  legacy_kind: number
+  node_id: '95'
+  node_type: LTXVImgToVideo
+  input: length
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: fps
+  label: FPS
+  type: float
+  required: false
+  default: 24.0
+  legacy_kind: number
+  node_id: '101'
+  node_type: CreateVideo
+  input: fps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: steps
+  label: Steps
+  type: int
+  required: false
+  default: 30
+  legacy_kind: number
+  node_id: '71'
+  node_type: LTXVScheduler
+  input: steps
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: cfg
+  label: CFG
+  type: float
+  required: false
+  default: 3.0
+  legacy_kind: number
+  node_id: '72'
+  node_type: SamplerCustom
+  input: cfg
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: motion_strength
+  label: Motion strength
+  type: float
+  required: false
+  default: 1.0
+  legacy_kind: number
+  node_id: '95'
+  node_type: LTXVImgToVideo
+  input: strength
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: -1
+  legacy_kind: number
+  node_id: '72'
+  node_type: SamplerCustom
+  input: noise_seed
+  accept: image/png,image/jpeg,image/webp,image/bmp
+- id: filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: video/ltxv-image-to-video
+  legacy_kind: text
+  node_id: '102'
+  node_type: SaveVideo
+  input: filename_prefix
+  accept: image/png,image/jpeg,image/webp,image/bmp
+outputs:
+- id: video
+  type: video
+  description: Generated image-to-video clip
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: false
+tags:
+- animation
+- image-to-video
+- ltxv
+- video

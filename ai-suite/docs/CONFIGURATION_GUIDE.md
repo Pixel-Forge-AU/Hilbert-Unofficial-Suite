@@ -427,6 +427,8 @@ tuning:
 
 ## categories.yaml - Category Definitions
 
+> **Note:** `config/categories.yaml` is not currently read by any registry, build, or UI code — nothing in `ai-suite/` imports it. The live source of truth for categories is each category's `packs/<category>/pack-manifest.yaml`, generated into `registry/registry.json` by `python -m tools registry`. To add, rename, move, or remove a category, use the `pack-mover` tool (see [Moving and Removing Packs/Categories](WORKFLOW_DEVELOPER_GUIDE.md#moving-and-removing-packscategories)) rather than editing this file — edits here currently have no effect.
+
 ### Complete Configuration Example
 
 ```yaml

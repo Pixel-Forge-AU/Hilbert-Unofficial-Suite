@@ -1,0 +1,207 @@
+id: video.scail2-character-replacement
+name: SCAIL-2 Character Replacement (Wan 2.1)
+version: 1.0.0
+category: video-edit
+subcategory: wan21
+description: >
+  Rebuilt from scail2MultiRefSegmented_v6.json - despite living in this suite's image-editing staging
+  pile, inspecting its actual node graph shows it's a WAN 2.1 video pipeline, not an image editor:
+  driving-video + reference-image character replacement via zai-org's SCAIL-2 model (SAM3 subject
+  tracking + colored-mask identity binding + WanSCAILToVideo conditioning), wrapped in an elaborate
+  Chinese-language "WAN ANI Director" multi-segment queue UI. Those Director/"SQR" nodes
+  (WanAniDirector, SQRSCAIL2TransitionToVideo, SQRScail2ReferenceBatchSplit, SQRScail2ColoredMaskAdvanced,
+  WanSQRMultiReference, WanContextWindowsManual) come from the public zere111ai/ComfyUI-WanAni-SQR repo
+  and exist purely to auto-chunk arbitrarily long videos into overlapping segments and stitch them back
+  together - convenience automation, not the core capability. The actual generation core
+  (WanSCAILToVideo, SCAIL2ColoredMask, SAM3_VideoTrack) turned out to already be native ComfyUI nodes in
+  this install (comfy_extras/nodes_scail.py, nodes_sam3.py), so this pack reproduces ComfyUI's own
+  bundled reference template (video_wan21_scail2_character_replacement.json) instead, trimmed to a
+  single segment/pass (the source's "Base" subgraph; the segment-chaining "Extend" subgraph and the
+  Director's shot-auto-detection were dropped as out of scope for one pack). Of the model list in that
+  template's own notes: umt5_xxl_fp8_e4m3fn_scaled.safetensors, Wan2_1_VAE_bf16.safetensors,
+  sam3.1_multiplex_fp16.safetensors, and the lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+  LoRA were all already installed in this suite under those exact names - no substitution needed. The
+  SCAIL-2 base diffusion model itself (wan2.1_14B_SCAIL_2_fp16.safetensors), the DPO refinement LoRA
+  (wan2.1_SCAIL_2_DPO_lora_bf16.safetensors), and clip_vision_h.safetensors are NOT installed under any
+  name in this suite (the staged workflow's own DiffusionModelLoaderKJ pointed at a differently-named
+  int8 quant of the same base model that also isn't present) - all three are flagged below with the
+  official template's own Hugging Face links rather than guessed at or downloaded. Marked experimental
+  until those three land.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 1.file
+    label: Driving video
+    type: file
+    required: false
+    default: example_driving.mp4
+    node_id: '1'
+    node_type: LoadVideo
+    input: file
+    accept: video/mp4,video/webm
+  - id: 3.image
+    label: Reference character image
+    type: file
+    required: true
+    default: example_reference.png
+    node_id: '3'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: 5.text
+    label: SAM3 detection prompt (driving video)
+    type: text
+    required: false
+    default: human
+    node_id: '5'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 6.text
+    label: SAM3 detection prompt (reference image)
+    type: text
+    required: false
+    default: human
+    node_id: '6'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 11.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: A person is replaced by the reference character while performing the same motion as the driving video
+    node_id: '11'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 12.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: ''
+    node_id: '12'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 20.width
+    label: Width
+    type: int
+    required: false
+    default: 512
+    minimum: 64
+    maximum: 1920
+    node_id: '20'
+    node_type: WanSCAILToVideo
+    input: width
+  - id: 20.height
+    label: Height
+    type: int
+    required: false
+    default: 896
+    minimum: 64
+    maximum: 1920
+    node_id: '20'
+    node_type: WanSCAILToVideo
+    input: height
+  - id: 20.length
+    label: Frames
+    type: int
+    required: false
+    default: 65
+    minimum: 9
+    maximum: 200
+    node_id: '20'
+    node_type: WanSCAILToVideo
+    input: length
+  - id: 17.strength_model
+    label: Lightx2v distill LoRA strength
+    type: float
+    required: false
+    default: 0.8
+    minimum: -2
+    maximum: 2
+    node_id: '17'
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+  - id: 22.steps
+    label: Steps
+    type: int
+    required: false
+    default: 6
+    minimum: 1
+    maximum: 50
+    node_id: '22'
+    node_type: BasicScheduler
+    input: steps
+  - id: 23.noise_seed
+    label: Seed
+    type: int
+    required: false
+    default: 1
+    node_id: '23'
+    node_type: SamplerCustom
+    input: noise_seed
+  - id: 23.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0
+    maximum: 20
+    node_id: '23'
+    node_type: SamplerCustom
+    input: cfg
+  - id: 26.filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/SCAIL2
+    node_id: '26'
+    node_type: SaveVideo
+    input: filename_prefix
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '4'
+    node_type: CheckpointLoaderSimple
+    name: sam3.1_multiplex_fp16.safetensors
+    directory: checkpoints
+  - node_id: '10'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '13'
+    node_type: CLIPVisionLoader
+    name: clip_vision_h.safetensors
+    directory: clip_vision
+    url: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors
+  - node_id: '15'
+    node_type: UNETLoader
+    name: wan2.1_14B_SCAIL_2_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/SCAIL-2/resolve/main/diffusion_models/wan2.1_14B_SCAIL_2_fp16.safetensors
+  - node_id: '17'
+    node_type: LoraLoaderModelOnly
+    name: lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+    directory: loras
+  - node_id: '18'
+    node_type: LoraLoaderModelOnly
+    name: wan2.1_SCAIL_2_DPO_lora_bf16.safetensors
+    directory: loras
+    url: https://huggingface.co/Comfy-Org/SCAIL-2/resolve/main/loras/wan2.1_SCAIL_2_DPO_lora_bf16.safetensors
+  - node_id: '19'
+    node_type: VAELoader
+    name: Wan2_1_VAE_bf16.safetensors
+    directory: vae
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

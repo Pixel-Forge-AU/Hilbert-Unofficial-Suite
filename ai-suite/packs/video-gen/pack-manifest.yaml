@@ -1,0 +1,36 @@
+# Video Generation Pack Manifest
+
+id: video-gen
+name: Video Generation
+version: "1.0.0"
+
+description: >
+  Video generation workflows that create new video from scratch: text-to-video,
+  image-to-video, keyframe/first-last-frame, reference-to-video, and
+  audio-driven talking-head/lip-sync generation.
+
+workflows:
+  - video.animation
+  - video.image-to-video
+  - video.keyframe-video
+  - video.keyframe-video-fast
+  - video.talking-head
+  - video.lip-sync
+  - video.ltx2-director-i2v
+  - video.wan21-jibmix-t2v
+  - video.wan21-vace-causvid-1.3b
+  - video.wan21-vace-causvid-14b
+  - video.wan21-vace-character-in-scene
+  - video.wan22-daxamur-flf2v
+  - video.wan22-fastest-i2v-8step
+  - video.wan22-longvideo-6step-gguf-combo
+  - video.wan22-multi-lora-i2v
+  - video.minimax-h3-t2v
+  - video.minimax-h3-i2v
+  - video.minimax-h3-r2v
+  - studio.hunyuan-video-15-720p-image-to-video
+  - studio.hunyuan-video-15-720p-text-to-video
+  - studio.hunyuan-video-text-to-video
+  - studio.ltxv-095-text-to-video
+
+default_enabled: true

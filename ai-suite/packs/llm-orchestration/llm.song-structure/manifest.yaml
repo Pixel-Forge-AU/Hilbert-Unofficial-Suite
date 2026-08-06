@@ -1,0 +1,84 @@
+id: llm.song-structure
+name: LLM Song Structure & Lyrics
+version: 1.0.0
+category: llm-orchestration
+subcategory: music-planning
+description: 'Turn a short song concept into a structured plan: tempo, key, and a
+  section-by-section breakdown (intro/verse/chorus/etc.) with real lyrics and a
+  scene description per section, for use as the planning step ahead of a chained
+  song + cover art + film clip generation (e.g. the Music Video pipeline).
+
+  Runs locally through the AI Suite llama.cpp service instead of ComfyUI custom nodes.
+
+  '
+status: stable
+entrypoints:
+  service: llama_cpp
+inputs:
+- id: concept
+  type: text
+  required: true
+  description: Short description of the song - story, mood, genre, instruments
+- id: tags
+  type: text
+  required: false
+  default: ''
+  description: Style tags (genre, mood, instruments) to keep the plan consistent with
+- id: duration
+  type: int
+  required: false
+  default: 180
+  minimum: 10
+  maximum: 600
+  description: Target song duration in seconds - section lengths should sum to roughly this
+- id: llm_model
+  type: text
+  required: false
+  default: gpt-4o
+  description: LLM model to use for planning
+outputs:
+- id: sections
+  type: text
+  description: Ordered list of song sections, each with a name, rough duration, lyrics, and scene description
+- id: bpm
+  type: text
+  description: Suggested tempo in beats per minute
+- id: key
+  type: text
+  description: Suggested musical key
+models:
+  required: []
+  optional: []
+custom_nodes:
+  required: []
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 16
+  supports_low_vram: true
+  supports_cpu_offload: true
+runtime:
+  class: light
+  batch_supported: false
+  type: llm_service
+  service: llama_cpp
+  endpoint: http://127.0.0.1:39001/v1/chat/completions
+content:
+  themes:
+  - llm
+  - music
+  - songwriting
+  - planning
+  adult_only: false
+tags:
+- creative
+- lyrics
+- llama-cpp
+- llm
+- local-llm
+- music
+- planning
+- service-workflow
+- song-structure
+presets: []
+media_type: text

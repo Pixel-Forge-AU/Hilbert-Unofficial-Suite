@@ -1,0 +1,74 @@
+id: video.mux
+name: Combine Video & Audio
+version: 1.0.0
+category: video-stitch
+media_type: video
+description: >
+  Mux an existing video file with a separate audio file into a single output clip,
+  using ComfyUI's native video/audio nodes. The video's own frame rate is preserved
+  automatically; the supplied audio track replaces whatever audio (if any) the
+  source video already had.
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: video
+    label: Source video
+    type: file
+    required: true
+    default: smoke-input.mp4
+    node_id: "1"
+    node_type: LoadVideo
+    input: file
+    accept: video/mp4,video/webm,video/quicktime
+    description: Video whose frames will be kept; its own audio track is discarded
+
+  - id: audio
+    label: Audio track
+    type: file
+    required: true
+    default: example.wav
+    node_id: "3"
+    node_type: LoadAudio
+    input: audio
+    accept: audio/wav,audio/mpeg,audio/mp3,audio/flac,audio/ogg
+    description: Audio to combine with the video's frames
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/video-mux
+    node_id: "5"
+    node_type: SaveVideo
+    input: filename_prefix
+
+outputs:
+  - id: video
+    type: video
+    description: The source video's frames combined with the supplied audio track
+
+models:
+  required: []
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 4
+  recommended_vram_gb: 8
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+tags:
+  - video
+  - audio
+  - mux
+  - combine
+  - demux
