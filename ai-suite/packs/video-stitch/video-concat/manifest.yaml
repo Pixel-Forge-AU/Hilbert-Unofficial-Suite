@@ -1,0 +1,74 @@
+id: video.concat
+name: Concatenate Videos
+version: 1.0.0
+category: video-stitch
+media_type: video
+description: >
+  Join two existing video clips into one, second clip after the first, using
+  ComfyUI's native video/audio nodes. No diffusion model or generation is
+  involved — frames and audio from both clips are concatenated as-is.
+status: stable
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: video1
+    label: First video
+    type: file
+    required: true
+    default: smoke-input.mp4
+    node_id: "1"
+    node_type: LoadVideo
+    input: file
+    accept: video/mp4,video/webm,video/quicktime
+    description: Clip that plays first
+
+  - id: video2
+    label: Second video
+    type: file
+    required: true
+    default: smoke-input.mp4
+    node_id: "3"
+    node_type: LoadVideo
+    input: file
+    accept: video/mp4,video/webm,video/quicktime
+    description: Clip that plays after the first, appended in order
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/video-concat
+    node_id: "8"
+    node_type: SaveVideo
+    input: filename_prefix
+
+outputs:
+  - id: video
+    type: video
+    description: The first video's frames and audio followed by the second's
+
+models:
+  required: []
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 4
+  recommended_vram_gb: 8
+  supports_low_vram: true
+  supports_cpu_offload: true
+
+tags:
+  - video
+  - concat
+  - stitch
+  - splice
+  - combine
+  - join

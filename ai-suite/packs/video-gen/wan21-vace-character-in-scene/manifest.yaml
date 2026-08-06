@@ -1,0 +1,227 @@
+id: video.wan21-vace-character-in-scene
+name: Wan 2.1 VACE - Character + Background Composite
+version: 1.0.0
+category: video-gen
+subcategory: wan21
+description: >
+  Modified from this suite's video.wan21-vace-causvid-1.3b (the official ComfyUI "Wan Vace Reference to
+  Video" template) to take two images into one generation instead of one. The stock template only wires
+  WanVaceToVideo's reference_image input (a single subject/identity image, VAE-encoded separately and
+  never itself a video frame). This pack additionally loads a background image, repeats it across every
+  frame (RepeatImageBatch, count kept in sync with the Frames widget via a shared primitive), and feeds
+  that into WanVaceToVideo's control_video input, which the stock template leaves unconnected. With
+  control_masks left unconnected, VACE defaults that mask to all-ones, meaning the whole control_video is
+  treated as a loose generation guide rather than a locked, untouched plate - so the model composites the
+  reference character into the given background and animates it, instead of either ignoring the
+  background or pasting the character over a frozen still. This is the correct native VACE mechanism for
+  combining a subject and a scene in a single pass, as opposed to storyboard-style approaches (start/end
+  frame, keyframe-to-video) that generate sequential frames rather than simultaneous elements. Same model
+  stack as video.wan21-vace-causvid-1.3b (Wan 2.1 VACE + Kijai's CausVid distillation LoRA + RIFE
+  16fps->32fps interpolation); CLIPLoader repointed to the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors
+  (the template's own notes say fp16 or fp8 both work); VAELoader (wan_2.1_vae.safetensors) was already
+  installed under that exact name. The `model_variant` input picks between the 1.3B pair
+  (wan2.1_vace_1.3B_fp16.safetensors + Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors - faster,
+  ~8GB VRAM) and the 14B pair (wan2.1_vace_14B_fp16.safetensors + Wan21_CausVid_14B_T2V_lora_rank32.safetensors
+  - see video.wan21-vace-causvid-14b for the same substitution - much stronger character/reference identity
+  fidelity, ~24GB VRAM, notably slower); the two extra nodes added here don't care which VACE checkpoint
+  size is loaded. Negative prompt has a few extra terms discouraging background drift; raise
+  WanVaceToVideo's strength widget if the result invents too much new background instead of respecting the
+  one you gave it - but note strength scales VACE's conditioning on reference_image and control_video
+  together (they're concatenated into one latent before it's applied), not background alone, so pushing it
+  down to try to emphasize the character usually just weakens the whole composite instead.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: prompt
+    label: Prompt
+    type: textarea
+    required: false
+    default: the character from the reference image stands in the scene and looks around, natural motion, camera holds steady, the background stays the same
+    legacy_kind: textarea
+    node_id: '105'
+    node_type: CLIPTextEncode
+    input: text
+  - id: negative_prompt
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly, background changes, scene changes, warped background
+    legacy_kind: textarea
+    node_id: '107'
+    node_type: CLIPTextEncode
+    input: text
+  - id: character_image
+    label: Character image
+    type: file
+    required: true
+    default: ''
+    legacy_kind: file
+    node_id: '164'
+    node_type: LoadAndResizeImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: background_image
+    label: Background image
+    type: file
+    required: true
+    default: ''
+    legacy_kind: file
+    node_id: '191'
+    node_type: LoadAndResizeImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+  - id: width
+    label: Width
+    type: int
+    required: false
+    default: 848
+    minimum: 64
+    maximum: 1920
+    legacy_kind: number
+    node_id: '158'
+    node_type: PrimitiveNode
+    input: value
+  - id: height
+    label: Height
+    type: int
+    required: false
+    default: 480
+    minimum: 64
+    maximum: 1920
+    legacy_kind: number
+    node_id: '159'
+    node_type: PrimitiveNode
+    input: value
+  - id: frames
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    legacy_kind: number
+    node_id: '193'
+    node_type: PrimitiveNode
+    input: value
+  - id: background_strength
+    label: Background guidance strength
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0
+    maximum: 10
+    legacy_kind: number
+    node_id: '109'
+    node_type: WanVaceToVideo
+    input: strength
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: -1
+    legacy_kind: number
+    node_id: '108'
+    node_type: KSampler
+    input: seed
+    description: -1 randomizes the seed each run; set a value to reproduce a specific take.
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 4
+    minimum: 1
+    maximum: 50
+    legacy_kind: number
+    node_id: '108'
+    node_type: KSampler
+    input: steps
+  - id: cfg
+    label: CFG
+    type: float
+    required: false
+    default: 1
+    minimum: 0
+    maximum: 20
+    legacy_kind: number
+    node_id: '108'
+    node_type: KSampler
+    input: cfg
+  - id: lora_strength
+    label: CausVid LoRA strength
+    type: float
+    required: false
+    default: 0.3
+    minimum: 0
+    maximum: 1
+    legacy_kind: number
+    node_id: '115'
+    node_type: LoraLoader
+    input: strength_model
+  - id: model_variant
+    label: VACE model size
+    type: select
+    required: false
+    default: 1.3B
+    options:
+      - 1.3B
+      - 14B
+    description: >
+      1.3B is faster and needs less VRAM (~8GB). 14B has noticeably stronger character/reference identity
+      fidelity but needs ~24GB VRAM and is much slower. Swaps both the UNET checkpoint and its matching
+      CausVid LoRA together.
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '113'
+    node_type: UNETLoader
+    name: wan2.1_vace_1.3B_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_vace_1.3B_fp16.safetensors
+  - node_id: '127'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '114'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  - node_id: '115'
+    node_type: LoraLoader
+    name: Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors
+    directory: loras
+    url: https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors
+  optional:
+  - node_id: '179'
+    node_type: RIFE VFI
+    name: rife47.pth
+    directory: frame_interpolation
+    url: https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/rife47.pth
+  - node_id: '113'
+    node_type: UNETLoader
+    name: wan2.1_vace_14B_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_vace_14B_fp16.safetensors
+    description: Only needed if model_variant is set to 14B.
+  - node_id: '115'
+    node_type: LoraLoader
+    name: Wan21_CausVid_14B_T2V_lora_rank32.safetensors
+    directory: loras
+    url: https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors
+    description: Only needed if model_variant is set to 14B.
+custom_nodes:
+  required:
+  - comfyui
+  - comfyui-kjnodes
+  - comfyui-frame-interpolation
+  - comfyui-videohelpersuite
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

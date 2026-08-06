@@ -1,0 +1,146 @@
+id: video.wan21-jibmix-t2v
+name: JibMix Wan V3 SeeMe (Text-to-Video)
+version: 1.0.0
+category: video-gen
+subcategory: wan21
+description: >
+  jibMixWan_v3SeeMe.safetensors was found loose in this suite's staging folder with no accompanying
+  workflow, so it wasn't clear what kind of Wan checkpoint it was or how it should be wired up. Its
+  safetensors header identifies it as a single 14B-scale Wan diffusion UNET (40 transformer blocks,
+  5120-dim, matching Wan 14B, not the 1.3B/30-block/1536-dim variant), stored fp8_e4m3fn (no
+  scale_weight tensors, so it's a plain fp8 cast rather than ComfyUI's "_scaled" fp8 format) - its
+  embedded metadata even includes the ComfyUI graph that produced it, a bare UNETLoader -> ModelSave
+  pair that re-saved "Jib_Mix_Wan_V3_A_00001_.safetensors" as this file, consistent with "JibMix" being a
+  merged/finetuned checkpoint (in the tradition of the SD/SDXL "JibMix" merge line) rather than an
+  official Wan release. Critically, its patch_embedding.weight is [5120, 16, 1, 2, 2] (16 input channels)
+  and it has no img/k_img/v_img cross-attention tensors and no vace_blocks - i.e. it's architecturally a
+  plain T2V UNET, not the 36-channel I2V architecture (compare wan2.1_i2v_480p_14B_fp8_scaled.safetensors,
+  which has a 36-channel patch embedding plus per-block k_img/v_img tensors) and not a VACE-patched
+  checkpoint either (compare the wan2.1_vace_1.3B/14B checkpoints referenced by this suite's causvid
+  packs). So despite living in the wan21ImageToVideo_v30.zip staging bundle, it is not a safe drop-in
+  for an I2V (WanImageToVideo-with-start_image) or VACE (WanVaceToVideo) pipeline. It was moved to
+  models/diffusion_models/jibMixWan_v3SeeMe.safetensors and given this minimal from-scratch text-to-video
+  workflow instead: UNETLoader -> ModelSamplingSD3 -> KSampler, conditioned by two CLIPTextEncode nodes
+  off the installed umt5_xxl_fp8_e4m3fn_scaled.safetensors text encoder, with WanImageToVideo used purely
+  as an empty-latent generator (its start_image input is left unconnected, which the node's own code
+  path treats as plain text-to-video - it only builds the 36-channel image-conditioning concat when an
+  image is supplied), decoded with the installed wan_2.1_vae.safetensors and packaged into an MP4 via the
+  core CreateVideo/SaveVideo nodes. All models referenced here are already installed; no substitutions or
+  missing dependencies. This pack uses only core ComfyUI nodes.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 5.text
+    label: Prompt
+    type: textarea
+    required: false
+    default: a woman walking through a neon-lit city street at night, cinematic lighting, gentle camera pan
+    node_id: '5'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 6.text
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: overexposed, static, blurred details, subtitles, worst quality, low quality
+    node_id: '6'
+    node_type: CLIPTextEncode
+    input: text
+  - id: 7.width
+    label: Width
+    type: int
+    required: false
+    default: 832
+    minimum: 256
+    maximum: 1920
+    node_id: '7'
+    node_type: WanImageToVideo
+    input: width
+  - id: 7.height
+    label: Height
+    type: int
+    required: false
+    default: 480
+    minimum: 256
+    maximum: 1920
+    node_id: '7'
+    node_type: WanImageToVideo
+    input: height
+  - id: 7.length
+    label: Frames
+    type: int
+    required: false
+    default: 81
+    minimum: 9
+    maximum: 200
+    node_id: '7'
+    node_type: WanImageToVideo
+    input: length
+  - id: 8.seed
+    label: Seed
+    type: int
+    required: false
+    default: 0
+    node_id: '8'
+    node_type: KSampler
+    input: seed
+  - id: 8.steps
+    label: Steps
+    type: int
+    required: false
+    default: 20
+    minimum: 1
+    maximum: 50
+    node_id: '8'
+    node_type: KSampler
+    input: steps
+  - id: 8.cfg
+    label: CFG
+    type: float
+    required: false
+    default: 6.0
+    minimum: 0
+    maximum: 20
+    node_id: '8'
+    node_type: KSampler
+    input: cfg
+  - id: 10.fps
+    label: FPS
+    type: int
+    required: false
+    default: 16
+    minimum: 1
+    maximum: 60
+    node_id: '10'
+    node_type: CreateVideo
+    input: fps
+outputs:
+  - id: video
+    type: video
+    description: Generated video output
+models:
+  required:
+  - node_id: '3'
+    node_type: UNETLoader
+    name: jibMixWan_v3SeeMe.safetensors
+    directory: diffusion_models
+  - node_id: '1'
+    node_type: CLIPLoader
+    name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    directory: text_encoders
+  - node_id: '2'
+    node_type: VAELoader
+    name: wan_2.1_vae.safetensors
+    directory: vae
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: true
+  supports_cpu_offload: true

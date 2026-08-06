@@ -27,5 +27,11 @@ workflows:
   - editing.shadow-removal
   - editing.anima-inpaint-v1-beta
   - editing.cocoamix-qwen-image-edit
+  - studio.image-inpaint-flux-fill
+  - studio.image-outpaint-qwen-blueprint
+  - studio.image-to-image-omnigen2-edit
+  - studio.image-to-image-qwen-edit
+  - studio.image-upscale-basic
+  - community.detailifier-epoch-20
 
 default_enabled: true

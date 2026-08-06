@@ -1,0 +1,16 @@
+# Video Stitching Pack Manifest
+
+id: video-stitch
+name: Video Stitching
+version: "1.0.0"
+
+description: >
+  Workflows that combine or extend video: concatenation, audio/video muxing,
+  and extending an existing clip past its last frame.
+
+workflows:
+  - video.concat
+  - video.mux
+  - video.extend
+
+default_enabled: true

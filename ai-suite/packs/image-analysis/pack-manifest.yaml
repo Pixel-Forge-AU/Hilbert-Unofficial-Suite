@@ -1,0 +1,14 @@
+# Image Analysis Pack Manifest
+
+id: image-analysis
+name: Image Analysis
+version: "1.0.0"
+
+description: >
+  Workflows that extract data/maps from an image (depth, pose) rather than editing it.
+
+workflows:
+  - studio.depth-map-depth-anything3
+  - studio.pose-map-sdpose
+
+default_enabled: true

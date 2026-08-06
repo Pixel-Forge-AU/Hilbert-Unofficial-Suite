@@ -16,5 +16,6 @@ workflows:
   - llm.iterative-refinement
   - llm.storyboard-director
   - llm.model-selector
+  - llm.song-structure
 
 default_enabled: true

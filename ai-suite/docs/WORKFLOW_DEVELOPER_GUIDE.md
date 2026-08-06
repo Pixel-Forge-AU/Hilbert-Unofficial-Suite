@@ -5,6 +5,7 @@
 - [Introduction](#introduction)
 - [Manifest Structure Reference](#manifest-structure-reference)
 - [Creating Workflow Packs](#creating-workflow-packs)
+- [Moving and Removing Packs/Categories](#moving-and-removing-packscategories)
 - [Defining Inputs and Outputs](#defining-inputs-and-outputs)
 - [Adding Presets](#adding-presets)
 - [Writing Prompt Templates](#writing-prompt-templates)
@@ -250,19 +251,41 @@ default_enabled: true
 ### Adding Your Pack to Registry
 
 1. Place your pack in `packs/your-category/`
-2. Update `registry/packs.json`:
-   ```json
-   {
-     "id": "your-category",
-     "name": "Your Category Name",
-     "workflows": ["your-category.workflow-one"]
-   }
-   ```
-
+2. Create `pack-manifest.yaml` in that directory (see above) listing your workflow(s)
 3. Rebuild registry:
    ```bash
-   python tools/build_registry.py
+   python -m tools registry
    ```
+
+### Moving and Removing Packs/Categories
+
+Once packs exist, use the `pack-mover` tool instead of hand-editing `pack-manifest.yaml`/`manifest.yaml` files and moving directories yourself — it keeps the `category:` field, the `workflows:` lists in both the old and new `pack-manifest.yaml`, and `registry.json` all in sync, and preserves git history via `git mv`/`git rm` when available.
+
+```bash
+# List packs grouped by category
+python -m tools pack-mover list
+python -m tools pack-mover list --category video-gen
+
+# Move one or more packs to an existing category
+python -m tools pack-mover move --pack video.image-to-video --to video-edit
+
+# Move into a brand-new category (creates its pack-manifest.yaml)
+python -m tools pack-mover move --pack video.new-thing --to video-fx \
+    --category-name "Video FX" --category-description "Stylistic video effects"
+
+# Delete a pack entirely
+python -m tools pack-mover remove --pack video.old-thing
+
+# Delete an empty category (fails if it still contains packs)
+python -m tools pack-mover remove-category --category video-fx
+```
+
+Notes:
+
+- `--pack` is repeatable on `move` and `remove` to operate on several packs in one call.
+- `move`/`remove`/`remove-category` rebuild `registry.json` automatically afterward; pass `--no-rebuild-registry` to batch several commands and rebuild once at the end with `python -m tools registry`.
+- Restart Studio after any pack-mover command that rebuilds the registry so it picks up the new `registry.json`.
+- `remove-category` refuses to run while packs remain in that category — move or remove them first.
 
 ---
 

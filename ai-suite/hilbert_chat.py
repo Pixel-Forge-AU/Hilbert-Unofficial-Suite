@@ -859,7 +859,7 @@ def generate_image_with_comfy(handler, text, model=None):
         raise RuntimeError(message)
 
     values = image_control_values(prompt_text)
-    prompt, seed, catalog_item = build_workflow_prompt_from_path(IMAGE_WORKFLOW_PATH, values, workflow_id=IMAGE_WORKFLOW_ID)
+    prompt, seed, catalog_item = build_workflow_prompt_from_path(IMAGE_WORKFLOW_PATH, values, workflow_id=IMAGE_WORKFLOW_ID, config=config)
     prompt_id = queue_prompt(config, prompt, catalog_item["media_type"])
 
     deadline = time.time() + IMAGE_WAIT_SECONDS

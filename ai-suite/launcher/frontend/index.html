@@ -891,6 +891,16 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        .btn-danger {
+            background: rgba(198, 40, 40, 0.2);
+            color: #ef5350;
+            flex: 0 0 auto;
+        }
+
+        .btn-danger:hover {
+            background: rgba(198, 40, 40, 0.35);
+        }
+
         .status-badge {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -1458,6 +1468,23 @@
             white-space: nowrap;
         }
 
+        .composer-clip-remove {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.55);
+            cursor: pointer;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 2px;
+        }
+
+        .composer-clip-remove:hover {
+            color: #ffffff;
+        }
+
         .composer-status {
             min-height: 1.25rem;
         }
@@ -1489,6 +1516,51 @@
 
         .stored-input-row small {
             color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stored-input-picker {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .stored-input-thumb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            flex: 0 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 7px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .stored-input-thumb img,
+        .stored-input-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .stored-input-thumb-empty {
+            font-size: 0.62rem;
+            color: rgba(255, 255, 255, 0.55);
+            text-align: center;
+            padding: 0 4px;
+        }
+
+        .stored-input-thumb-name {
+            flex: 1;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.75);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .service-panel h3 {
@@ -2512,6 +2584,10 @@
                     <button class="category-btn" data-category="{{ category }}">{{ category }}</button>
                     {% endfor %}
                 </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="openManageCategoriesModal()">Manage Categories</button>
+                    <button class="btn btn-primary" onclick="openCreateWorkflowModal()">Create Workflow</button>
+                </div>
             </div>
             <div class="workflow-grid" id="workflowGrid">
                 {% if workflows %}
@@ -2642,14 +2718,32 @@
         </section>
 
         <section class="tab-panel" id="tab-composer">
-            <section class="workbench composer-layout" aria-label="Composer">
+            <section class="service-panel" id="composerListView">
+                <h3>Songs</h3>
+                <p>Generate rhythm, vocal, and FX clips, arrange them on a timeline, and save the result as a song you can reopen and keep building on.</p>
+                <div class="inline-form-actions" style="margin: 1rem 0;">
+                    <button class="btn btn-primary" type="button" id="composerNewSong">New Song</button>
+                    <button class="btn btn-secondary" type="button" id="composerRefreshSongs">Refresh</button>
+                </div>
+                <div class="workbench-gallery" id="composerList"></div>
+            </section>
+
+            <section class="workbench composer-layout" aria-label="Composer" id="composerEditorView" style="display:none;">
                 <section class="workbench-composer">
                     <div class="workbench-heading">
                         <div>
                             <h3>Composer</h3>
                             <p>Generate rhythm beds, vocal parts, and FX/foley, then place them on a live timeline.</p>
                         </div>
-                        <span class="media-badge">Audio</span>
+                        <div style="display:flex; gap:0.6rem; align-items:center;">
+                            <span class="media-badge">Audio</span>
+                            <button class="btn btn-secondary" type="button" id="composerBackButton">Back to songs</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="composerSongTitle">Song name</label>
+                        <input id="composerSongTitle" type="text" placeholder="Song title">
                     </div>
 
                     <div class="composer-project">
@@ -2745,6 +2839,8 @@
                     <div class="inline-form-actions">
                         <button class="btn btn-primary" type="button" id="composerGenerate">Generate Clip</button>
                         <button class="btn btn-secondary" type="button" id="composerClear">Clear Timeline</button>
+                        <button class="btn btn-secondary" type="button" id="composerSaveSong">Save Song</button>
+                        <button class="btn btn-secondary" type="button" id="composerDeleteSong">Delete Song</button>
                     </div>
                     <div class="workbench-status composer-status" id="composerStatus">Ready.</div>
                 </section>
@@ -2788,7 +2884,7 @@
                     <div class="workbench-heading">
                         <div>
                             <h3>Song + Cover + Clip</h3>
-                            <p>One concept in, three chained generations out: a song, cover art, and a film clip animated from that cover art.</p>
+                            <p>One concept in: a structured plan (lyrics, tempo, key, section-by-section scenes), a song built from that plan, a distinct image per section, and a beat-aligned film clip stitched from all of them.</p>
                         </div>
                     </div>
 
@@ -2823,6 +2919,37 @@
                                 <option value="core.text-to-image" selected>Fast (Z-Image Turbo)</option>
                                 <option value="core.text-to-image-hq">Quality (Qwen-Image, high RAM - see warning in Catalogue)</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div id="mvPlanSection">
+                        <div class="inline-form-actions">
+                            <button class="btn btn-secondary" type="button" id="mvPlanButton">1. Plan song structure &amp; lyrics</button>
+                        </div>
+                        <div id="mvPlanReview" style="display:none;">
+                            <div class="form-group">
+                                <label for="mvPlanBpm">BPM</label>
+                                <input id="mvPlanBpm" type="number" min="40" max="220" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="mvPlanKey">Key</label>
+                                <select id="mvPlanKey">
+                                    <option>C major</option><option>C minor</option>
+                                    <option>C# major</option><option>C# minor</option>
+                                    <option>D major</option><option>D minor</option>
+                                    <option>D# major</option><option>D# minor</option>
+                                    <option>E major</option><option>E minor</option>
+                                    <option>F major</option><option>F minor</option>
+                                    <option>F# major</option><option>F# minor</option>
+                                    <option>G major</option><option>G minor</option>
+                                    <option>G# major</option><option>G# minor</option>
+                                    <option>A major</option><option>A minor</option>
+                                    <option>A# major</option><option>A# minor</option>
+                                    <option>B major</option><option>B minor</option>
+                                </select>
+                            </div>
+                            <label>Sections (edit before generating - each becomes its own scene + clip)</label>
+                            <div id="mvPlanSections" class="job-list"></div>
                         </div>
                     </div>
 
@@ -2863,9 +2990,13 @@
                         <input id="mvMux" type="checkbox" checked style="width:auto;">
                         <label for="mvMux" style="margin:0;">Combine song + clip into one music video file</label>
                     </div>
+                    <div id="mvCaptionsField" class="form-group" style="display:flex; align-items:center; gap:0.5rem;">
+                        <input id="mvCaptions" type="checkbox" style="width:auto;">
+                        <label for="mvCaptions" style="margin:0;">Burn in on-screen lyrics, synced to the song structure</label>
+                    </div>
 
                     <div class="inline-form-actions">
-                        <button class="btn btn-primary" type="button" id="mvGenerate">Generate Song + Cover + Clip</button>
+                        <button class="btn btn-primary" type="button" id="mvGenerate" disabled>2. Generate Song + Scenes + Clip</button>
                         <button class="btn btn-primary" type="button" id="mvGenerateExisting" hidden>Generate Film Clip for This Song</button>
                     </div>
                     <div class="workbench-status" id="mvStatus">Ready.</div>
@@ -2875,7 +3006,7 @@
                     <div class="workbench-heading">
                         <div>
                             <h3>Progress</h3>
-                            <p>Each stage runs in sequence; the clip stage animates the generated cover art.</p>
+                            <p>Each stage runs in sequence: plan, song, one scene image + clip per section, stitch, mux, captions.</p>
                         </div>
                     </div>
                     <div class="editor-progress" id="mvProgress">
@@ -3030,8 +3161,101 @@
                 <p>Loading...</p>
             </div>
             <div class="modal-footer">
+                <button class="btn btn-danger" style="margin-right: auto;" onclick="deleteSelectedWorkflow()">Delete</button>
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
                 <button class="btn btn-primary" onclick="launchSelectedWorkflow()">Launch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal" id="manageCategoriesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manage Categories</h2>
+                <button class="close-btn" onclick="closeManageCategoriesModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="manageCategoriesBody">
+                <p>Loading...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeManageCategoriesModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Workflow Modal (block builder) -->
+    <div class="modal" id="createWorkflowModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Create Workflow</h2>
+                <button class="close-btn" onclick="closeCreateWorkflowModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="createWorkflowBody">
+                <div class="form-group">
+                    <label for="cwWorkflowFile">Upload workflow.json</label>
+                    <input type="file" id="cwWorkflowFile" accept=".json" onchange="onCreateWorkflowFileChosen(event)">
+                    <div id="cwUploadStatus" style="font-size: 0.8rem; margin-top: 0.25rem; color: rgba(255,255,255,0.6);"></div>
+                </div>
+
+                <div id="cwDetailsSection" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                        <div class="form-group">
+                            <label for="cwCategory">Category</label>
+                            <select id="cwCategory" onchange="onCwCategoryChange()"></select>
+                        </div>
+                        <div class="form-group" id="cwNewCategoryFields" style="display: none;">
+                            <label for="cwNewCategoryName">New category name</label>
+                            <input type="text" id="cwNewCategoryName" placeholder="Display name">
+                            <input type="text" id="cwNewCategoryDescription" placeholder="Description (optional)" style="margin-top: 0.25rem;">
+                        </div>
+                        <div class="form-group">
+                            <label for="cwPackId">Pack id (slug)</label>
+                            <input type="text" id="cwPackId" placeholder="e.g. my-new-thing">
+                        </div>
+                        <div class="form-group">
+                            <label for="cwName">Display name</label>
+                            <input type="text" id="cwName" placeholder="e.g. My New Thing">
+                        </div>
+                        <div class="form-group">
+                            <label for="cwStatus">Status</label>
+                            <select id="cwStatus">
+                                <option value="experimental" selected>experimental</option>
+                                <option value="stable">stable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="cwMediaType">Media type</label>
+                            <select id="cwMediaType">
+                                <option value="image">image</option>
+                                <option value="video">video</option>
+                                <option value="audio">audio</option>
+                                <option value="3d">3d</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cwDescription">Description</label>
+                        <textarea id="cwDescription" rows="2" placeholder="What does this workflow do?"></textarea>
+                    </div>
+
+                    <div id="cwMissingNodes" style="display: none; color: #f9a825; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+                    <h4 style="color: #4fc3f7; margin: 1rem 0 0.5rem;">Detected models</h4>
+                    <div id="cwModelsList" style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+                    <h4 style="color: #4fc3f7; margin: 1rem 0 0.5rem;">Available components (click to add as an input)</h4>
+                    <div id="cwPalette" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;"></div>
+
+                    <h4 style="color: #4fc3f7; margin: 1rem 0 0.5rem;">Inputs for this workflow</h4>
+                    <div id="cwSelectedInputs" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                </div>
+
+                <div id="cwCreateStatus" style="font-size: 0.85rem; margin-top: 1rem;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateWorkflowModal()">Cancel</button>
+                <button class="btn btn-primary" id="cwCreateButton" style="display: none;" onclick="submitCreateWorkflow()">Create Pack</button>
             </div>
         </div>
     </div>
@@ -3078,6 +3302,25 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" onclick="closeSbImagePickerModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="storedInputPickerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Choose a stored input</h2>
+                <button class="close-btn" onclick="closeStoredInputPicker()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="storedInputPickerSearch" placeholder="Search filenames..." oninput="renderStoredInputPickerGrid()">
+                </div>
+                <div id="storedInputPickerGrid" class="workbench-gallery"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="clearStoredInputSelection(storedInputPickerFieldId); closeStoredInputPicker();">Use workflow default</button>
+                <button class="btn btn-secondary" type="button" onclick="closeStoredInputPicker()">Cancel</button>
             </div>
         </div>
     </div>
@@ -3144,6 +3387,8 @@
         let pinnedInputNames = loadPinnedInputNames();
         let latestJobsData = { queued: [], running: [], completed: [] };
         let composerState = {
+            songId: null,
+            songName: 'Untitled Song',
             bin: [],
             clips: [],
             drag: null,
@@ -3870,6 +4115,7 @@
                 compatible.append(new Option(item.name, item.name));
             }
             compatible.value = item.name;
+            refreshStoredInputThumb(compatible.dataset.storedInputFor);
             return true;
         }
 
@@ -3886,6 +4132,7 @@
                     });
                     if (select && typeof value === 'string') {
                         select.value = value;
+                        refreshStoredInputThumb(select.dataset.storedInputFor);
                     }
                     return;
                 }
@@ -3937,7 +4184,14 @@
                             </div>
                             <div class="stored-input-row">
                                 <small>Or reuse a stored input</small>
-                                <select data-stored-input-for="${escapeHtml(input.id)}">
+                                <div class="stored-input-picker">
+                                    <button type="button" class="stored-input-thumb" data-stored-input-thumb-for="${escapeHtml(input.id)}" onclick="openStoredInputPicker('${escapeHtml(input.id)}')" title="Browse stored inputs">
+                                        <span class="stored-input-thumb-empty">Browse&hellip;</span>
+                                    </button>
+                                    <span class="stored-input-thumb-name" data-stored-input-name-for="${escapeHtml(input.id)}">Use workflow default</span>
+                                    <button type="button" class="btn btn-secondary" onclick="clearStoredInputSelection('${escapeHtml(input.id)}')">Clear</button>
+                                </div>
+                                <select data-stored-input-for="${escapeHtml(input.id)}" data-accept="${escapeHtml(input.accept || '')}" style="display:none">
                                     ${storedInputOptions(input.accept || '', defaultValue)}
                                 </select>
                             </div>
@@ -3987,6 +4241,7 @@
                 }
                 return `<div class="form-group"><label>${escapeHtml(label)}${required}</label><input ${common} type="text" value="${escapeHtml(defaultValue)}"></div>`;
             }).join('');
+            refreshAllStoredInputThumbs();
         }
 
         function syncConditioningDuration(inputs) {
@@ -4148,9 +4403,9 @@
             return data.name;
         }
 
-        function storedInputOptions(accept, defaultValue) {
+        function filterStoredInputsByAccept(accept) {
             const accepted = String(accept || '').toLowerCase();
-            const filtered = storedInputs.filter(function(item) {
+            return storedInputs.filter(function(item) {
                 if (!accepted) return true;
                 if (accepted.includes('image/') && item.media_type === 'image') return true;
                 if (accepted.includes('video/') && item.media_type === 'video') return true;
@@ -4160,12 +4415,92 @@
                     return suffix && item.filename.toLowerCase().endsWith(suffix);
                 });
             });
+        }
+
+        function storedInputOptions(accept, defaultValue) {
+            const filtered = filterStoredInputsByAccept(accept);
             const current = defaultValue || '';
             const options = [`<option value="">Use workflow default${current ? ` (${escapeHtml(current)})` : ''}</option>`];
             filtered.forEach(function(item) {
                 options.push(`<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}</option>`);
             });
             return options.join('');
+        }
+
+        // --- Thumbnail picker for stored inputs (mirrors the Library media grid so file
+        // pickers don't fall back to bare filename text). -------------------------------
+        let storedInputPickerFieldId = null;
+
+        function openStoredInputPicker(fieldId) {
+            storedInputPickerFieldId = fieldId;
+            const search = document.getElementById('storedInputPickerSearch');
+            if (search) search.value = '';
+            document.getElementById('storedInputPickerModal').classList.add('active');
+            renderStoredInputPickerGrid();
+        }
+
+        function closeStoredInputPicker() {
+            document.getElementById('storedInputPickerModal').classList.remove('active');
+            storedInputPickerFieldId = null;
+        }
+
+        function renderStoredInputPickerGrid() {
+            const grid = document.getElementById('storedInputPickerGrid');
+            if (!grid || !storedInputPickerFieldId) return;
+            const select = document.querySelector(`[data-stored-input-for="${CSS.escape(storedInputPickerFieldId)}"]`);
+            const accept = select?.dataset.accept || '';
+            const search = (document.getElementById('storedInputPickerSearch')?.value || '').trim().toLowerCase();
+            const items = filterStoredInputsByAccept(accept).filter(function(item) {
+                return !search || (item.filename || item.name || '').toLowerCase().includes(search);
+            });
+            if (!items.length) {
+                grid.innerHTML = '<div class="preview-empty">No stored inputs match.</div>';
+                return;
+            }
+            grid.innerHTML = '';
+            items.forEach(function(item) {
+                const tile = document.createElement('button');
+                tile.type = 'button';
+                tile.className = 'media-tile';
+                tile.title = item.filename || item.name;
+                tile.innerHTML = libraryPreviewMarkup(item);
+                tile.addEventListener('click', function() {
+                    setStoredInputSelection(storedInputPickerFieldId, item.name);
+                    closeStoredInputPicker();
+                });
+                grid.append(tile);
+            });
+        }
+
+        function setStoredInputSelection(fieldId, name) {
+            const select = document.querySelector(`[data-stored-input-for="${CSS.escape(fieldId)}"]`);
+            if (!select) return;
+            if (name && !Array.from(select.options).some(function(option) { return option.value === name; })) {
+                select.append(new Option(name, name));
+            }
+            select.value = name || '';
+            refreshStoredInputThumb(fieldId);
+        }
+
+        function clearStoredInputSelection(fieldId) {
+            setStoredInputSelection(fieldId, '');
+        }
+
+        function refreshStoredInputThumb(fieldId) {
+            if (!fieldId) return;
+            const select = document.querySelector(`[data-stored-input-for="${CSS.escape(fieldId)}"]`);
+            const thumb = document.querySelector(`[data-stored-input-thumb-for="${CSS.escape(fieldId)}"]`);
+            const nameLabel = document.querySelector(`[data-stored-input-name-for="${CSS.escape(fieldId)}"]`);
+            if (!select || !thumb) return;
+            const item = storedInputs.find(function(candidate) { return candidate.name === select.value; });
+            thumb.innerHTML = item ? libraryPreviewMarkup(item) : '<span class="stored-input-thumb-empty">Browse&hellip;</span>';
+            if (nameLabel) nameLabel.textContent = item ? (item.filename || item.name) : 'Use workflow default';
+        }
+
+        function refreshAllStoredInputThumbs() {
+            document.querySelectorAll('[data-stored-input-thumb-for]').forEach(function(thumb) {
+                refreshStoredInputThumb(thumb.dataset.storedInputThumbFor);
+            });
         }
 
         // --- On-the-fly mask painter ---------------------------------------------------
@@ -5438,20 +5773,30 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             });
         }
 
-        // Category filter
+        // Category filter (event delegation so dynamically-added category buttons work too)
         function initCategoryFilter() {
-            const buttons = document.querySelectorAll('#categoryFilter .category-btn');
-            
-            buttons.forEach(function(button) {
-                button.addEventListener('click', function() {
-                    buttons.forEach(function(btn) {
-                        btn.classList.remove('active');
-                    });
-                    
-                    this.classList.add('active');
-                    filterWorkflows(document.getElementById('searchInput').value, this.dataset.category);
+            const container = document.getElementById('categoryFilter');
+            container.addEventListener('click', function(event) {
+                const button = event.target.closest('.category-btn');
+                if (!button) return;
+
+                container.querySelectorAll('.category-btn').forEach(function(btn) {
+                    btn.classList.remove('active');
                 });
+                button.classList.add('active');
+                filterWorkflows(document.getElementById('searchInput').value, button.dataset.category);
             });
+        }
+
+        // Add a filter button for a category that didn't exist at page load
+        function ensureCategoryButton(category) {
+            const container = document.getElementById('categoryFilter');
+            if (container.querySelector(`.category-btn[data-category="${category}"]`)) return;
+            const button = document.createElement('button');
+            button.className = 'category-btn';
+            button.dataset.category = category;
+            button.textContent = category;
+            container.appendChild(button);
         }
 
         // Filter workflows
@@ -5540,7 +5885,14 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 
                 const requiredModels = (models.required || []).map(m => m.name).join(', ') || 'None';
                 const optionalModels = (models.optional || []).map(m => m.name).join(', ') || 'None';
-                
+
+                const categoryOptions = Array.from(document.querySelectorAll('#categoryFilter .category-btn'))
+                    .map(b => b.dataset.category)
+                    .filter(c => c && c !== 'all');
+                const categoryOptionsHtml = categoryOptions.map(c =>
+                    `<option value="${c}" ${c === data.category ? 'selected' : ''}>${c}</option>`
+                ).join('') + `<option value="__new__">+ Create new category...</option>`;
+
                 modalBody.innerHTML = `
                     <div style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">${data.description}</div>
                     
@@ -5548,7 +5900,18 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                         <div>
                             <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Category</div>
-                            <div>${data.category}</div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                <select id="categoryMoveSelect" onchange="onCategorySelectChange()" style="background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem;">
+                                    ${categoryOptionsHtml}
+                                </select>
+                                <button class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;" onclick="moveWorkflowCategory('${workflowId}')">Move</button>
+                            </div>
+                            <div id="newCategoryFields" style="display: none; margin-top: 0.5rem;">
+                                <input id="newCategoryId" type="text" placeholder="category-id (e.g. video-fx)" style="width: 100%; background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem; margin-bottom: 0.25rem; box-sizing: border-box;">
+                                <input id="newCategoryName" type="text" placeholder="Display name (e.g. Video FX)" style="width: 100%; background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem; margin-bottom: 0.25rem; box-sizing: border-box;">
+                                <input id="newCategoryDescription" type="text" placeholder="Description (optional)" style="width: 100%; background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem; box-sizing: border-box;">
+                            </div>
+                            <div id="categoryMoveStatus" style="font-size: 0.75rem; margin-top: 0.25rem;"></div>
                         </div>
                         <div>
                             <div style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Version</div>
@@ -5612,6 +5975,421 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
 
             } catch (error) {
                 document.getElementById('dependenciesCheck').innerHTML = '<span style="color: #c62828;">Failed to check dependencies</span>';
+            }
+        }
+
+        // Toggle the new-category fields when "+ Create new category..." is picked
+        function onCategorySelectChange() {
+            const select = document.getElementById('categoryMoveSelect');
+            const fields = document.getElementById('newCategoryFields');
+            fields.style.display = select.value === '__new__' ? 'block' : 'none';
+        }
+
+        // Move a workflow's pack to a different (possibly brand-new) category
+        async function moveWorkflowCategory(workflowId) {
+            const select = document.getElementById('categoryMoveSelect');
+            const statusEl = document.getElementById('categoryMoveStatus');
+
+            let payload;
+            if (select.value === '__new__') {
+                const id = document.getElementById('newCategoryId').value.trim();
+                const name = document.getElementById('newCategoryName').value.trim();
+                const description = document.getElementById('newCategoryDescription').value.trim();
+                if (!id || !name) {
+                    statusEl.style.color = '#c62828';
+                    statusEl.textContent = 'Category id and display name are required';
+                    return;
+                }
+                payload = { category: id, name, description };
+            } else {
+                payload = { category: select.value };
+            }
+
+            statusEl.style.color = 'rgba(255,255,255,0.6)';
+            statusEl.textContent = 'Moving...';
+
+            try {
+                const response = await fetch(`/api/workflows/${workflowId}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Move failed');
+                }
+
+                statusEl.style.color = '#2e7d32';
+                statusEl.textContent = data.message || (data.created_category ? `Created "${data.to}" and moved` : `Moved to ${data.to}`);
+                if (data.created_category) {
+                    ensureCategoryButton(data.to);
+                }
+                await refreshWorkflowsData();
+            } catch (error) {
+                statusEl.style.color = '#c62828';
+                statusEl.textContent = error.message;
+            }
+        }
+
+        // Re-fetch the workflow list and redraw the grid with current filters applied
+        async function refreshWorkflowsData() {
+            try {
+                const response = await fetch('/api/workflows');
+                const data = await response.json();
+                workflowsData = data.workflows;
+
+                const activeBtn = document.querySelector('#categoryFilter .category-btn.active');
+                const category = activeBtn ? activeBtn.dataset.category : 'all';
+                const search = document.getElementById('searchInput')?.value || '';
+                filterWorkflows(search, category);
+            } catch (error) {
+                console.error('Failed to refresh workflows after move:', error);
+            }
+        }
+
+        // Delete the workflow currently open in the details modal
+        async function deleteSelectedWorkflow() {
+            if (!currentWorkflowId) return;
+            if (!confirm(`Delete "${currentWorkflowId}"? This removes the pack directory entirely. This cannot be undone from the UI.`)) {
+                return;
+            }
+            try {
+                const response = await fetch(`/api/workflows/${currentWorkflowId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Delete failed');
+                }
+                closeModal();
+                await refreshWorkflowsData();
+            } catch (error) {
+                alert(`Delete failed: ${error.message}`);
+            }
+        }
+
+        // ---- Manage Categories ----
+
+        function openManageCategoriesModal() {
+            renderManageCategoriesList();
+            document.getElementById('manageCategoriesModal').classList.add('active');
+        }
+
+        function closeManageCategoriesModal() {
+            document.getElementById('manageCategoriesModal').classList.remove('active');
+        }
+
+        function renderManageCategoriesList() {
+            const counts = {};
+            workflowsData.forEach(w => {
+                counts[w.category] = (counts[w.category] || 0) + 1;
+            });
+            const categories = Object.keys(counts).sort();
+
+            const body = document.getElementById('manageCategoriesBody');
+            body.innerHTML = categories.map(cat => {
+                const count = counts[cat];
+                const canDelete = count === 0;
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div>
+                            <strong>${cat}</strong>
+                            <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-left: 0.5rem;">${count} workflow${count === 1 ? '' : 's'}</span>
+                        </div>
+                        <button class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;"
+                            ${canDelete ? '' : 'disabled title="Move or delete its workflows first"'}
+                            onclick="deleteCategoryFromManager('${cat}')">Delete</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function deleteCategoryFromManager(categoryId) {
+            if (!confirm(`Delete empty category "${categoryId}"?`)) return;
+            try {
+                const response = await fetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Delete failed');
+                }
+                const btn = document.querySelector(`#categoryFilter .category-btn[data-category="${categoryId}"]`);
+                if (btn) btn.remove();
+                renderManageCategoriesList();
+                await refreshWorkflowsData();
+            } catch (error) {
+                alert(`Delete failed: ${error.message}`);
+            }
+        }
+
+        // ---- Create Workflow (block builder) ----
+
+        let cwUploadedWorkflow = null;
+        let cwPaletteControls = [];
+        let cwModels = [];
+        let cwSelectedInputs = [];
+
+        function openCreateWorkflowModal() {
+            cwUploadedWorkflow = null;
+            cwPaletteControls = [];
+            cwModels = [];
+            cwSelectedInputs = [];
+            document.getElementById('cwWorkflowFile').value = '';
+            document.getElementById('cwUploadStatus').textContent = '';
+            document.getElementById('cwDetailsSection').style.display = 'none';
+            document.getElementById('cwCreateButton').style.display = 'none';
+            document.getElementById('cwCreateStatus').textContent = '';
+            document.getElementById('createWorkflowModal').classList.add('active');
+        }
+
+        function closeCreateWorkflowModal() {
+            document.getElementById('createWorkflowModal').classList.remove('active');
+        }
+
+        function onCreateWorkflowFileChosen(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const statusEl = document.getElementById('cwUploadStatus');
+            statusEl.style.color = 'rgba(255,255,255,0.6)';
+            statusEl.textContent = 'Reading...';
+
+            const reader = new FileReader();
+            reader.onload = async function() {
+                let workflow;
+                try {
+                    workflow = JSON.parse(reader.result);
+                } catch (e) {
+                    statusEl.style.color = '#c62828';
+                    statusEl.textContent = 'Not valid JSON';
+                    return;
+                }
+                if (!workflow.nodes) {
+                    statusEl.style.color = '#c62828';
+                    statusEl.textContent = 'This doesn\'t look like a ComfyUI UI-format export (no "nodes" array)';
+                    return;
+                }
+
+                statusEl.textContent = 'Analyzing...';
+                try {
+                    const response = await fetch('/api/workflow-builder/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ workflow })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Analysis failed');
+                    }
+
+                    cwUploadedWorkflow = workflow;
+                    cwPaletteControls = data.controls || [];
+                    cwModels = data.models || [];
+                    cwSelectedInputs = [];
+
+                    statusEl.style.color = '#2e7d32';
+                    statusEl.textContent = `Loaded: ${cwPaletteControls.length} candidate fields, ${cwModels.length} model(s) detected`;
+
+                    populateCwCategorySelect();
+                    renderCwModels();
+                    renderCwMissingNodes(data.missing_nodes || []);
+                    renderCwPalette();
+                    renderCwSelectedInputs();
+
+                    document.getElementById('cwDetailsSection').style.display = 'block';
+                    document.getElementById('cwCreateButton').style.display = 'inline-block';
+                } catch (error) {
+                    statusEl.style.color = '#c62828';
+                    statusEl.textContent = error.message;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function populateCwCategorySelect() {
+            const categoryOptions = Array.from(document.querySelectorAll('#categoryFilter .category-btn'))
+                .map(b => b.dataset.category)
+                .filter(c => c && c !== 'all');
+            const select = document.getElementById('cwCategory');
+            select.innerHTML = categoryOptions.map(c => `<option value="${c}">${c}</option>`).join('')
+                + `<option value="__new__">+ Create new category...</option>`;
+            onCwCategoryChange();
+        }
+
+        function onCwCategoryChange() {
+            const isNew = document.getElementById('cwCategory').value === '__new__';
+            document.getElementById('cwNewCategoryFields').style.display = isNew ? 'block' : 'none';
+        }
+
+        function renderCwModels() {
+            const el = document.getElementById('cwModelsList');
+            if (cwModels.length === 0) {
+                el.textContent = 'None detected';
+                return;
+            }
+            el.innerHTML = cwModels.map(m => `${m.directory}/${m.name}`).join('<br>');
+        }
+
+        function renderCwMissingNodes(missing) {
+            const el = document.getElementById('cwMissingNodes');
+            if (!missing.length) {
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = 'block';
+            el.innerHTML = `⚠ Node types not found on this ComfyUI install (install the custom node before running this pack): ${missing.join(', ')}`;
+        }
+
+        function renderCwPalette() {
+            const el = document.getElementById('cwPalette');
+            const addedIds = new Set(cwSelectedInputs.map(i => i.sourceId));
+            const available = cwPaletteControls.filter(c => !addedIds.has(c.id));
+
+            if (available.length === 0) {
+                el.innerHTML = '<span style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">All candidate fields have been added.</span>';
+                return;
+            }
+
+            el.innerHTML = available.map(c => `
+                <button class="btn btn-secondary" style="flex: 0 0 auto; font-size: 0.8rem; padding: 0.4rem 0.75rem;"
+                    onclick="addCwInputFromControl('${c.id}')">
+                    + ${c.label} <span style="opacity: 0.6;">(${c.kind})</span>
+                </button>
+            `).join('');
+        }
+
+        function cwKindToType(kind, value) {
+            if (kind === 'file') return 'image';
+            if (kind === 'checkbox') return 'boolean';
+            if (kind === 'textarea') return 'textarea';
+            if (kind === 'number') return (typeof value === 'number' && Number.isInteger(value)) ? 'int' : 'float';
+            return 'text';
+        }
+
+        function addCwInputFromControl(controlId) {
+            const control = cwPaletteControls.find(c => c.id === controlId);
+            if (!control) return;
+
+            cwSelectedInputs.push({
+                sourceId: control.id,
+                id: control.id,
+                label: control.label,
+                type: cwKindToType(control.kind, control.value),
+                required: false,
+                default: control.value,
+                node_id: control.node_id,
+                node_type: control.node_type,
+                input: control.input,
+                accept: control.kind === 'file' ? control.accept : undefined
+            });
+
+            renderCwPalette();
+            renderCwSelectedInputs();
+        }
+
+        function removeCwInput(index) {
+            cwSelectedInputs.splice(index, 1);
+            renderCwPalette();
+            renderCwSelectedInputs();
+        }
+
+        function renderCwSelectedInputs() {
+            const el = document.getElementById('cwSelectedInputs');
+            if (cwSelectedInputs.length === 0) {
+                el.innerHTML = '<span style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">No inputs added yet — the workflow still runs fine with its baked-in defaults; add blocks above for anything you want to control per-run.</span>';
+                return;
+            }
+
+            el.innerHTML = cwSelectedInputs.map((inp, i) => `
+                <div style="background: rgba(255,255,255,0.05); border-radius: 6px; padding: 0.5rem 0.75rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="text" value="${inp.label}" oninput="cwSelectedInputs[${i}].label = this.value"
+                        style="flex: 1 1 160px; background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem;">
+                    <select onchange="cwSelectedInputs[${i}].type = this.value" style="background: #1e1e2e; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 0.25rem 0.5rem;">
+                        ${['text','textarea','int','float','boolean','image','video','select'].map(t =>
+                            `<option value="${t}" ${t === inp.type ? 'selected' : ''}>${t}</option>`
+                        ).join('')}
+                    </select>
+                    <label style="font-size: 0.8rem; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 0.25rem;">
+                        <input type="checkbox" ${inp.required ? 'checked' : ''} onchange="cwSelectedInputs[${i}].required = this.checked">
+                        required
+                    </label>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">${inp.node_type} #${inp.node_id}.${inp.input}</span>
+                    <button class="btn btn-danger" style="flex: 0 0 auto; padding: 0.2rem 0.6rem; font-size: 0.75rem;" onclick="removeCwInput(${i})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        async function submitCreateWorkflow() {
+            const statusEl = document.getElementById('cwCreateStatus');
+            const categorySelect = document.getElementById('cwCategory');
+            const isNewCategory = categorySelect.value === '__new__';
+
+            const packId = document.getElementById('cwPackId').value.trim();
+            const name = document.getElementById('cwName').value.trim();
+            const description = document.getElementById('cwDescription').value.trim();
+            const status = document.getElementById('cwStatus').value;
+            const mediaType = document.getElementById('cwMediaType').value;
+
+            if (!cwUploadedWorkflow) {
+                statusEl.style.color = '#c62828';
+                statusEl.textContent = 'Upload a workflow.json first';
+                return;
+            }
+            if (!packId || !name) {
+                statusEl.style.color = '#c62828';
+                statusEl.textContent = 'Pack id and display name are required';
+                return;
+            }
+
+            const payload = {
+                category: isNewCategory ? document.getElementById('cwNewCategoryName').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : categorySelect.value,
+                pack_id: packId,
+                name: name,
+                description: description,
+                status: status,
+                media_type: mediaType,
+                workflow: cwUploadedWorkflow,
+                inputs: cwSelectedInputs.map(inp => {
+                    const entry = {
+                        id: inp.id, label: inp.label, type: inp.type, required: inp.required,
+                        default: inp.default, node_id: inp.node_id, node_type: inp.node_type, input: inp.input
+                    };
+                    if (inp.accept) entry.accept = inp.accept;
+                    return entry;
+                }),
+                models: cwModels
+            };
+            if (isNewCategory) {
+                payload.category_name = document.getElementById('cwNewCategoryName').value.trim();
+                payload.category_description = document.getElementById('cwNewCategoryDescription').value.trim();
+                if (!payload.category_name || !payload.category) {
+                    statusEl.style.color = '#c62828';
+                    statusEl.textContent = 'New category needs a display name';
+                    return;
+                }
+            }
+
+            statusEl.style.color = 'rgba(255,255,255,0.6)';
+            statusEl.textContent = 'Creating...';
+
+            try {
+                const response = await fetch('/api/workflows', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Create failed');
+                }
+
+                if (data.created_category) {
+                    ensureCategoryButton(data.category);
+                }
+                statusEl.style.color = '#2e7d32';
+                statusEl.textContent = `Created ${data.workflow_id}`;
+                await refreshWorkflowsData();
+                setTimeout(closeCreateWorkflowModal, 800);
+            } catch (error) {
+                statusEl.style.color = '#c62828';
+                statusEl.textContent = error.message;
             }
         }
 
@@ -5838,6 +6616,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                     select.value = previous;
                 }
             });
+            refreshAllStoredInputThumbs();
         }
 
         async function uploadMediaFiles(type) {
@@ -6136,12 +6915,13 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function initComposer() {
             const generate = document.getElementById('composerGenerate');
             if (!generate) return;
-            loadComposerProject();
+            loadComposerProjectDefaults();
             generate.addEventListener('click', submitComposerClip);
             document.getElementById('composerClear')?.addEventListener('click', function() {
                 stopComposerTimeline();
                 composerState.clips = [];
                 renderComposerTimeline();
+                saveSong(false);
             });
             document.getElementById('composerPlay')?.addEventListener('click', playComposerTimeline);
             document.getElementById('composerStop')?.addEventListener('click', stopComposerTimeline);
@@ -6160,19 +6940,30 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             });
             document.addEventListener('pointermove', dragComposerClip);
             document.addEventListener('pointerup', stopDraggingComposerClip);
+            document.getElementById('composerNewSong')?.addEventListener('click', createNewSong);
+            document.getElementById('composerRefreshSongs')?.addEventListener('click', refreshSongList);
+            document.getElementById('composerBackButton')?.addEventListener('click', showComposerList);
+            document.getElementById('composerSaveSong')?.addEventListener('click', function() { saveSong(true); });
+            document.getElementById('composerDeleteSong')?.addEventListener('click', deleteCurrentSong);
+            document.getElementById('composerSongTitle')?.addEventListener('change', function() { saveSong(false); });
             renderComposerBin();
             renderComposerTimeline();
             updateComposerFieldVisibility();
             updateComposerReadout();
+            showComposerList();
         }
 
-        function loadComposerProject() {
+        function loadComposerProjectDefaults() {
             try {
                 const stored = JSON.parse(localStorage.getItem('ai-suite:composer-project') || 'null');
                 if (stored) composerState.project = Object.assign({}, composerState.project, stored);
             } catch (error) {
                 // ignore malformed stored settings
             }
+            applyComposerProjectToFields();
+        }
+
+        function applyComposerProjectToFields() {
             const project = composerState.project;
             const tags = document.getElementById('composerTags');
             const key = document.getElementById('composerKey');
@@ -6199,6 +6990,124 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 voiceSeed: composerState.project.voiceSeed
             };
             localStorage.setItem('ai-suite:composer-project', JSON.stringify(composerState.project));
+            saveSong(false);
+        }
+
+        function showComposerList() {
+            document.getElementById('composerListView').style.display = '';
+            document.getElementById('composerEditorView').style.display = 'none';
+            stopComposerTimeline();
+            composerState.songId = null;
+            refreshSongList();
+        }
+
+        function showComposerEditor() {
+            document.getElementById('composerListView').style.display = 'none';
+            document.getElementById('composerEditorView').style.display = '';
+        }
+
+        async function refreshSongList() {
+            const list = document.getElementById('composerList');
+            if (!list) return;
+            try {
+                const response = await fetch('/api/songs');
+                const data = await response.json();
+                const songs = data.songs || [];
+                if (!songs.length) {
+                    list.innerHTML = '<div class="preview-empty">No songs yet. Create one to get started.</div>';
+                    return;
+                }
+                list.innerHTML = songs.map(function(song) {
+                    return `
+                        <article style="cursor:pointer;" onclick="openSong('${song.id}')">
+                            <div class="media-tile"><div class="preview-empty" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center;">Audio</div></div>
+                            <div title="${escapeHtml(song.name)}" style="margin-top:0.35rem; font-size:0.85rem;">
+                                ${escapeHtml(song.name)}<br>
+                                <small style="color:rgba(255,255,255,0.6);">${song.clip_count} clip${song.clip_count === 1 ? '' : 's'} Β· ${song.timeline_length}s</small>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+            } catch (error) {
+                list.innerHTML = `<div class="preview-empty">Could not load songs: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function createNewSong() {
+            const response = await fetch('/api/songs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Untitled Song', project: composerState.project })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not create song', data.error || 'Unknown error', 'error');
+                return;
+            }
+            loadSongIntoState(data);
+            showComposerEditor();
+        }
+
+        async function openSong(id) {
+            const response = await fetch(`/api/songs/${id}`);
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not open song', data.error || 'Unknown error', 'error');
+                return;
+            }
+            loadSongIntoState(data);
+            showComposerEditor();
+        }
+
+        function loadSongIntoState(song) {
+            stopComposerTimeline();
+            composerState.songId = song.id;
+            composerState.songName = song.name || 'Untitled Song';
+            composerState.bin = song.bin || [];
+            composerState.clips = song.clips || [];
+            composerState.project = Object.assign({}, composerState.project, song.project || {});
+            const title = document.getElementById('composerSongTitle');
+            if (title) title.value = composerState.songName;
+            applyComposerProjectToFields();
+            renderComposerBin();
+            renderComposerTimeline();
+            updateComposerFieldVisibility();
+            updateComposerReadout();
+            const status = document.getElementById('composerStatus');
+            if (status) status.textContent = 'Ready.';
+        }
+
+        async function saveSong(notify) {
+            if (!composerState.songId) return;
+            composerState.songName = document.getElementById('composerSongTitle')?.value.trim() || 'Untitled Song';
+            const response = await fetch(`/api/songs/${composerState.songId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: composerState.songName,
+                    project: composerState.project,
+                    bin: composerState.bin,
+                    clips: composerState.clips
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Save failed', data.error || 'Unknown error', 'error');
+                return;
+            }
+            if (notify) {
+                const status = document.getElementById('composerStatus');
+                if (status) status.textContent = 'Song saved.';
+                showToast('Song saved', composerState.songName, 'success');
+            }
+        }
+
+        async function deleteCurrentSong() {
+            if (!composerState.songId) return;
+            const name = composerState.songName;
+            await fetch(`/api/songs/${composerState.songId}`, { method: 'DELETE' });
+            showToast('Song deleted', name, 'info');
+            showComposerList();
         }
 
         function updateComposerFieldVisibility() {
@@ -6394,6 +7303,23 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 start: Math.round(end * 4) / 4
             });
             renderComposerTimeline();
+            saveSong(false);
+        }
+
+        function removeComposerClip(id) {
+            const index = composerState.clips.findIndex(function(item) { return item.id === id; });
+            if (index === -1) return;
+            composerState.clips.splice(index, 1);
+            renderComposerTimeline();
+            saveSong(false);
+        }
+
+        function removeComposerBinItem(id) {
+            const index = composerState.bin.findIndex(function(item) { return item.id === id; });
+            if (index === -1) return;
+            composerState.bin.splice(index, 1);
+            renderComposerBin();
+            saveSong(false);
         }
 
         function renderComposerBin() {
@@ -6414,6 +7340,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                             <button class="job-move-btn" type="button" onclick="playComposerClip('${escapeHtml(clip.id)}')">Play</button>
                             <button class="job-move-btn" type="button" onclick="composerAddClip('${escapeHtml(clip.id)}')">Add</button>
                             <button class="job-move-btn" type="button" onclick="openComposerClipInLibrary('${escapeHtml(clip.id)}')">Library</button>
+                            <button class="job-move-btn" type="button" onclick="removeComposerBinItem('${escapeHtml(clip.id)}')">Remove</button>
                         </div>
                     </div>
                 `;
@@ -6440,6 +7367,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                     .map(function(clip) {
                         return `
                             <div class="composer-clip ${escapeHtml(clip.part)}" data-clip-id="${escapeHtml(clip.id)}" style="left: ${laneOffset + clip.start * pxPerSecond}px; width: ${Math.max(72, clip.duration * pxPerSecond - 8)}px;">
+                                <button class="composer-clip-remove" type="button" data-remove-clip-id="${escapeHtml(clip.id)}" title="Remove from timeline">&times;</button>
                                 <span>${escapeHtml(clip.title)}</span>
                                 <small>${clip.start.toFixed(2)}s · ${clip.duration}s</small>
                             </div>
@@ -6458,6 +7386,13 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             `;
             timeline.querySelectorAll('.composer-clip').forEach(function(clipEl) {
                 clipEl.addEventListener('pointerdown', startDraggingComposerClip);
+            });
+            timeline.querySelectorAll('.composer-clip-remove').forEach(function(btn) {
+                btn.addEventListener('pointerdown', function(event) { event.stopPropagation(); });
+                btn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    removeComposerClip(event.currentTarget.dataset.removeClipId);
+                });
             });
             document.getElementById('composerClipCount').textContent = String(composerState.clips.length);
             document.getElementById('composerTimelineLength').textContent = `${length}s`;
@@ -6487,6 +7422,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         }
 
         function stopDraggingComposerClip() {
+            if (composerState.drag) saveSong(false);
             composerState.drag = null;
         }
 
@@ -6963,13 +7899,18 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         ];
 
         const MV_STAGES = [
+            { key: 'plan', label: 'Plan (structure + lyrics)' },
             { key: 'song', label: 'Song' },
-            { key: 'cover', label: 'Cover art' },
+            { key: 'scenes', label: 'Scene images' },
             { key: 'clip', label: 'Film clip' },
+            { key: 'captions', label: 'Captions' },
         ];
+        const MV_CLIP_FPS = 24;
 
         function initMusicVideo() {
             renderMvStageRows();
+            refreshMvSegmentsVisibility();
+            document.getElementById('mvPlanButton').addEventListener('click', planMusicVideoStructure);
             document.getElementById('mvGenerate').addEventListener('click', submitMusicVideo);
             document.getElementById('mvGenerateExisting').addEventListener('click', submitMusicVideoExisting);
             document.getElementById('mvRefreshClips').addEventListener('click', refreshExistingClipsPicker);
@@ -6977,11 +7918,175 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
 
         let mvExistingVideos = [];
         let mvSelectedClips = [];
+        let mvCurrentPlan = null;
 
-        function setMvClipSource(mode) {
-            document.getElementById('mvSegmentsField').style.display = mode === 'existing' ? 'none' : '';
-            document.getElementById('mvExistingClipsField').style.display = mode === 'existing' ? '' : 'none';
-            if (mode === 'existing' && !mvExistingVideos.length) refreshExistingClipsPicker();
+        function refreshMvSegmentsVisibility() {
+            const mode = document.getElementById('mvMode').value;
+            const clipSource = document.getElementById('mvClipSource').value;
+            // In "generate" mode the number of clips is driven by the planned
+            // song sections, not a manual count - that field only matters for
+            // the bring-your-own-song flow (submitMusicVideoExisting), which has
+            // no structure plan to derive a count from.
+            document.getElementById('mvSegmentsField').style.display = (mode === 'existing' && clipSource !== 'existing') ? '' : 'none';
+            document.getElementById('mvExistingClipsField').style.display = clipSource === 'existing' ? '' : 'none';
+            if (clipSource === 'existing' && !mvExistingVideos.length) refreshExistingClipsPicker();
+        }
+
+        function setMvClipSource() {
+            refreshMvSegmentsVisibility();
+        }
+
+        function buildLyricsText(sections) {
+            return sections.map(function(section) {
+                const base = String(section.name || 'verse').toLowerCase().trim()
+                    .replace(/[^a-z0-9]+/g, '-').replace(/-\d+$/, '').replace(/^-|-$/g, '') || 'verse';
+                const lyrics = (section.lyrics || '').trim();
+                return `[${base}]\n${lyrics}`;
+            }).join('\n\n');
+        }
+
+        function normalizeSectionTiming(sections, duration, bpm) {
+            // Snap each section's rough LLM-guessed length onto a beat grid that
+            // sums exactly to the requested duration, so cuts land on a beat
+            // instead of an arbitrary even split. Bpm is our own ACE-Step
+            // generation input (not detected from audio), so this arithmetic is
+            // correct by construction - see the Music Video plan notes on why no
+            // audio-analysis library is needed here.
+            const beatLen = 60 / Math.max(40, Math.min(220, Number(bpm) || 120));
+            const rawDurations = sections.map(function(section) {
+                return Math.max(1, Number(section.duration_seconds) || (duration / sections.length));
+            });
+            const totalRaw = rawDurations.reduce(function(a, b) { return a + b; }, 0) || 1;
+            const beatsPerSection = rawDurations.map(function(raw) {
+                const targetSeconds = (raw / totalRaw) * duration;
+                return Math.max(2, Math.round(targetSeconds / beatLen));
+            });
+            const totalBeats = Math.max(beatsPerSection.length * 2, Math.round(duration / beatLen));
+            const beatSum = beatsPerSection.reduce(function(a, b) { return a + b; }, 0);
+            if (beatSum !== totalBeats) {
+                let largestIndex = 0;
+                for (let i = 1; i < beatsPerSection.length; i += 1) {
+                    if (beatsPerSection[i] > beatsPerSection[largestIndex]) largestIndex = i;
+                }
+                beatsPerSection[largestIndex] = Math.max(2, beatsPerSection[largestIndex] + (totalBeats - beatSum));
+            }
+            let cursor = 0;
+            return sections.map(function(section, index) {
+                const seconds = beatsPerSection[index] * beatLen;
+                const start = cursor;
+                const end = cursor + seconds;
+                cursor = end;
+                return Object.assign({}, section, { start: start, end: end });
+            });
+        }
+
+        function roundFramesTo8Plus1(rawFrames) {
+            const k = Math.max(1, Math.round((rawFrames - 1) / 8));
+            return k * 8 + 1;
+        }
+
+        async function planMusicVideoStructure() {
+            const button = document.getElementById('mvPlanButton');
+            const status = document.getElementById('mvStatus');
+            const concept = document.getElementById('mvConcept').value.trim();
+            if (!concept) {
+                status.textContent = 'Enter a concept for the song first.';
+                return;
+            }
+            const tags = document.getElementById('mvTags').value.trim();
+            const duration = Number(document.getElementById('mvDuration').value) || 180;
+
+            button.disabled = true;
+            renderMvStageRows();
+            updateMvStageRow('plan', 'Planning song structure + lyrics...');
+            status.textContent = 'Planning song structure and lyrics...';
+            setMvProgress('Planning...', 4);
+            try {
+                const response = await fetch('/api/workflows/llm.song-structure/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputs: { concept: concept, tags: tags, duration: duration } })
+                });
+                const data = await response.json();
+                if (!response.ok || data.status === 'failed') {
+                    throw new Error((data.result && data.result.error) || data.error || 'Planning failed.');
+                }
+                const outputs = (data.result && data.result.outputs) || {};
+                const sections = Array.isArray(outputs.sections) ? outputs.sections : [];
+                if (!sections.length) throw new Error('The planner did not return any song sections.');
+                mvCurrentPlan = {
+                    bpm: Math.max(40, Math.min(220, Math.round(Number(outputs.bpm) || 120))),
+                    key: outputs.key || 'E minor',
+                    sections: sections.map(function(section) {
+                        return {
+                            name: String(section.name || 'section'),
+                            duration_seconds: Number(section.duration_seconds) || Math.max(8, duration / sections.length),
+                            lyrics: String(section.lyrics || ''),
+                            scene: String(section.scene || concept),
+                        };
+                    }),
+                };
+                renderMvPlanReview();
+                updateMvStageRow('plan', 'Done');
+                document.getElementById('mvGenerate').disabled = false;
+                status.textContent = 'Plan ready - review the sections below, then generate.';
+                setMvProgress('Plan ready', 8);
+            } catch (error) {
+                updateMvStageRow('plan', 'Failed');
+                status.textContent = error.message;
+                showToast('Song planning failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function renderMvPlanReview() {
+            const review = document.getElementById('mvPlanReview');
+            if (!mvCurrentPlan) {
+                review.style.display = 'none';
+                return;
+            }
+            review.style.display = '';
+            const bpmInput = document.getElementById('mvPlanBpm');
+            const keySelect = document.getElementById('mvPlanKey');
+            bpmInput.value = mvCurrentPlan.bpm;
+            keySelect.value = mvCurrentPlan.key;
+            bpmInput.onchange = function(event) {
+                mvCurrentPlan.bpm = Math.max(40, Math.min(220, Number(event.target.value) || mvCurrentPlan.bpm));
+            };
+            keySelect.onchange = function(event) {
+                mvCurrentPlan.key = event.target.value;
+            };
+
+            const container = document.getElementById('mvPlanSections');
+            container.innerHTML = '';
+            mvCurrentPlan.sections.forEach(function(section, index) {
+                const row = document.createElement('div');
+                row.className = 'job-item';
+                row.innerHTML = `
+                    <div class="job-info" style="flex-direction:column; align-items:stretch; gap:0.35rem;">
+                        <div style="display:flex; gap:0.5rem;">
+                            <input class="mv-plan-name" type="text" style="flex:1;" value="${escapeHtml(section.name)}">
+                            <input class="mv-plan-duration" type="number" min="4" max="120" step="1" style="width:6rem;" value="${Math.round(section.duration_seconds)}" title="Rough length in seconds - normalized against the total duration and snapped to the beat grid before generation">
+                        </div>
+                        <textarea class="mv-plan-scene" rows="2" placeholder="Scene description for this section's image...">${escapeHtml(section.scene)}</textarea>
+                        <textarea class="mv-plan-lyrics" rows="2" placeholder="Lyrics for this section (blank for instrumental)...">${escapeHtml(section.lyrics)}</textarea>
+                    </div>
+                `;
+                row.querySelector('.mv-plan-name').addEventListener('change', function(event) {
+                    mvCurrentPlan.sections[index].name = event.target.value;
+                });
+                row.querySelector('.mv-plan-duration').addEventListener('change', function(event) {
+                    mvCurrentPlan.sections[index].duration_seconds = Math.max(4, Number(event.target.value) || section.duration_seconds);
+                });
+                row.querySelector('.mv-plan-scene').addEventListener('change', function(event) {
+                    mvCurrentPlan.sections[index].scene = event.target.value;
+                });
+                row.querySelector('.mv-plan-lyrics').addEventListener('change', function(event) {
+                    mvCurrentPlan.sections[index].lyrics = event.target.value;
+                });
+                container.append(row);
+            });
         }
 
         async function refreshExistingClipsPicker() {
@@ -7207,11 +8312,104 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             return stitchPayload.output;
         }
 
-        async function finalizeMusicVideo(clipOutput, songOutput, mux, title, completeMessage) {
+        async function generateSceneImages(sections, coverWorkflowId, tags, progressStart, progressEnd) {
             const status = document.getElementById('mvStatus');
+            const count = sections.length;
+            const outputs = [];
+            for (let index = 0; index < count; index += 1) {
+                const section = sections[index];
+                const label = `Scene image ${index + 1} of ${count} (${section.name})`;
+                updateMvStageRow('scenes', `${label}...`);
+                status.textContent = `Generating ${label.toLowerCase()}...`;
+                const segStart = progressStart + Math.round((index / count) * (progressEnd - progressStart));
+                const segEnd = progressStart + Math.round(((index + 1) / count) * (progressEnd - progressStart));
+                const scenePrompt = `Film-still / album-art quality image for a music video scene ("${section.name}"): ${section.scene}. `
+                    + `${tags ? `Style: ${tags}. ` : ''}Highly detailed, cinematic lighting, no text, no watermark.`;
+                const inputs = coverWorkflowId === 'core.text-to-image-hq'
+                    ? { '67.text': scenePrompt }
+                    : { '67.text': scenePrompt, '70.steps': '14', '68.width': '1536', '68.height': '1536' };
+                const output = await runComfyWorkflow(coverWorkflowId, inputs, 'image', { label, progressStart: segStart, progressEnd: segEnd });
+                if (!output) throw new Error(`${label} did not return an image.`);
+                outputs.push(output);
+                updateMvStageRow('scenes', `${index + 1} of ${count} done`, output);
+                if (index < count - 1) {
+                    await coolDownComfy(`Preparing scene ${index + 2} of ${count}`, setMvProgress, segEnd);
+                }
+            }
+            refreshOutputLibrary();
+            return outputs;
+        }
+
+        async function generateSceneClips(sections, sceneImages, progressStart, progressEnd) {
+            const status = document.getElementById('mvStatus');
+            const count = sections.length;
+            const segmentOutputs = [];
+            const actualSections = [];
+            let cursor = 0;
+            for (let index = 0; index < count; index += 1) {
+                const section = sections[index];
+                const label = `Film clip ${index + 1} of ${count} (${section.name})`;
+                updateMvStageRow('clip', `${label}...`);
+                status.textContent = `Generating ${label.toLowerCase()}...`;
+                const segStart = progressStart + Math.round((index / count) * (progressEnd - progressStart));
+                const segEnd = progressStart + Math.round(((index + 1) / count) * (progressEnd - progressStart));
+                // LTXV's frame count must land on the model's 8k+1 latent grid, so the
+                // clip's real length is known exactly ahead of generation - no ffmpeg
+                // probe round-trip needed the way ACE-Step's audio duration would.
+                const rawFrames = Math.max(9, Math.round((section.end - section.start) * MV_CLIP_FPS));
+                const frames = roundFramesTo8Plus1(rawFrames);
+                const actualSeconds = frames / MV_CLIP_FPS;
+                const uploaded = await uploadGeneratedImage(sceneImages[index]);
+                const motionPrompt = `Cinematic music video motion for the "${section.name}" section: ${section.scene}. `
+                    + `${MV_MOTION_VARIATIONS[index % MV_MOTION_VARIATIONS.length]} Smooth continuous animation, high detail.`;
+                const segmentOutput = await runComfyWorkflow('video.image-to-video', {
+                    image: uploaded.name,
+                    prompt: motionPrompt,
+                    frames: String(frames),
+                    fps: String(MV_CLIP_FPS),
+                    steps: '50',
+                    cfg: '5.0',
+                    seed: '-1',
+                }, 'video', { label, progressStart: segStart, progressEnd: segEnd });
+                if (!segmentOutput) throw new Error(`${label} did not return a video.`);
+                segmentOutputs.push(segmentOutput);
+                actualSections.push(Object.assign({}, section, { start: cursor, end: cursor + actualSeconds }));
+                cursor += actualSeconds;
+                updateMvStageRow('clip', `${index + 1} of ${count} done`, segmentOutput);
+                if (index < count - 1) {
+                    await coolDownComfy(`Preparing clip ${index + 2} of ${count}`, setMvProgress, segEnd);
+                }
+            }
+
+            if (segmentOutputs.length === 1) {
+                updateMvStageRow('clip', 'Done', segmentOutputs[0]);
+                refreshOutputLibrary();
+                return { clipOutput: segmentOutputs[0], actualSections: actualSections };
+            }
+
+            updateMvStageRow('clip', 'Stitching scenes...');
+            status.textContent = 'Stitching scene clips...';
+            setMvProgress('Stitching scenes...', progressEnd);
+            const stitchResponse = await fetch('/api/stitch-videos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outputs: segmentOutputs, workflow_id: 'music-video' })
+            });
+            const stitchPayload = await stitchResponse.json();
+            if (!stitchResponse.ok || !stitchPayload.output) {
+                throw new Error(stitchPayload.error || 'Could not stitch the scene clips.');
+            }
+            updateMvStageRow('clip', 'Done', stitchPayload.output);
+            refreshOutputLibrary();
+            return { clipOutput: stitchPayload.output, actualSections: actualSections };
+        }
+
+        async function finalizeMusicVideo(clipOutput, songOutput, mux, title, completeMessage, captionSections, captionsEnabled) {
+            const status = document.getElementById('mvStatus');
+            let finalOutput = clipOutput;
             if (mux) {
                 status.textContent = 'Combining song and clip into one music video...';
-                setMvProgress('Combining song and clip...', 96);
+                setMvProgress('Combining song and clip...', 94);
                 const muxResponse = await fetch('/api/mux-music-video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -7219,16 +8417,49 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 });
                 const muxPayload = await muxResponse.json();
                 if (muxResponse.ok && muxPayload.output) {
-                    renderMvMedia(muxPayload.output);
+                    finalOutput = muxPayload.output;
                     status.textContent = `${completeMessage} Combined music video: ${muxPayload.output.filename}`;
-                    showToast('Music video complete', muxPayload.output.filename, 'success');
                 } else {
                     status.textContent = muxPayload.error || `${completeMessage} Combining into one file was not available.`;
                 }
             } else {
-                renderMvMedia(clipOutput);
                 status.textContent = completeMessage;
             }
+
+            const hasLyrics = Array.isArray(captionSections) && captionSections.some(function(s) { return (s.lyrics || '').trim(); });
+            if (captionsEnabled && hasLyrics) {
+                // Burn-in must run against the FINAL (post-mux) timeline: mux_music_video
+                // may loop the video to cover a longer song, and captions burned in
+                // beforehand would repeat on every loop pass and desync from the lyric
+                // actually playing at that point.
+                updateMvStageRow('captions', 'Burning in lyrics...');
+                status.textContent = 'Burning in on-screen lyrics...';
+                setMvProgress('Burning in lyrics...', 98);
+                try {
+                    const captionResponse = await fetch('/api/burn-in-lyrics', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: finalOutput, sections: captionSections, title: title })
+                    });
+                    const captionPayload = await captionResponse.json();
+                    if (captionResponse.ok && captionPayload.output) {
+                        finalOutput = captionPayload.output;
+                        updateMvStageRow('captions', 'Done', finalOutput);
+                        status.textContent = `${completeMessage} Captions burned in: ${finalOutput.filename}`;
+                    } else {
+                        updateMvStageRow('captions', 'Failed');
+                        status.textContent = captionPayload.error || `${completeMessage} Captions could not be burned in.`;
+                    }
+                } catch (error) {
+                    updateMvStageRow('captions', 'Failed');
+                    console.warn('Caption burn-in skipped:', error);
+                }
+            } else if (captionsEnabled) {
+                updateMvStageRow('captions', 'Skipped (no lyrics)');
+            }
+
+            renderMvMedia(finalOutput);
+            showToast('Music video complete', finalOutput.filename, 'success');
             setMvProgress('Complete', 100);
             refreshOutputLibrary();
         }
@@ -7236,16 +8467,15 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         async function submitMusicVideo() {
             const button = document.getElementById('mvGenerate');
             const status = document.getElementById('mvStatus');
-            const concept = document.getElementById('mvConcept').value.trim();
-            if (!concept) {
-                status.textContent = 'Enter a concept for the song first.';
+            if (!mvCurrentPlan || !mvCurrentPlan.sections.length) {
+                status.textContent = 'Plan the song structure first.';
                 return;
             }
             const tags = document.getElementById('mvTags').value.trim();
             const duration = Number(document.getElementById('mvDuration').value) || 180;
-            const segmentCount = Math.max(2, Math.min(16, Number(document.getElementById('mvSegments').value) || 6));
             const coverWorkflowId = document.getElementById('mvCoverModel').value;
             const mux = document.getElementById('mvMux').checked;
+            const captionsEnabled = document.getElementById('mvCaptions').checked;
             const title = document.getElementById('mvTitle').value.trim();
             const clipSource = document.getElementById('mvClipSource').value;
             if (clipSource === 'existing' && mvSelectedClips.length < 1) {
@@ -7253,43 +8483,45 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 return;
             }
 
+            const bpm = mvCurrentPlan.bpm;
+            const key = mvCurrentPlan.key;
+            const timedSections = normalizeSectionTiming(mvCurrentPlan.sections, duration, bpm);
+            const lyrics = buildLyricsText(timedSections);
+
             button.disabled = true;
             renderMvStageRows();
-            setMvProgress('Starting...', 2);
+            updateMvStageRow('plan', 'Done');
+            setMvProgress('Starting...', 8);
 
             try {
                 status.textContent = 'Generating song...';
                 updateMvStageRow('song', 'Generating...');
                 const songOutput = await runComfyWorkflow('audio.ace-step-1-5', {
-                    prompt: concept,
+                    prompt: lyrics,
                     tags: tags,
                     duration: String(duration),
                     conditioning_duration: String(duration),
+                    bpm: String(bpm),
+                    key: key,
                     steps: '20',
-                }, 'audio', { label: 'Song', progressStart: 2, progressEnd: 30 });
+                }, 'audio', { label: 'Song', progressStart: 8, progressEnd: 30 });
                 if (!songOutput) throw new Error('Song generation did not return an audio file.');
                 updateMvStageRow('song', 'Done', songOutput);
 
-                status.textContent = 'Generating cover art...';
-                updateMvStageRow('cover', 'Generating...');
-                const coverPrompt = `Album cover art for a song about: ${concept}. ${tags ? `Style: ${tags}. ` : ''}Symbolic, evocative, highly detailed illustration, no text, no watermark.`;
-                const coverInputs = coverWorkflowId === 'core.text-to-image-hq'
-                    ? { '67.text': coverPrompt }
-                    : { '67.text': coverPrompt, '70.steps': '14', '68.width': '1536', '68.height': '1536' };
-                const coverOutput = await runComfyWorkflow(coverWorkflowId, coverInputs, 'image', { label: 'Cover art', progressStart: 30, progressEnd: 58 });
-                if (!coverOutput) throw new Error('Cover art generation did not return an image.');
-                updateMvStageRow('cover', 'Done', coverOutput);
-
                 let clipOutput;
+                let captionSections;
                 if (clipSource === 'existing') {
-                    clipOutput = await useExistingClips(mvSelectedClips, 58, 90);
+                    clipOutput = await useExistingClips(mvSelectedClips, 30, 90);
+                    // No control over pre-existing clips' cut points, so captions
+                    // fall back to the planned (not beat-grid-actual) timing here.
+                    captionSections = timedSections;
                 } else {
-                    updateMvStageRow('clip', 'Uploading cover art...');
-                    status.textContent = 'Preparing cover art for animation...';
-                    const uploaded = await uploadGeneratedImage(coverOutput);
-                    clipOutput = await generateClipSegments(uploaded.name, `a song about: ${concept}`, segmentCount, 58, 90);
+                    const sceneImages = await generateSceneImages(timedSections, coverWorkflowId, tags, 30, 65);
+                    const clipResult = await generateSceneClips(timedSections, sceneImages, 65, 90);
+                    clipOutput = clipResult.clipOutput;
+                    captionSections = clipResult.actualSections;
                 }
-                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Song + cover + clip complete.');
+                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Song + scenes + clip complete.', captionSections, captionsEnabled);
             } catch (error) {
                 status.textContent = error.message;
                 setMvProgress(error.message, 0);
@@ -7315,8 +8547,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
 
             button.disabled = true;
             renderMvStageRows();
+            updateMvStageRow('plan', 'Not needed (using your song)');
             updateMvStageRow('song', 'Skipped (using your file)');
-            updateMvStageRow('cover', 'Skipped (using your file)');
             setMvProgress('Starting...', 2);
 
             try {
@@ -7329,10 +8561,10 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 status.textContent = 'Uploading image...';
                 const imageUpload = await uploadWorkbenchFile(imageFile);
                 const uploadedImageName = imageUpload.split('/').pop();
-                updateMvStageRow('cover', 'Uploaded', { url: `/api/input/studio_uploads/${uploadedImageName}`, filename: uploadedImageName });
+                updateMvStageRow('scenes', 'Uploaded', { url: `/api/input/studio_uploads/${uploadedImageName}`, filename: uploadedImageName });
 
                 const clipOutput = await generateClipSegments(imageUpload, motion, segmentCount, 10, 90);
-                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Film clip for your song complete.');
+                await finalizeMusicVideo(clipOutput, songOutput, mux, title, 'Film clip for your song complete.', null, false);
             } catch (error) {
                 status.textContent = error.message;
                 setMvProgress(error.message, 0);
@@ -7344,9 +8576,12 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
 
         function setMvMode(mode) {
             document.getElementById('mvGenerateFields').style.display = mode === 'existing' ? 'none' : '';
+            document.getElementById('mvPlanSection').style.display = mode === 'existing' ? 'none' : '';
+            document.getElementById('mvCaptionsField').style.display = mode === 'existing' ? 'none' : '';
             document.getElementById('mvExistingFields').style.display = mode === 'existing' ? '' : 'none';
             document.getElementById('mvGenerate').hidden = mode === 'existing';
             document.getElementById('mvGenerateExisting').hidden = mode !== 'existing';
+            refreshMvSegmentsVisibility();
         }
 
         function renderMvMedia(output) {

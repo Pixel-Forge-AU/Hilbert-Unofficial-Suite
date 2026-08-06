@@ -1,0 +1,14 @@
+{
+  "workflow_id": "llm.song-structure",
+  "inputs": {
+    "concept": "a bittersweet goodbye to a hometown, leaving for the city with hope and regret",
+    "tags": "melodic pop, warm vocals, acoustic and synth blend",
+    "duration": 180,
+    "llm_model": "gpt-4o"
+  },
+  "metadata": {
+    "test_type": "smoke",
+    "timestamp": "2026-08-06T00:00:00Z",
+    "expected_output_type": "text"
+  }
+}

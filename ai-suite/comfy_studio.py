@@ -134,6 +134,24 @@ def comfy_object_info(config):
     return http_json(f"{comfy_base_url(config)}/object_info", timeout=5)
 
 
+_object_info_cache = None
+
+
+def cached_object_info(config):
+    """Process-lifetime cache of ComfyUI's full /object_info payload - no TTL,
+    same convention as launcher.py's node-type cache. A stale cache (e.g. after
+    installing a new custom node) just means new node types aren't recognized
+    until the process restarts, same tradeoff already accepted elsewhere."""
+    global _object_info_cache
+    if _object_info_cache is not None:
+        return _object_info_cache
+    try:
+        _object_info_cache = comfy_object_info(config)
+    except Exception:
+        return None
+    return _object_info_cache
+
+
 def comfy_free(config, unload_models=True, free_memory=True):
     return http_json(
         f"{comfy_base_url(config)}/free",
@@ -534,6 +552,100 @@ def combo_options(input_spec):
     return []
 
 
+_WIDGET_PRIMITIVE_TYPES = {"INT", "FLOAT", "STRING", "BOOLEAN"}
+
+
+def is_widget_input(input_spec):
+    """True if a /object_info input spec is a plain widget (combo, or one of
+    the primitive types) rather than a socket-only type like IMAGE/MODEL/VAE
+    or a custom type - i.e. whether it can appear in a node's widgets_values."""
+    if not isinstance(input_spec, (list, tuple)) or not input_spec:
+        return False
+    type_or_choices = input_spec[0]
+    if isinstance(type_or_choices, list):
+        return True
+    return type_or_choices in _WIDGET_PRIMITIVE_TYPES
+
+
+def input_default(input_spec):
+    if isinstance(input_spec, (list, tuple)) and len(input_spec) > 1 and isinstance(input_spec[1], dict):
+        if "default" in input_spec[1]:
+            return input_spec[1]["default"]
+    choices = combo_options(input_spec)
+    if choices:
+        return choices[0]
+    type_name = input_spec[0] if isinstance(input_spec, (list, tuple)) and input_spec else None
+    return {"INT": 0, "FLOAT": 0.0, "STRING": "", "BOOLEAN": False}.get(type_name)
+
+
+def node_input_order(schema):
+    """Ordered (name, spec, required) triples for a node's /object_info entry,
+    in the same order ComfyUI's frontend serializes widgets_values in."""
+    input_info = (schema or {}).get("input", {})
+    order = (schema or {}).get("input_order", {})
+    required = input_info.get("required", {})
+    optional = input_info.get("optional", {})
+    names = list(order.get("required") or required.keys())
+    names += [name for name in (order.get("optional") or optional.keys()) if name not in names]
+    return [(name, required.get(name, optional.get(name)), name in required) for name in names]
+
+
+def apply_schema_widgets(node_inputs, node, schema):
+    """Fill node_inputs from a node's saved widgets_values, using the node's
+    real /object_info schema for names/order/defaults instead of a hardcoded
+    per-node-type table. Replaces the previous per-node-type elif chain here
+    (and the equivalent one in launcher.py) - see comfy_studio.py workflow_to_api
+    for why: those tables silently dropped any node type they hadn't been
+    hand-updated to cover, which only surfaced as a ComfyUI "Required input is
+    missing" error at generation time.
+
+    node_inputs is mutated in place and already has link-resolved / higher-
+    priority values in it; existing keys are never overwritten (setdefault
+    semantics), matching the precedence the previous implementations relied on.
+    """
+    if not schema:
+        return
+    raw = node.get("widgets_values")
+    is_dict = isinstance(raw, dict)
+    widget_list = raw if isinstance(raw, list) else []
+    index = 0
+    for name, spec, _required in node_input_order(schema):
+        if not is_widget_input(spec):
+            continue
+        spec_config = spec[1] if isinstance(spec, (list, tuple)) and len(spec) > 1 and isinstance(spec[1], dict) else {}
+        randomizable = bool(spec_config.get("control_after_generate"))
+        if is_dict:
+            value = raw.get(name, input_default(spec))
+        elif index < len(widget_list):
+            # Consume this widget's positional slot even if we end up not using
+            # the value (name already in node_inputs, below) - ComfyUI's
+            # frontend keeps a slot in widgets_values for every widget-eligible
+            # input regardless of whether it was promoted to a linked socket in
+            # this particular node instance, so skipping the slot without
+            # consuming it would shift every field that comes after it.
+            value = widget_list[index]
+            index += 1
+            # A widget with control_after_generate (seed/noise_seed) is followed
+            # by one extra UI-only slot (the randomize/increment/... dropdown)
+            # that has no backend input of its own - skip it too.
+            if randomizable:
+                index += 1
+        else:
+            # Field wasn't in widgets_values at all - e.g. the installed node
+            # version gained a new required parameter after this workflow.json
+            # was authored. Its live schema default is the best we can do.
+            value = input_default(spec)
+        if name in node_inputs:
+            continue
+        # A workflow saved with e.g. seed=-1 means "always randomize this run" -
+        # honor that the same way regardless of node type, driven by the
+        # schema's own control_after_generate flag instead of a hardcoded list
+        # of "which fields are seeds".
+        if randomizable and value in (None, "", -1, "-1"):
+            value = random.randint(0, 2**63 - 1)
+        node_inputs[name] = value
+
+
 MODEL_COMBO_INPUTS = ("ckpt_name", "unet_name", "lora_name", "vae_name", "clip_name")
 
 
@@ -851,7 +963,7 @@ def expand_subgraphs(workflow, depth=0):
     return flattened
 
 
-def workflow_to_api(workflow):
+def workflow_to_api(workflow, object_info=None):
     workflow = expand_subgraphs(workflow)
     links = effective_link_map(workflow)
     primitive_values = {}
@@ -885,151 +997,26 @@ def workflow_to_api(workflow):
                 prompt[loader_id] = {"class_type": "LoadVideo", "inputs": {"video": "", "upload": "image"}}
                 inputs[input_name] = [loader_id, 0]
 
-        if node_type == "SaveImage":
-            inputs["filename_prefix"] = widgets[0] if widgets else "Studio"
-        elif node_type == "SaveAudio":
-            inputs["filename_prefix"] = widgets[0] if widgets else "Studio"
-        elif node_type == "SaveGLB":
-            inputs["filename_prefix"] = widgets[0] if widgets else "mesh/ComfyUI"
-        elif node_type == "CLIPLoader":
-            inputs.update({"clip_name": widgets[0], "type": widgets[1], "device": widgets[2]})
-        elif node_type == "VAELoader":
-            inputs["vae_name"] = widgets[0]
-        elif node_type == "UNETLoader":
-            inputs.update({"unet_name": widgets[0], "weight_dtype": widgets[1]})
-        elif node_type == "ImageOnlyCheckpointLoader":
-            inputs["ckpt_name"] = widgets[0]
-        elif node_type in ("LoadImage", "LoadImageMask", "LoadImageOutput"):
-            if widgets:
-                inputs["image"] = widgets[0]
-            if len(widgets) > 1:
-                inputs["upload"] = widgets[1]
-        elif node_type == "LoadVideo":
-            if widgets:
-                inputs["video"] = widgets[0]
-            if len(widgets) > 1:
-                inputs["upload"] = widgets[1]
-        elif node_type == "TencentTextToModelNode":
-            names = ["model", "prompt", "face_count", "generate_type", "pbr", "seed", "control_after_generate"]
-            for name, value in zip(names, widgets):
-                if name != "control_after_generate":
-                    inputs[name] = value
-        elif node_type == "CLIPTextEncode":
-            inputs["text"] = widgets[0] if widgets else ""
-        elif node_type == "CLIPVisionEncode":
-            inputs["crop"] = widgets[0] if widgets else "none"
-        elif node_type == "EmptySD3LatentImage":
-            inputs.update({"width": widgets[0], "height": widgets[1], "batch_size": widgets[2]})
-        elif node_type == "EmptyLatentHunyuan3Dv2":
-            inputs.update({"resolution": widgets[0], "batch_size": widgets[1]})
-        elif node_type == "ModelSamplingAuraFlow":
-            inputs["shift"] = widgets[0]
-        elif node_type == "VAEDecodeHunyuan3D":
-            inputs.update({"num_chunks": widgets[0], "octree_resolution": widgets[1]})
-        elif node_type == "VoxelToMesh":
-            inputs.update({"algorithm": widgets[0], "threshold": widgets[1]})
-        elif node_type == "KSampler":
-            inputs.update(
-                {
-                    "seed": widgets[0],
-                    "steps": widgets[2] if len(widgets) > 6 else widgets[1],
-                    "cfg": widgets[3] if len(widgets) > 6 else widgets[2],
-                    "sampler_name": widgets[4] if len(widgets) > 6 else widgets[3],
-                    "scheduler": widgets[5] if len(widgets) > 6 else widgets[4],
-                    "denoise": widgets[6] if len(widgets) > 6 else widgets[5],
-                }
-            )
-        elif node_type == "RandomNoise":
-            if widgets:
-                inputs["noise_seed"] = widgets[0]
-        elif node_type == "KSamplerSelect":
-            if widgets:
-                inputs["sampler_name"] = widgets[0]
-        elif node_type == "BasicScheduler":
-            names = ["scheduler", "steps", "denoise"]
-            for name, value in zip(names, widgets):
-                inputs[name] = value
-        elif node_type == "DualCFGGuider":
-            names = ["cfg_conds", "cfg_cond2_negative", "style"]
-            for name, value in zip(names, widgets):
-                inputs[name] = value
-        elif node_type == "DualCLIPLoader":
-            names = ["clip_name1", "clip_name2", "type", "device"]
-            for name, value in zip(names, widgets):
-                inputs.setdefault(name, value)
-        elif node_type == "KSamplerAdvanced":
-            ordered = [
-                "add_noise", "noise_seed", None, "steps", "cfg", "sampler_name",
-                "scheduler", "start_at_step", "end_at_step", "return_with_leftover_noise",
-            ]
-            for name, value in zip(ordered, widgets):
-                if name:
-                    inputs.setdefault(name, value)
-        elif node_type == "ImageScaleBy":
-            names = ["upscale_method", "scale_by"]
-            for name, value in zip(names, widgets):
-                inputs.setdefault(name, value)
-        elif node_type == "ImageCompare":
-            # compare_view is a UI-only before/after slider widget - the node is a
-            # dead end in every workflow seen so far (nothing reads its output), but
-            # ComfyUI's validator still requires a value for it. Pass through
-            # whatever was saved; it doesn't need to resolve to anything real.
-            if widgets:
-                compare_view = widgets[0]
-                if isinstance(compare_view, dict):
-                    compare_view = "Slide"
-                inputs.setdefault("compare_view", compare_view)
-        elif node_type == "FluxGuidance":
-            # Some exports never promote "guidance" to a socket, so it has no
-            # matching entry in node["inputs"] for the generic fallback below
-            # to zip against - without this, ComfyUI drops the whole branch
-            # ("Required input is missing: guidance") instead of running it.
-            if widgets:
-                inputs.setdefault("guidance", widgets[0])
-        elif node_type == "InpaintModelConditioning":
-            # Same issue as FluxGuidance above, for the "noise_mask" widget.
-            if widgets:
-                inputs.setdefault("noise_mask", widgets[0])
-        elif node_type == "LoraLoaderModelOnly":
-            names = ["lora_name", "strength_model"]
-            for name, value in zip(names, widgets):
-                inputs.setdefault(name, value)
-        elif node_type == "WanFirstLastFrameToVideo":
-            names = ["width", "height", "length", "batch_size"]
-            for name, value in zip(names, widgets):
-                inputs.setdefault(name, value)
-        elif node_type == "ModelSamplingSD3":
-            if widgets:
-                inputs.setdefault("shift", widgets[0])
-        elif node_type == "CreateVideo":
-            if widgets:
-                inputs.setdefault("fps", widgets[0])
-            if len(widgets) > 1:
-                inputs.setdefault("bit_depth", widgets[1])
-        elif node_type == "EmptyAceStep1.5LatentAudio":
-            inputs.setdefault("batch_size", widgets[1] if len(widgets) > 1 else 1)
-        elif node_type == "TextEncodeAceStepAudio1.5":
-            # Only tags/lyrics/duration are declared as promotable inputs in the exported
-            # workflow; the rest (seed, bpm, timesignature, ...) are plain widgets that never
-            # appear in node["inputs"], so the generic fallback below can't see them. Map the
-            # full widgets_values order (from ComfyUI's object_info) here instead. "seed" is
-            # followed by a UI-only "control_after_generate" slot with no backend input.
-            ordered = [
-                "tags", "lyrics", "seed", None, "bpm", "duration", "timesignature",
-                "language", "keyscale", "generate_audio_codes", "cfg_scale",
-                "temperature", "top_p", "top_k", "min_p",
-            ]
-            for name, value in zip(ordered, widgets):
-                if name:
-                    inputs.setdefault(name, value)
-        elif node_type == "ImageScaleToTotalPixels":
-            names = ["upscale_method", "megapixels", "resolution_steps"]
-            for name, value in zip(names, widgets):
-                inputs[name] = value
-            inputs.setdefault("resolution_steps", 1)
-        else:
-            for item, value in zip([i for i in node.get("inputs", []) if i.get("widget")], widgets):
-                inputs[item["name"]] = value
+        # A handful of nodes need something other than a straight
+        # name/order/default lookup against their own /object_info schema:
+        if node_type == "ApplyCosmosReferenceLatent":
+            # No ref-latent slots are wired in this graph - the node falls back
+            # to its plain "latent" input (handled generically via the link),
+            # but the "ref_latents" container is still a required key with no
+            # real schema default.
+            inputs.setdefault("ref_latents", {})
+        elif node_type == "ImageCompare" and widgets:
+            # compare_view is a UI-only before/after slider widget whose saved
+            # value can be a dict instead of the plain string ComfyUI expects.
+            compare_view = widgets[0]
+            if isinstance(compare_view, dict):
+                compare_view = "Slide"
+            inputs.setdefault("compare_view", compare_view)
+
+        # Everything else - name, order, and defaults for every remaining
+        # widget input - comes straight from the node's real /object_info
+        # schema rather than a hand-maintained per-node-type table.
+        apply_schema_widgets(inputs, node, (object_info or {}).get(node_type))
 
         prompt[node_id] = {"class_type": node_type, "inputs": inputs}
     return prompt
@@ -1081,7 +1068,7 @@ def apply_controls(prompt, catalog_item, values):
     return seed
 
 
-def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=None):
+def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=None, config=None):
     path = Path(path)
     workflow = json.loads(path.read_text())
     controls = workflow_controls(path, workflow)
@@ -1092,7 +1079,8 @@ def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=N
         "controls": controls,
         "media_type": media_type or infer_media_type(path, workflow),
     }
-    prompt = workflow_to_api(workflow) if "nodes" in workflow else clean_api_prompt(workflow)
+    object_info = cached_object_info(config) if config else None
+    prompt = workflow_to_api(workflow, object_info=object_info) if "nodes" in workflow else clean_api_prompt(workflow)
     seed = apply_controls(prompt, catalog_item, values)
     return prompt, seed, catalog_item
 
@@ -1348,6 +1336,119 @@ def mux_music_video(video_output, audio_output, title=None):
     result = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200)
     if result.returncode != 0:
         raise ValueError(result.stdout.strip() or "ffmpeg could not combine the song and film clip.")
+
+    rel = output.relative_to(COMFY_OUTPUT)
+    return {
+        "type": "video",
+        "filename": output.name,
+        "subfolder": str(rel.parent) if rel.parent != Path(".") else "",
+        "url": "/" + "/".join(["media", *[urllib.parse.quote(part) for part in rel.parts]]),
+    }
+
+
+def _ass_timestamp(seconds):
+    total_centis = int(round(max(0.0, seconds) * 100))
+    centis = total_centis % 100
+    total_secs = total_centis // 100
+    secs = total_secs % 60
+    total_minutes = total_secs // 60
+    minutes = total_minutes % 60
+    hours = total_minutes // 60
+    return f"{hours}:{minutes:02d}:{secs:02d}.{centis:02d}"
+
+
+def _escape_ass_text(text):
+    return text.replace("\\", "\\\\").replace("{", "(").replace("}", ")").replace("\n", "\\N")
+
+
+def build_ass_subtitle_file(sections, path):
+    """Write an .ass subtitle file with one cue per lyric line.
+
+    Each section needs `start`/`end` (seconds, the ACTUAL rendered clip timing -
+    not the pre-generation beat-grid targets, which drift slightly from what LTXV's
+    frame-count quantization actually produces) and `lyrics` (str, "\n"-separated
+    lines; falsy skips captions for that section, e.g. an instrumental intro).
+    Lines within a section are shown for an even share of that section's span,
+    since there's no word-level lyric alignment available.
+    """
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        "WrapStyle: 0\n"
+        "ScaledBorderAndShadow: yes\n"
+        "PlayResX: 1280\n"
+        "PlayResY: 720\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
+        "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        "Style: Lyrics,Arial,42,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,3,2,0,2,60,60,48,1\n\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    lines = [header]
+    for section in sections or []:
+        lyrics = (section.get("lyrics") or "").strip()
+        if not lyrics:
+            continue
+        start = float(section.get("start", 0.0))
+        end = float(section.get("end", start))
+        if end <= start:
+            continue
+        lyric_lines = [ln.strip() for ln in lyrics.splitlines() if ln.strip()]
+        if not lyric_lines:
+            continue
+        span = (end - start) / len(lyric_lines)
+        for index, line in enumerate(lyric_lines):
+            cue_start = start + index * span
+            cue_end = start + (index + 1) * span
+            lines.append(
+                f"Dialogue: 0,{_ass_timestamp(cue_start)},{_ass_timestamp(cue_end)},"
+                f"Lyrics,,0,0,0,,{_escape_ass_text(line)}\n"
+            )
+    path.write_text("".join(lines), encoding="utf-8")
+
+
+def burn_in_lyrics(video_output, sections, title=None):
+    video_path = output_file_path(video_output or {})
+    if not video_path or not video_path.exists():
+        raise ValueError("Video output was not found.")
+    if not any((section.get("lyrics") or "").strip() for section in sections or []):
+        raise ValueError("No lyrics were provided to burn in.")
+
+    ffmpeg = ffmpeg_binary()
+    if not ffmpeg:
+        raise ValueError("Video was generated, but ffmpeg is not installed to burn in captions.")
+
+    now = time.strftime("%Y%m%d-%H%M%S")
+    out_dir = COMFY_OUTPUT / "Studio" / "music-videos" / now
+    out_dir.mkdir(parents=True, exist_ok=True)
+    subtitle_path = out_dir / "lyrics.ass"
+    build_ass_subtitle_file(sections, subtitle_path)
+
+    output = out_dir / f"{safe_title_filename(title)}-captioned.mp4"
+    # ffmpeg's filter-graph option parser treats ':' and '\' as special inside a
+    # filter value, so the subtitle path needs its own escaping independent of
+    # the normal shell-argument quoting subprocess already handles for us.
+    escaped_path = str(subtitle_path).replace("\\", "\\\\").replace(":", "\\:")
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-i",
+        str(video_path),
+        "-vf",
+        f"ass={escaped_path}",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "copy",
+        str(output),
+    ]
+    result = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200)
+    if result.returncode != 0:
+        raise ValueError(result.stdout.strip() or "ffmpeg could not burn in the lyrics.")
 
     rel = output.relative_to(COMFY_OUTPUT)
     return {

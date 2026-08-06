@@ -229,6 +229,17 @@ Use '%(prog)s <tool> --help' for more information about a specific tool.
         help="Enable verbose output"
     )
 
+    # Pack mover tool - forwards straight through to pack_mover.main() rather than
+    # duplicating its subcommands/flags here a second time (that duplication is exactly
+    # what caused "remove"/"remove-category" to 404 until this comment was written).
+    pack_mover_parser = subparsers.add_parser(
+        "pack-mover",
+        help="Move/remove workflow packs and categories (see: python -m tools.pack_mover --help)",
+        description="Move/remove workflow packs and categories",
+        add_help=False,
+    )
+    pack_mover_parser.add_argument("pack_mover_args", nargs=argparse.REMAINDER)
+
     # Documentation generator tool
     docs_parser = subparsers.add_parser(
         "docs",
@@ -293,6 +304,7 @@ Use '%(prog)s <tool> --help' for more information about a specific tool.
     compile_module = get_tool_module("workflow_compiler")
     validate_module = get_tool_module("validator")
     docs_module = get_tool_module("documentation_generator")
+    pack_mover_module = get_tool_module("pack_mover")
 
     # Execute the selected tool with parsed arguments
     if args.tool == "registry":
@@ -410,6 +422,18 @@ Use '%(prog)s <tool> --help' for more information about a specific tool.
                 sys.argv = original_argv
         else:
             print("Error: Documentation generator module not available")
+            sys.exit(1)
+
+    elif args.tool == "pack-mover":
+        if pack_mover_module:
+            original_argv = sys.argv.copy()
+            try:
+                sys.argv = ["pack_mover"] + args.pack_mover_args
+                pack_mover_module.main()
+            finally:
+                sys.argv = original_argv
+        else:
+            print("Error: Pack mover module not available")
             sys.exit(1)
 
     else:

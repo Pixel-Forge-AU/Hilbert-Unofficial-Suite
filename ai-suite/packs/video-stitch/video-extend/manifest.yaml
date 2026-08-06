@@ -1,0 +1,243 @@
+id: video.extend
+name: Extend Video
+version: 1.0.0
+category: video-stitch
+media_type: video
+description: >
+  Continue an existing video past its last frame using ComfyUI's native
+  WanInfiniteTalkToVideo node in its "extend" mode: the source video's own
+  frames are fed back in as motion context (via the node's previous_frames
+  input) so the new segment picks up the subject's motion and identity, guided
+  by a text prompt and an optional continuation audio track. The output is the
+  original clip with the newly generated segment appended, audio included.
+  The graph validates and executes locally, but Wan 14B video generation is
+  slow and this inherits the same experimental status as the talking-head and
+  lip-sync packs it's built from.
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: video
+    label: Source video
+    type: file
+    required: true
+    default: smoke-input.mp4
+    node_id: "7"
+    node_type: LoadVideo
+    input: file
+    accept: video/mp4,video/webm,video/quicktime
+    description: Video to continue past its last frame
+
+  - id: prompt
+    label: Continuation prompt
+    type: textarea
+    required: false
+    default: The video continues naturally from where it left off, with coherent motion, stable identity, and consistent lighting and camera framing.
+    node_id: "5"
+    node_type: CLIPTextEncode
+    input: text
+    description: Motion/action direction for the newly generated segment
+
+  - id: audio
+    label: Continuation audio
+    type: file
+    required: false
+    default: example.wav
+    node_id: "9"
+    node_type: LoadAudio
+    input: audio
+    accept: audio/wav,audio/mpeg,audio/mp3,audio/flac,audio/ogg
+    description: >
+      Speech audio for the new segment, appended after the source video's own
+      audio track. If the subject should keep talking, supply the continuation
+      of their speech here.
+
+  - id: width
+    label: Width
+    type: int
+    required: false
+    default: 832
+    minimum: 256
+    maximum: 1280
+    step: 16
+    node_id: "14"
+    node_type: WanInfiniteTalkToVideo
+    input: width
+
+  - id: height
+    label: Height
+    type: int
+    required: false
+    default: 480
+    minimum: 256
+    maximum: 1280
+    step: 16
+    node_id: "14"
+    node_type: WanInfiniteTalkToVideo
+    input: height
+
+  - id: frames
+    label: New frames
+    type: int
+    required: false
+    default: 81
+    minimum: 5
+    maximum: 241
+    step: 4
+    node_id: "14"
+    node_type: WanInfiniteTalkToVideo
+    input: length
+    description: Frame count of the newly generated segment; normalized to 4n+1 for Wan
+
+  - id: steps
+    label: Steps
+    type: int
+    required: false
+    default: 4
+    minimum: 1
+    maximum: 40
+    step: 1
+    node_id: "18"
+    node_type: BasicScheduler
+    input: steps
+
+  - id: cfg
+    label: CFG
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0.1
+    maximum: 8.0
+    step: 0.1
+    node_id: "16"
+    node_type: CFGGuider
+    input: cfg
+
+  - id: sampler_name
+    label: Sampler
+    type: select
+    required: false
+    default: euler
+    options:
+      - euler
+      - dpmpp_2m
+      - uni_pc
+    node_id: "17"
+    node_type: KSamplerSelect
+    input: sampler_name
+
+  - id: scheduler
+    label: Scheduler
+    type: select
+    required: false
+    default: normal
+    options:
+      - normal
+      - simple
+      - karras
+      - beta
+    node_id: "18"
+    node_type: BasicScheduler
+    input: scheduler
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: 42
+    minimum: -1
+    maximum: 1152921504606846975
+    node_id: "15"
+    node_type: RandomNoise
+    input: noise_seed
+
+  - id: audio_scale
+    label: Audio scale
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0.1
+    maximum: 3.0
+    step: 0.05
+    node_id: "14"
+    node_type: WanInfiniteTalkToVideo
+    input: audio_scale
+
+  - id: motion_frame_count
+    label: Motion context
+    type: int
+    required: false
+    default: 9
+    minimum: 1
+    maximum: 33
+    step: 1
+    node_id: "14"
+    node_type: WanInfiniteTalkToVideo
+    input: motion_frame_count
+
+  - id: lora_strength
+    label: LightX2V strength
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0.0
+    maximum: 1.5
+    step: 0.05
+    node_id: "2"
+    node_type: LoraLoaderModelOnly
+    input: strength_model
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: video/wan-video-extend
+    node_id: "24"
+    node_type: SaveVideo
+    input: filename_prefix
+
+outputs:
+  - id: video
+    type: video
+    description: Source video with the generated continuation appended, audio included
+
+models:
+  required:
+    - type: diffusion_models
+      name: wan2.1_i2v_480p_14B_fp8_scaled.safetensors
+      source: Comfy-Org/Wan_2.1_ComfyUI_repackaged
+    - type: loras
+      name: lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+      source: Kijai/WanVideo_comfy
+    - type: text_encoders
+      name: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    - type: vae
+      name: Wan2_1_VAE_bf16.safetensors
+    - type: audio_encoders
+      name: wav2vec2-chinese-base_fp16.safetensors
+      source: Kijai/wav2vec2_safetensors
+    - type: model_patches
+      name: infinitetalk_single.safetensors
+      source: MeiGen-AI/InfiniteTalk
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+  optional: []
+
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: false
+  supports_cpu_offload: false
+
+tags:
+  - infinitetalk
+  - video-extend
+  - continuation
+  - wan2.1
+  - video
