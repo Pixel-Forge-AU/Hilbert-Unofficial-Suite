@@ -37,7 +37,7 @@ AI Suite is a powerful platform for generating AI artwork, editing images, and c
 Before installing AI Suite, ensure you have:
 
 - **Python 3.9-3.11** installed
-- **NVIDIA GPU** with CUDA support (recommended)
+- **vulkan SDK**
 - **At least 16 GB RAM**
 - **At least 50 GB free storage space**
 
