@@ -37,7 +37,7 @@ AI Suite is a powerful platform for generating AI artwork, editing images, and c
 Before installing AI Suite, ensure you have:
 
 - **Python 3.9-3.11** installed
-- **vulkan SDK**
+- **vulkan SDK** https://www.lunarg.com/products/vulkan-sdk/
 - **At least 16 GB RAM**
 - **At least 50 GB free storage space**
 
