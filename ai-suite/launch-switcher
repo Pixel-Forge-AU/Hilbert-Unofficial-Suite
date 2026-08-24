@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
-exec /usr/bin/python3 switcher_app.py
+PYTHON=python3
+python3 -c '' >/dev/null 2>&1 || PYTHON=python
+exec "$PYTHON" switcher_app.py
 

@@ -663,8 +663,11 @@ def start_chat(config, profile_name="qwen"):
         llama_port = config["LLAMA_PORT"]
         model_alias = profile["alias"]
 
+    python = ROOT / ".venv/bin/python"
+    if not python.exists():
+        python = Path(sys.executable)
     cmd = [
-        "/usr/bin/python3",
+        str(python),
         str(ROOT / "hilbert_chat.py"),
         "--host", config["CHAT_HOST"],
         "--port", config["CHAT_PORT"],
@@ -931,7 +934,10 @@ def start_health_monitor(config):
     if is_running(read_pid("health-monitor")):
         print("health-monitor already running")
         return
-    cmd = ["/usr/bin/python3", str(ROOT / "ai_manager.py"), "monitor-run"]
+    python = ROOT / ".venv/bin/python"
+    if not python.exists():
+        python = Path(sys.executable)
+    cmd = [str(python), str(ROOT / "ai_manager.py"), "monitor-run"]
     start_process("health-monitor", cmd, ROOT, base_env(config))
 
 
