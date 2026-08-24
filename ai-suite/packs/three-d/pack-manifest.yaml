@@ -18,6 +18,8 @@ workflows:
   - three-d.text-to-3d
   - three-d.texture-mesh
   - three-d.image-to-textured-mesh
+  - three-d.image-to-textured-mesh-2-1
+  - three-d.text-to-3d-hunyuan3d-v2
   - studio.text-to-3d-local-zimage-hunyuan3d
 
 default_enabled: true

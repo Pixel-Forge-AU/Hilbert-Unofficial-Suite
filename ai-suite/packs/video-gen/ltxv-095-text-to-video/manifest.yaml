@@ -119,7 +119,7 @@ inputs:
   node_type: EmptyLTXVLatentVideo
   input: batch_size
   accept: image/png,image/jpeg,image/webp,image/bmp
-- id: 72.noise_seed
+- id: seed
   label: Seed
   type: int
   required: false

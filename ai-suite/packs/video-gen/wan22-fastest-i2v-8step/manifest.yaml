@@ -35,7 +35,7 @@ inputs:
     input: text
   - id: 54.image
     label: Input image
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '54'
@@ -72,7 +72,7 @@ inputs:
     node_id: '74'
     node_type: WanImageToVideo
     input: length
-  - id: 71.noise_seed
+  - id: seed
     label: Seed (high-noise expert)
     type: int
     required: false

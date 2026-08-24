@@ -9,7 +9,6 @@ description: >
   identity preservation, and various character generation modes.
 
 workflows:
-  - character.portrait
   - character.full-body
   - character.character-sheet
   - character.expression-sheet

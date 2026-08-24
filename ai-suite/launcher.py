@@ -29,6 +29,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from datetime import datetime
@@ -3124,11 +3125,16 @@ def api_output_file(subpath: str):
     target = (output_dir / subpath).resolve()
     if output_dir not in target.parents and target != output_dir:
         return jsonify({'error': 'Invalid output path'}), 400
+    if request.method == 'DELETE':
+        # Idempotent: a gallery entry whose underlying file is already gone
+        # (moved, cleaned up outside Studio, or never landed where expected)
+        # should still be removable - the goal state is "file not present",
+        # which is already true, not a 404 the UI can never get past.
+        if target.exists() and target.is_file():
+            target.unlink()
+        return jsonify({'deleted': subpath})
     if not target.exists() or not target.is_file():
         return jsonify({'error': 'Output not found'}), 404
-    if request.method == 'DELETE':
-        target.unlink()
-        return jsonify({'deleted': subpath})
     return send_from_directory(target.parent, target.name)
 
 
@@ -3143,11 +3149,13 @@ def api_input_file(subpath: str):
     target = (input_dir / subpath).resolve()
     if input_dir not in target.parents and target != input_dir:
         return jsonify({'error': 'Invalid input path'}), 400
+    if request.method == 'DELETE':
+        # Idempotent for the same reason as /api/outputs's DELETE branch above.
+        if target.exists() and target.is_file():
+            target.unlink()
+        return jsonify({'deleted': subpath})
     if not target.exists() or not target.is_file():
         return jsonify({'error': 'Input not found'}), 404
-    if request.method == 'DELETE':
-        target.unlink()
-        return jsonify({'deleted': subpath})
     return send_from_directory(target.parent, target.name)
 
 
@@ -3206,7 +3214,13 @@ def api_outputs_index() -> jsonify:
             'subfolder': path.parent.relative_to(output_dir).as_posix() if path.parent != output_dir else '',
             'type': 'output',
             'media_type': media_type,
-            'url': f"/api/outputs/{relative}",
+            # Quote each path segment - an unescaped literal "%" in a filename
+            # (e.g. from the pre-fix %date: token bug) is otherwise indistinguishable
+            # from real percent-encoding once this round-trips through a browser
+            # fetch() and Werkzeug's automatic path decoding: "%da" from "%date"
+            # decodes as a valid-looking encoded byte, silently corrupting the
+            # path so GET/DELETE requests can never find the real file again.
+            'url': f"/api/outputs/{urllib.parse.quote(relative, safe='/')}",
             'modified_at': datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
         })
 
@@ -3271,7 +3285,9 @@ def api_inputs_index() -> jsonify:
             'subfolder': path.parent.relative_to(input_dir).as_posix() if path.parent != input_dir else '',
             'type': 'input',
             'media_type': media_type,
-            'url': f"/api/input/{relative}",
+            # See the matching comment in api_outputs_index - unescaped '%' in
+            # a filename breaks the GET/DELETE round-trip through Werkzeug.
+            'url': f"/api/input/{urllib.parse.quote(relative, safe='/')}",
             'modified_at': datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
         })
 
@@ -3517,6 +3533,124 @@ def api_delete_storyboard(storyboard_id: str) -> jsonify:
     if path and path.exists():
         path.unlink()
     return jsonify({'deleted': storyboard_id})
+
+
+CINEMATICS_DIR = Path(__file__).resolve().parent / 'cinematics'
+CINEMATICS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _cinematic_path(cinematic_id: str) -> Optional[Path]:
+    safe_id = re.sub(r'[^a-zA-Z0-9_-]', '', cinematic_id or '')
+    if not safe_id:
+        return None
+    return CINEMATICS_DIR / f'{safe_id}.json'
+
+
+def _empty_cinematic_shot() -> Dict[str, Any]:
+    return {
+        'id': uuid.uuid4().hex[:8],
+        'description': '',
+        'framing': 'wide',
+        'camera_movement': 'static',
+        'lens_mm': None,
+        'duration_s': None,
+        'steering': '',
+        'image': None,
+    }
+
+
+def _empty_cinematic_scene() -> Dict[str, Any]:
+    return {
+        'id': uuid.uuid4().hex[:8],
+        'heading': '',
+        'action': '',
+        'shots': [_empty_cinematic_shot()],
+        'video': None,
+    }
+
+
+@app.route('/api/cinematics')
+def api_list_cinematics() -> jsonify:
+    """List saved cinematic sequences (scene-based storyboards with camera direction)."""
+    items = []
+    for path in CINEMATICS_DIR.glob('*.json'):
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        scenes = data.get('scenes') or []
+        shots = [s for sc in scenes for s in (sc.get('shots') or [])]
+        thumbnail_url = next((s['image']['url'] for s in shots if s.get('image')), None)
+        items.append({
+            'id': data.get('id'),
+            'title': data.get('title') or 'Untitled',
+            'scene_count': len(scenes),
+            'shot_count': len(shots),
+            'shots_with_images': sum(1 for s in shots if s.get('image')),
+            'has_video': bool(data.get('video')),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at'),
+            'thumbnail_url': thumbnail_url,
+        })
+    items.sort(key=lambda item: item.get('updated_at') or '', reverse=True)
+    return jsonify({'cinematics': items})
+
+
+@app.route('/api/cinematics', methods=['POST'])
+def api_create_cinematic() -> jsonify:
+    """Create a new cinematic sequence, seeded with one empty scene containing one empty shot."""
+    body = request.get_json() or {}
+    cinematic_id = uuid.uuid4().hex[:12]
+    now = datetime.utcnow().isoformat()
+    data = {
+        'id': cinematic_id,
+        'title': (body.get('title') or 'Untitled Sequence').strip(),
+        'created_at': now,
+        'updated_at': now,
+        'scenes': [_empty_cinematic_scene()],
+        'video': None,
+    }
+    _cinematic_path(cinematic_id).write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/cinematics/<cinematic_id>')
+def api_get_cinematic(cinematic_id: str) -> jsonify:
+    path = _cinematic_path(cinematic_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Cinematic sequence not found'}), 404
+    return jsonify(json.loads(path.read_text()))
+
+
+@app.route('/api/cinematics/<cinematic_id>', methods=['PUT'])
+def api_update_cinematic(cinematic_id: str) -> jsonify:
+    """Save the full cinematic sequence (title, scenes incl. shots/images, per-scene and sequence video).
+
+    The client owns the in-memory cinematic object and PUTs the whole thing
+    back after each change, same pattern as the storyboard save.
+    """
+    path = _cinematic_path(cinematic_id)
+    if not path or not path.exists():
+        return jsonify({'error': 'Cinematic sequence not found'}), 404
+    body = request.get_json() or {}
+    data = json.loads(path.read_text())
+    if 'title' in body:
+        data['title'] = (body.get('title') or data.get('title') or 'Untitled Sequence').strip()
+    if 'scenes' in body:
+        data['scenes'] = body['scenes']
+    if 'video' in body:
+        data['video'] = body['video']
+    data['updated_at'] = datetime.utcnow().isoformat()
+    path.write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route('/api/cinematics/<cinematic_id>', methods=['DELETE'])
+def api_delete_cinematic(cinematic_id: str) -> jsonify:
+    path = _cinematic_path(cinematic_id)
+    if path and path.exists():
+        path.unlink()
+    return jsonify({'deleted': cinematic_id})
 
 
 SONGS_DIR = Path(__file__).resolve().parent / 'songs'

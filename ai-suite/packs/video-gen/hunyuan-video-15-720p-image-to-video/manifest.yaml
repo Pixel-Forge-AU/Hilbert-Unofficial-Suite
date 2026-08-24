@@ -120,7 +120,7 @@ inputs:
   node_type: HunyuanVideo15ImageToVideo
   input: batch_size
   accept: image/png,image/jpeg,image/webp,image/bmp
-- id: 127.noise_seed
+- id: seed
   label: Seed
   type: int
   required: false

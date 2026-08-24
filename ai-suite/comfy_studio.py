@@ -564,6 +564,8 @@ def is_widget_input(input_spec):
     type_or_choices = input_spec[0]
     if isinstance(type_or_choices, list):
         return True
+    if type_or_choices == "COMBO":
+        return True
     return type_or_choices in _WIDGET_PRIMITIVE_TYPES
 
 
@@ -614,6 +616,16 @@ def apply_schema_widgets(node_inputs, node, schema):
             continue
         spec_config = spec[1] if isinstance(spec, (list, tuple)) and len(spec) > 1 and isinstance(spec[1], dict) else {}
         randomizable = bool(spec_config.get("control_after_generate"))
+        if not randomizable and isinstance(spec, (list, tuple)) and spec and spec[0] == "INT":
+            # ComfyUI's frontend adds the invisible randomize/fixed/increment/
+            # decrement control slot for any INT widget named "seed" or
+            # "*_seed" regardless of whether the node's own backend schema sets
+            # control_after_generate - some custom nodes (e.g. RES4LYF's V3-API
+            # ClownsharKSampler_Beta) never set that flag, so relying on it
+            # alone drops the slot and shifts every widget after it by one.
+            lower_name = name.lower()
+            if lower_name == "seed" or lower_name.endswith("_seed"):
+                randomizable = True
         if is_dict:
             value = raw.get(name, input_default(spec))
         elif index < len(widget_list):
@@ -841,17 +853,59 @@ def expand_subgraphs(workflow, depth=0):
         flattened["links"].append([link_id, origin_id, origin_slot, target_id, target_slot, link_type])
     generated_link_id = next_link_id(workflow)
 
+    # First pass: work out each subgraph node's id prefix map and which inner
+    # node/slot backs each of its boundary outputs. This has to happen for
+    # every subgraph node before any of them are wired up below, because two
+    # subgraph nodes can be linked directly to each other (no plain node in
+    # between) - resolving one side's external input requires already knowing
+    # the other subgraph's inner source, regardless of which node the top-level
+    # "for node in workflow.get('nodes')" loop visits first.
+    node_id_maps = {}
+    output_sources_by_node = {}
+    for node in workflow.get("nodes", []) or []:
+        subgraph = subgraphs.get(node.get("type"))
+        if not subgraph:
+            continue
+        outer_id = node.get("id")
+        prefix = f"{outer_id}_sg_"
+        node_id_map = {
+            inner.get("id"): f"{prefix}{inner.get('id')}"
+            for inner in subgraph.get("nodes", []) or []
+        }
+        node_id_maps[outer_id] = node_id_map
+        output_sources = {}
+        for link in subgraph.get("links", []) or []:
+            link_id, origin_id, origin_slot, target_id, target_slot, link_type = link_parts(link)
+            if link_id is None or target_id != -20:
+                continue
+            output_sources[int(target_slot)] = (
+                node_id_map.get(origin_id, origin_id),
+                origin_slot,
+                link_type,
+            )
+        output_sources_by_node[outer_id] = output_sources
+
+    def resolve_origin(origin_id, origin_slot):
+        # Follow an origin through any subgraph macro node(s) it passes through
+        # to the real inner node/slot backing that boundary output - the macro
+        # node id itself won't exist once subgraph nodes are dropped below.
+        seen = set()
+        while origin_id in subgraph_node_ids and origin_id not in seen:
+            seen.add(origin_id)
+            source = output_sources_by_node.get(origin_id, {}).get(int(origin_slot))
+            if not source:
+                break
+            origin_id, origin_slot, _source_type = source
+        return origin_id, origin_slot
+
     for node in workflow.get("nodes", []) or []:
         subgraph = subgraphs.get(node.get("type"))
         if not subgraph:
             flattened["nodes"].append(copy.deepcopy(node))
             continue
 
-        prefix = f"{node.get('id')}_sg_"
-        node_id_map = {
-            inner.get("id"): f"{prefix}{inner.get('id')}"
-            for inner in subgraph.get("nodes", []) or []
-        }
+        outer_id = node.get("id")
+        node_id_map = node_id_maps[outer_id]
         internal_link_id_map = {}
         inner_links = {}
         for link in subgraph.get("links", []) or []:
@@ -872,6 +926,7 @@ def expand_subgraphs(workflow, depth=0):
             if not external:
                 continue
             _ext_id, ext_origin_id, ext_origin_slot, _ext_target_id, _ext_target_slot, _ext_type = external
+            ext_origin_id, ext_origin_slot = resolve_origin(ext_origin_id, ext_origin_slot)
             new_link_id = generated_link_id
             generated_link_id += 1
             external_input_link_map[link_id] = new_link_id
@@ -884,14 +939,7 @@ def expand_subgraphs(workflow, depth=0):
                 link_type,
             ])
 
-        output_sources = {}
-        for link_id, origin_id, origin_slot, target_id, target_slot, link_type in inner_links.values():
-            if target_id == -20:
-                output_sources[int(target_slot)] = (
-                    node_id_map.get(origin_id, origin_id),
-                    origin_slot,
-                    link_type,
-                )
+        output_sources = output_sources_by_node[outer_id]
 
         for output_slot, output_def in enumerate(node.get("outputs", []) or []):
             source = output_sources.get(output_slot)
@@ -903,6 +951,12 @@ def expand_subgraphs(workflow, depth=0):
                     top_link_id,
                     (top_link_id, source_id, source_slot, node.get("id"), output_slot, source_type),
                 )
+                if target_id in subgraph_node_ids:
+                    # The other end is itself a subgraph macro node - its own
+                    # external-input pass above resolves back through this
+                    # output via resolve_origin(), so emitting a link here too
+                    # would just point at a macro id that's about to be dropped.
+                    continue
                 flattened["links"].append([
                     link_id,
                     source_id,
@@ -963,6 +1017,33 @@ def expand_subgraphs(workflow, depth=0):
     return flattened
 
 
+_DATE_TOKEN_RE = re.compile(r"%date:([^%]+)%")
+_DATE_TOKEN_FIELDS = (
+    # yyyy-MM-dd style tokens as used by ComfyUI-VideoHelperSuite and several
+    # packs' filename_prefix defaults - not understood by ComfyUI core itself
+    # (folder_paths.get_save_image_path only expands %year%/%month%/%day%/...),
+    # so a node using the plain core SaveImage/SaveVideo/SaveAudio saves the
+    # literal "%date:...%" string as a folder name instead of today's date,
+    # producing a file the gallery can never find at the URL it expects.
+    ("yyyy", "%Y"), ("MM", "%m"), ("dd", "%d"),
+    ("HH", "%H"), ("mm", "%M"), ("ss", "%S"),
+)
+
+
+def expand_date_tokens(value):
+    if not isinstance(value, str) or "%date:" not in value:
+        return value
+    now = time.localtime()
+
+    def replace(match):
+        fmt = match.group(1)
+        for token, strftime_code in _DATE_TOKEN_FIELDS:
+            fmt = fmt.replace(token, strftime_code)
+        return time.strftime(fmt, now)
+
+    return _DATE_TOKEN_RE.sub(replace, value)
+
+
 def workflow_to_api(workflow, object_info=None):
     workflow = expand_subgraphs(workflow)
     links = effective_link_map(workflow)
@@ -1018,6 +1099,11 @@ def workflow_to_api(workflow, object_info=None):
         # schema rather than a hand-maintained per-node-type table.
         apply_schema_widgets(inputs, node, (object_info or {}).get(node_type))
 
+        for input_name, value in inputs.items():
+            expanded = expand_date_tokens(value)
+            if expanded is not value:
+                inputs[input_name] = expanded
+
         prompt[node_id] = {"class_type": node_type, "inputs": inputs}
     return prompt
 
@@ -1040,6 +1126,8 @@ def coerce_value(value, original):
 
 def apply_controls(prompt, catalog_item, values):
     seed = None
+    noise_seed = None
+    voice_seed = None
     now = time.strftime("%Y%m%d-%H%M%S")
     media_type = catalog_item.get("media_type", "image")
     default_prefix = f"Studio/{media_type}/{catalog_item['id']}/{now}"
@@ -1052,10 +1140,21 @@ def apply_controls(prompt, catalog_item, values):
         value = coerce_value(raw_value, original)
         if input_name in ("seed", "noise_seed") and raw_value in (None, "", -1, "-1"):
             value = random.randint(1, 2**31 - 1)
-        if input_name == "filename_prefix" and not str(raw_value or "").strip():
-            value = default_prefix
+        if input_name == "noise_seed":
+            noise_seed = value
         if input_name == "seed":
             seed = value
+            # ACE Step's voice/timbre seed lives on TextEncodeAceStepAudio1.5's
+            # "seed" widget - distinct from KSamplerAdvanced's "noise_seed",
+            # which drives the actual song content. Song filenames key off both
+            # so a liked take can be found again by its two seeds.
+            if control.get("node_type") == "TextEncodeAceStepAudio1.5":
+                voice_seed = value
+        if input_name == "filename_prefix" and not str(raw_value or "").strip():
+            if control.get("node_type") == "SaveAudio" and noise_seed is not None and voice_seed is not None:
+                value = f"Studio/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
+            else:
+                value = default_prefix
         if node_id in prompt:
             prompt[node_id]["inputs"][input_name] = value
 
@@ -1063,7 +1162,10 @@ def apply_controls(prompt, catalog_item, values):
         if node.get("class_type") in ("SaveImage", "VHS_VideoCombine", "SaveAnimatedWEBP", "SaveAudio"):
             inputs = node.setdefault("inputs", {})
             if not str(inputs.get("filename_prefix", "")).strip():
-                inputs["filename_prefix"] = default_prefix
+                if node.get("class_type") == "SaveAudio" and noise_seed is not None and voice_seed is not None:
+                    inputs["filename_prefix"] = f"Studio/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
+                else:
+                    inputs["filename_prefix"] = default_prefix
 
     return seed
 
@@ -1470,11 +1572,18 @@ def validate_workflow_prompt(config, workflow, prompt):
 
 
 def clean_api_prompt(prompt):
-    return {
+    cleaned = {
         str(node_id): node
         for node_id, node in prompt.items()
         if isinstance(node, dict) and node.get("class_type") not in SKIP_NODE_TYPES
     }
+    for node in cleaned.values():
+        node_inputs = node.get("inputs") or {}
+        for input_name, value in node_inputs.items():
+            expanded = expand_date_tokens(value)
+            if expanded is not value:
+                node_inputs[input_name] = expanded
+    return cleaned
 
 
 def queue_prompt(config, prompt, media_type="image"):

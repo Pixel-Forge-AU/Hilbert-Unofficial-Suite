@@ -1,0 +1,127 @@
+id: three-d.text-to-3d-hunyuan3d-v2
+name: Text to 3D (Hunyuan3D-2)
+version: 1.0.0
+category: three-d
+media_type: model
+description: >
+  Generate a 3D mesh directly from text using Tencent's Hunyuan3D-2 shape generation model.
+  This workflow uses the native text-to-3d capabilities of Hunyuan3D-DiT-v2-0, which is a
+  large-scale flow-based diffusion transformer that creates geometry aligned with text conditions.
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: prompt
+    label: Prompt
+    type: textarea
+    required: true
+    default: A cute anime girl with gigantic fennec ears and a big fluffy fox tail, long wavy blonde hair, large blue eyes, wearing a pink sweater and a black winter coat
+    description: Text description of the 3D model to generate
+
+  - id: negative_prompt
+    label: Negative prompt
+    type: textarea
+    required: false
+    default: low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs
+    description: Text to guide what to avoid in the generation
+
+  - id: steps
+    label: Generation steps
+    type: int
+    required: false
+    default: 50
+    minimum: 1
+    maximum: 100
+    node_id: "3"
+    node_type: Hy3DGenerateMesh
+    input: steps
+
+  - id: guidance_scale
+    label: Guidance scale
+    type: float
+    required: false
+    default: 5.5
+    minimum: 0.0
+    maximum: 20.0
+    step: 0.1
+    node_id: "3"
+    node_type: Hy3DGenerateMesh
+    input: guidance_scale
+
+  - id: seed
+    label: Seed
+    type: int
+    required: false
+    default: -1
+    minimum: -1
+    maximum: 18446744073709551615
+    node_id: "3"
+    node_type: Hy3DGenerateMesh
+    input: seed
+
+  - id: max_facenum
+    label: Max face count
+    type: int
+    required: false
+    default: 40000
+    minimum: 1000
+    maximum: 500000
+    node_id: "5"
+    node_type: Hy3DPostprocessMesh
+    input: max_facenum
+
+  - id: octree_resolution
+    label: Octree resolution
+    type: int
+    required: false
+    default: 384
+    minimum: 128
+    maximum: 512
+    step: 64
+    node_id: "4"
+    node_type: Hy3DVAEDecode
+    input: octree_resolution
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: 3d/text-to-3d-hunyuan3d-v2
+    node_id: "17"
+    node_type: Hy3DExportMesh
+    input: filename_prefix
+
+outputs:
+  - id: model
+    type: model
+    description: Generated GLB mesh from text prompt
+
+models:
+  required:
+    - type: diffusion_models
+      name: hunyuan3d-dit-v2-0-fp16.safetensors
+      source: Kijai/Hunyuan3D-2_safetensors
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+    - ComfyUI-Hunyuan3DWrapper
+  optional: []
+
+hardware:
+  minimum_vram_gb: 12
+  recommended_vram_gb: 16
+  supports_low_vram: false
+  supports_cpu_offload: true
+
+tags:
+  - 3d
+  - hunyuan3d
+  - glb
+  - mesh
+  - text-to-3d
+  - hunyuan3d-2

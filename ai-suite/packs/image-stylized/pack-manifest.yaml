@@ -1,0 +1,15 @@
+# Stylize Pack Manifest
+
+id: image-stylized
+name: Stylize
+version: "1.0.0"
+
+description: >
+  Different stylizations
+
+workflows:
+  - community.ghostmix-v20-bakedvae
+  - community.animepasteldream-soft-bakedvae
+  - community.pixel-f2-lora
+
+default_enabled: true

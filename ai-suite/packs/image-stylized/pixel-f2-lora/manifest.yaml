@@ -1,0 +1,135 @@
+id: community.pixel-f2-lora
+name: Pixel F2 (SD1.5 LoRA)
+version: 1.0.0
+category: image-stylized
+subcategory: sd15
+description: Standalone preset for the 'pixel_f2' LoRA. Training metadata records AOM3A1B.safetensors (Abyss Orange
+  Mix 3A1B) as the base; not installed, so it's paired with ReV Animated v2 Rebirth (a similarly anime-leaning SD1.5
+  checkpoint) as a reasonable substitute.
+status: experimental
+media_type: image
+entrypoints:
+  ui: workflow.json
+inputs:
+- id: 3.text
+  label: Prompt
+  type: textarea
+  required: false
+  default: masterpiece, best quality, highly detailed, anime style,
+  node_id: '3'
+  node_type: CLIPTextEncode
+  input: text
+- id: 4.text
+  label: Negative prompt
+  type: textarea
+  required: false
+  default: low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark
+  node_id: '4'
+  node_type: CLIPTextEncode
+  input: text
+- id: 5.width
+  label: Width
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  node_id: '5'
+  node_type: EmptyLatentImage
+  input: width
+- id: 5.height
+  label: Height
+  type: int
+  required: false
+  default: 1024
+  minimum: 256
+  maximum: 2048
+  node_id: '5'
+  node_type: EmptyLatentImage
+  input: height
+- id: seed
+  label: Seed
+  type: int
+  required: false
+  default: 42
+  node_id: '6'
+  node_type: KSampler
+  input: seed
+- id: 6.steps
+  label: Steps
+  type: int
+  required: false
+  default: 20
+  minimum: 1
+  maximum: 100
+  node_id: '6'
+  node_type: KSampler
+  input: steps
+- id: 6.cfg
+  label: CFG
+  type: float
+  required: false
+  default: 7.0
+  minimum: 0
+  maximum: 20
+  node_id: '6'
+  node_type: KSampler
+  input: cfg
+- id: 1.ckpt_name
+  label: Checkpoint
+  type: model
+  required: false
+  default: revAnimated_v2Rebirth.safetensors
+  node_id: '1'
+  node_type: CheckpointLoaderSimple
+  input: ckpt_name
+- id: 2.lora_name
+  label: LoRA
+  type: model
+  required: false
+  default: pixel_f2.safetensors
+  node_id: '2'
+  node_type: LoraLoaderModelOnly
+  input: lora_name
+- id: 2.strength_model
+  label: LoRA strength
+  type: float
+  required: false
+  default: 0.8
+  minimum: -2
+  maximum: 2
+  node_id: '2'
+  node_type: LoraLoaderModelOnly
+  input: strength_model
+- id: 8.filename_prefix
+  label: Output folder/prefix
+  type: text
+  required: false
+  default: pixel-f2-lora
+  node_id: '8'
+  node_type: SaveImage
+  input: filename_prefix
+outputs:
+- id: image
+  type: image
+  description: Generated image output
+models:
+  required:
+  - node_id: '1'
+    node_type: CheckpointLoaderSimple
+    name: revAnimated_v2Rebirth.safetensors
+    directory: checkpoints
+  - node_id: '2'
+    node_type: LoraLoaderModelOnly
+    name: pixel_f2.safetensors
+    directory: loras
+  optional: []
+custom_nodes:
+  required:
+  - comfyui
+  optional: []
+hardware:
+  minimum_vram_gb: 8
+  recommended_vram_gb: 12
+  supports_low_vram: true
+  supports_cpu_offload: true

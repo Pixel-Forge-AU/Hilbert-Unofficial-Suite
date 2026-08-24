@@ -49,7 +49,7 @@ inputs:
     input: text
   - id: 164.image
     label: Reference image
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '164'
@@ -86,7 +86,7 @@ inputs:
     node_id: '109'
     node_type: WanVaceToVideo
     input: length
-  - id: 108.seed
+  - id: seed
     label: Seed
     type: int
     required: false

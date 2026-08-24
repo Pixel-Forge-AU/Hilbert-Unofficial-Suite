@@ -2,155 +2,221 @@
 
 id: horror.battle-damage
 name: Battle Damage & Wear
-version: "1.0.0"
+version: "1.1.0"
 
 category: horror-gore
 subcategory: battle-damage
+media_type: image
 
 description: >
-  Apply realistic battle damage including dirt, blood, torn clothing, and 
-  combat wear to characters and surfaces. Creates gritty, battle-worn effects
-  perfect for horror and action scenes.
+  Apply realistic battle damage including dirt, blood, torn clothing, and
+  combat wear to a photo. Img2img redraw of the source image, with the
+  blood/dirt/tear sliders each blending a dedicated concept prompt into the
+  positive conditioning and damage_intensity driving how strongly the source
+  is redrawn.
 
-status: stable
+status: experimental
 
 entrypoints:
   ui: workflow.json
-  api: workflow-api.json
 
 inputs:
+  - id: checkpoint
+    label: Checkpoint
+    type: model
+    required: false
+    default: reedXXXIllustrious_v150.safetensors
+    node_id: '2'
+    node_type: CheckpointLoaderSimple
+    input: ckpt_name
+    description: SDXL/SD1.5 checkpoint to sample with.
+
   - id: image
-    type: image
+    label: Base image
+    type: file
     required: true
-    description: Base image to apply battle damage to
-    
+    default: example.jpg
+    node_id: '1'
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Photo to apply battle damage to.
+
   - id: prompt
-    type: text
+    label: Prompt
+    type: textarea
     required: false
-    default: ""
-    description: Positive prompt for additional details
-    
+    default: >-
+      battle damage, blood splatter, torn clothing, dirt and grime, combat
+      wear, gritty texture, violent damage, realistic wear, gory effects,
+      horror atmosphere, action scene, cinematic lighting
+    node_id: '3'
+    node_type: CLIPTextEncode
+    input: text
+    description: Positive prompt for additional details.
+
   - id: negative_prompt
-    type: text
+    label: Negative prompt
+    type: textarea
     required: false
-    default: ""
-    description: Negative prompt for undesirable elements
-    
+    default: >-
+      clean, fresh, new, pristine, no damage, smooth skin, intact clothing, no
+      blood, no dirt, no tears, no gore, no violence, no horror elements
+    node_id: '4'
+    node_type: CLIPTextEncode
+    input: text
+    description: Negative prompt for undesirable elements.
+
   - id: damage_intensity
+    label: Damage intensity
     type: float
     required: false
     default: 0.7
-    minimum: 0.0
+    minimum: 0.05
     maximum: 1.0
     step: 0.05
-    description: Intensity of battle damage (0=none, 1=extreme)
-    
+    node_id: '13'
+    node_type: KSampler
+    input: denoise
+    description: How strongly the source image is redrawn (0=barely touched, 1=fully redrawn).
+
   - id: blood_amount
+    label: Blood amount
     type: float
     required: false
     default: 0.6
     minimum: 0.0
     maximum: 1.0
     step: 0.05
-    description: Amount of blood effect
-    
+    node_id: '8'
+    node_type: ConditioningAverage
+    input: conditioning_to_strength
+    description: How much the blood-splatter concept is blended into the prompt.
+
   - id: dirt_amount
+    label: Dirt amount
     type: float
     required: false
     default: 0.5
     minimum: 0.0
     maximum: 1.0
     step: 0.05
-    description: Amount of dirt and grime
-    
+    node_id: '9'
+    node_type: ConditioningAverage
+    input: conditioning_to_strength
+    description: How much the dirt/grime concept is blended into the prompt.
+
   - id: tear_amount
+    label: Tear amount
     type: float
     required: false
     default: 0.4
     minimum: 0.0
     maximum: 1.0
     step: 0.05
-    description: Amount of torn/cut damage
-    
+    node_id: '10'
+    node_type: ConditioningAverage
+    input: conditioning_to_strength
+    description: How much the torn-cloth concept is blended into the prompt.
+
   - id: seed
+    label: Seed
     type: int
     required: false
     default: -1
     minimum: -1
     maximum: 1152921504606846975
-    description: Random seed for reproducibility (-1 for random)
-    
+    node_id: '13'
+    node_type: KSampler
+    input: seed
+    description: Random seed for reproducibility (-1 for random).
+
   - id: cfg
+    label: CFG
     type: float
     required: false
     default: 7.0
     minimum: 1.0
     maximum: 20.0
     step: 0.5
-    description: Classifier-free guidance scale
-    
+    node_id: '13'
+    node_type: KSampler
+    input: cfg
+    description: Classifier-free guidance scale.
+
   - id: steps
+    label: Steps
     type: int
     required: false
     default: 25
     minimum: 10
     maximum: 100
     step: 1
-    description: Number of inference steps
+    node_id: '13'
+    node_type: KSampler
+    input: steps
+    description: Number of inference steps.
+
+  - id: width
+    label: Width
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    node_id: '11'
+    node_type: ImageScale
+    input: width
+    description: Source image is scaled to this width before redrawing.
+
+  - id: height
+    label: Height
+    type: int
+    required: false
+    default: 1024
+    minimum: 256
+    maximum: 2048
+    step: 64
+    node_id: '11'
+    node_type: ImageScale
+    input: height
+    description: Source image is scaled to this height before redrawing.
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: ai-suite/battle-damage
+    node_id: '15'
+    node_type: SaveImage
+    input: filename_prefix
 
 outputs:
   - id: image
     type: image
-    description: Image with applied battle damage effects
-  - id: mask
-    type: mask
-    description: Damage mask showing applied effects
+    description: Source image redrawn with battle damage effects
 
 models:
   required:
-    - role: checkpoint
-      family:
-        - flux
-        - sdxl
-        - sd15
-        - qwen
-        - wan
-        - hunyuan
-    - role: vae
-      suggested:
-        - ae
-        - vae-ft-mse-840000-ema-pruned
-    - role: controlnet
-      suggested:
-        - depth
-        - canny
-        - normal
-
-  optional:
-    - role: lora
-      suggested:
-        - damage-overlay
-        - blood-textures
-        - dirt-grime
-        - torn-cloth
+    - type: checkpoints
+      name: reedXXXIllustrious_v150.safetensors
+      url: ''
+  optional: []
 
 custom_nodes:
   required:
     - comfyui
-
-  optional:
-    - comfyui-impact-pack
-    - comfyui-controlnet-aux
-    - comfyui-better-images
+  optional: []
 
 hardware:
-  minimum_vram_gb: 12
-  recommended_vram_gb: 24
+  minimum_vram_gb: 6
+  recommended_vram_gb: 12
   supports_low_vram: true
   supports_cpu_offload: true
 
 runtime:
-  class: heavy
+  class: medium
   batch_supported: false
 
 content:
@@ -175,6 +241,7 @@ tags:
   - torn-cloth
   - action
   - violence
+  - img2img
 
 presets:
   - subtle

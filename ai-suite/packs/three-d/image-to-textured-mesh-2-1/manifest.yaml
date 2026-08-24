@@ -1,0 +1,266 @@
+id: three-d.image-to-textured-mesh-2-1
+name: Image to Textured 3D Model (Hunyuan3D 2.1, PBR)
+version: 0.1.0
+category: three-d
+media_type: model
+description: >
+  Generate a 3D mesh from a single image and paint it with proper PBR
+  materials (separate albedo + metallic-roughness, not just a flat baked
+  texture) using Tencent's Hunyuan3D-2.1 shape and paint pipelines
+  (visualbruno's ComfyUI-Hunyuan3d-2-1 wrapper). Unlike
+  `three-d.image-to-textured-mesh` (Hunyuan3D-2.0, kijai's wrapper), 2.1's
+  multi-view paint model is a single integrated node rather than a
+  separate render/delight/sample chain.
+
+  Requires custom_rasterizer and mesh_inpaint_processor built from source
+  against this machine's ROCm/HIP toolchain (CUDA-only upstream) - see
+  Runtime notes. All model weights (~15GB: dit + vae checkpoints, plus the
+  full PBR paint diffusers pipeline) auto-download on first run via
+  Hy3D21ModelLoader / Hy3DMultiViewsGenerator; nothing needs to be
+  pre-downloaded.
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: image
+    label: Reference image
+    type: file
+    required: true
+    default: example.png
+    node_id: "1"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Image used both to generate the mesh's shape and to paint its PBR texture
+
+  - id: remove_background
+    label: Remove background
+    type: boolean
+    required: false
+    default: true
+    node_id: "5"
+    node_type: ComfySwitchNode
+    input: switch
+    description: Segments the subject out (rembg, isnet-general-use, CPU) before shape and texture generation. Turn off if your reference image is already on a clean plain/transparent background.
+
+  - id: shape_steps
+    label: Shape generation steps
+    type: int
+    required: false
+    default: 50
+    minimum: 1
+    maximum: 100
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator
+    input: steps
+    description: Diffusion steps for shape generation
+
+  - id: shape_guidance_scale
+    label: Shape guidance scale
+    type: float
+    required: false
+    default: 5.0
+    minimum: 1.0
+    maximum: 30.0
+    step: 0.1
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator
+    input: guidance_scale
+
+  - id: shape_seed
+    label: Shape seed
+    type: int
+    required: false
+    default: 123
+    minimum: 0
+    maximum: 18446744073709551615
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator
+    input: seed
+
+  - id: attention_mode
+    label: Shape generation attention mode
+    type: select
+    required: false
+    default: sdpa
+    options:
+      - sdpa
+      - sageattn
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator
+    input: attention_mode
+    description: sageattn is faster but needs the sageattention package installed separately; sdpa always works
+
+  - id: box_v
+    label: Bounding box padding
+    type: float
+    required: false
+    default: 1.01
+    minimum: -10.0
+    maximum: 10.0
+    step: 0.01
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: box_v
+    description: Padding around the mesh volume during shape decoding. Increase if protruding parts are getting clipped off.
+
+  - id: octree_resolution
+    label: Octree resolution (geometry detail)
+    type: int
+    required: false
+    default: 384
+    minimum: 8
+    maximum: 4096
+    step: 8
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: octree_resolution
+    description: Higher resolution yields more detailed geometry but uses more VRAM
+
+  - id: mc_algo
+    label: Marching cubes algorithm
+    type: select
+    required: false
+    default: mc
+    options:
+      - mc
+      - dmc
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: mc_algo
+
+  - id: max_facenum
+    label: Max face count
+    type: int
+    required: false
+    default: 40000
+    minimum: 1000
+    maximum: 500000
+    node_id: "8"
+    node_type: Hy3D21PostprocessMesh
+    input: max_facenum
+    description: Mesh is reduced to at most this many faces before UV-wrapping and texturing
+
+  - id: smooth_normals
+    label: Smooth normals
+    type: boolean
+    required: false
+    default: false
+    node_id: "8"
+    node_type: Hy3D21PostprocessMesh
+    input: smooth_normals
+
+  - id: view_size
+    label: View size (multi-view painting)
+    type: int
+    required: false
+    default: 512
+    minimum: 512
+    maximum: 1024
+    step: 256
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: view_size
+
+  - id: paint_steps
+    label: Paint steps
+    type: int
+    required: false
+    default: 10
+    minimum: 1
+    maximum: 100
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: steps
+    description: Diffusion steps for the multi-view PBR paint model
+
+  - id: paint_guidance_scale
+    label: Paint guidance scale
+    type: float
+    required: false
+    default: 3.0
+    minimum: 1.0
+    maximum: 10.0
+    step: 0.1
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: guidance_scale
+
+  - id: texture_size
+    label: Texture size
+    type: int
+    required: false
+    default: 1024
+    minimum: 512
+    maximum: 4096
+    step: 512
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: texture_size
+
+  - id: paint_seed
+    label: Paint seed
+    type: int
+    required: false
+    default: 123
+    minimum: 0
+    maximum: 18446744073709551615
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: seed
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: 3d/image-to-textured-mesh-2.1
+    node_id: "13"
+    node_type: Hy3D21ExportMesh
+    input: filename_prefix
+
+outputs:
+  - id: model
+    type: model
+    description: Generated, PBR-textured GLB mesh (separate albedo + metallic-roughness)
+
+models:
+  required:
+    - type: diffusion_models
+      name: hunyuan3D-dit-v2-1-fp16.ckpt
+      source: tencent/Hunyuan3D-2.1
+    - type: vae
+      name: Hunyuan3D-vae-v2-1-fp16.ckpt
+      source: tencent/Hunyuan3D-2.1
+    - type: diffusers
+      name: hunyuan3d-paintpbr-v2-1
+      source: tencent/Hunyuan3D-2.1
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+    - ComfyUI-Hunyuan3d-2-1
+    - ComfyUI_essentials
+  optional: []
+
+hardware:
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
+  supports_low_vram: false
+  supports_cpu_offload: true
+
+tags:
+  - 3d
+  - texture
+  - hunyuan3d
+  - hunyuan3d-2.1
+  - glb
+  - mesh
+  - image-to-3d
+  - textured
+  - pbr
+  - background-removal
+  - experimental

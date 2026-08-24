@@ -47,7 +47,7 @@ inputs:
     input: text
   - id: 31.image
     label: Input image
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '31'
@@ -94,7 +94,7 @@ inputs:
     node_id: '18'
     node_type: BasicScheduler
     input: steps
-  - id: 19.noise_seed
+  - id: seed
     label: Seed (high-noise expert)
     type: int
     required: false

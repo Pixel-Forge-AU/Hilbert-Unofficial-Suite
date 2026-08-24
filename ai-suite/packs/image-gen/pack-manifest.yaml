@@ -1,0 +1,19 @@
+# Image Generation Pack Manifest
+
+id: image-gen
+name: Image Generation
+version: "1.0.0"
+
+description: >
+  Generating images from text
+
+workflows:
+  - core.text-to-image-quality
+  - core.text-to-image
+  - core.text-to-image-fast
+  - core.text-to-image-extreme
+  - core.text-to-image-low-vram
+  - core.text-to-image-hq
+  - core.text-to-image-batch
+
+default_enabled: true

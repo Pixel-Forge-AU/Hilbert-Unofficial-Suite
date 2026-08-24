@@ -105,7 +105,7 @@ inputs:
     node_type: Hy3DSampleMultiView
     input: steps
 
-  - id: paint_seed
+  - id: seed
     label: Paint seed
     type: int
     required: false

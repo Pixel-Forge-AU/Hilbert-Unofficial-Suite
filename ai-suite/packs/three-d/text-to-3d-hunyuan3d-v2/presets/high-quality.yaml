@@ -1,0 +1,7 @@
+# High-quality preset for Text to 3D (Hunyuan3D-2)
+# Best quality with longer generation time
+
+steps: 75
+guidance_scale: 6.0
+max_facenum: 50000
+octree_resolution: 512

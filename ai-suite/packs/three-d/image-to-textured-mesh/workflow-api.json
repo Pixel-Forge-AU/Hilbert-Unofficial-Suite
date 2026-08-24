@@ -17,9 +17,9 @@
     "class_type": "Hy3DGenerateMesh",
     "inputs": {
       "pipeline": ["2", 0],
-      "image": ["1", 0],
+      "image": ["21", 0],
       "guidance_scale": 5.5,
-      "steps": 50,
+      "steps": 75,
       "seed": 123
     }
   },
@@ -29,7 +29,7 @@
       "vae": ["2", 1],
       "latents": ["3", 0],
       "box_v": 1.01,
-      "octree_resolution": 384,
+      "octree_resolution": 512,
       "num_chunks": 8000,
       "mc_level": 0.0,
       "mc_algo": "mc"
@@ -42,8 +42,8 @@
       "remove_floaters": true,
       "remove_degenerate_faces": true,
       "reduce_faces": true,
-      "max_facenum": 40000,
-      "smooth_normals": false
+      "max_facenum": 80000,
+      "smooth_normals": true
     }
   },
   "6": {
@@ -66,8 +66,8 @@
     "class_type": "Hy3DRenderMultiView",
     "inputs": {
       "trimesh": ["6", 0],
-      "render_size": 1024,
-      "texture_size": 2048,
+      "render_size": 2048,
+      "texture_size": 4096,
       "camera_config": ["7", 0],
       "normal_space": "world"
     }
@@ -82,7 +82,7 @@
     "class_type": "Hy3DDelightImage",
     "inputs": {
       "delight_pipe": ["9", 0],
-      "image": ["1", 0],
+      "image": ["20", 0],
       "steps": 50,
       "width": 512,
       "height": 512,
@@ -100,11 +100,11 @@
     "class_type": "Hy3DSampleMultiView",
     "inputs": {
       "pipeline": ["11", 0],
-      "ref_image": ["10", 0],
+      "ref_image": ["21", 0],
       "normal_maps": ["8", 0],
       "position_maps": ["8", 1],
-      "view_size": 512,
-      "steps": 25,
+      "view_size": 1024,
+      "steps": 50,
       "seed": 1024,
       "camera_config": ["7", 0]
     }
@@ -148,6 +148,51 @@
       "filename_prefix": "3d/image-to-textured-mesh",
       "file_format": "glb",
       "save_file": true
+    }
+  },
+  "18": {
+    "class_type": "RemBGSession+",
+    "inputs": {
+      "model": "isnet-general-use: general purpose",
+      "providers": "CPU"
+    }
+  },
+  "19": {
+    "class_type": "ImageRemoveBackground+",
+    "inputs": {
+      "rembg_session": ["18", 0],
+      "image": ["1", 0]
+    }
+  },
+  "20": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": true,
+      "on_true": ["23", 0],
+      "on_false": ["1", 0]
+    }
+  },
+  "21": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": true,
+      "on_true": ["10", 0],
+      "on_false": ["20", 0]
+    }
+  },
+  "22": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": ["19", 1]
+    }
+  },
+  "23": {
+    "class_type": "ImageBlend",
+    "inputs": {
+      "image1": ["1", 0],
+      "image2": ["22", 0],
+      "blend_factor": 1.0,
+      "blend_mode": "multiply"
     }
   }
 }

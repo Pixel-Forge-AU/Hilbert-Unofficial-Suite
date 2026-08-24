@@ -1,0 +1,137 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    }
+  },
+  "2": {
+    "class_type": "Hy3D21ModelLoader",
+    "inputs": {}
+  },
+  "3": {
+    "class_type": "RemBGSession+",
+    "inputs": {
+      "model": "isnet-general-use: general purpose",
+      "providers": "CPU"
+    }
+  },
+  "4": {
+    "class_type": "ImageRemoveBackground+",
+    "inputs": {
+      "rembg_session": ["3", 0],
+      "image": ["1", 0]
+    }
+  },
+  "5": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": true,
+      "on_true": ["15", 0],
+      "on_false": ["1", 0]
+    }
+  },
+  "6": {
+    "class_type": "Hy3D21MeshGenerator",
+    "inputs": {
+      "model": ["2", 0],
+      "image": ["5", 0],
+      "steps": 50,
+      "guidance_scale": 5.0,
+      "seed": 123,
+      "attention_mode": "sdpa"
+    }
+  },
+  "7": {
+    "class_type": "Hy3D21VAEDecode",
+    "inputs": {
+      "vae": ["2", 1],
+      "latents": ["6", 0],
+      "box_v": 1.01,
+      "octree_resolution": 384,
+      "num_chunks": 8000,
+      "mc_level": 0.0,
+      "mc_algo": "mc",
+      "enable_flash_vdm": true,
+      "force_offload": false
+    }
+  },
+  "8": {
+    "class_type": "Hy3D21PostprocessMesh",
+    "inputs": {
+      "trimesh": ["7", 0],
+      "remove_floaters": true,
+      "remove_degenerate_faces": true,
+      "reduce_faces": true,
+      "max_facenum": 40000,
+      "smooth_normals": false
+    }
+  },
+  "9": {
+    "class_type": "Hy3D21CameraConfig",
+    "inputs": {
+      "camera_azimuths": "0, 90, 180, 270, 0, 180",
+      "camera_elevations": "0, 0, 0, 0, 90, -90",
+      "view_weights": "1, 0.1, 0.5, 0.1, 0.05, 0.05",
+      "ortho_scale": 1.0
+    }
+  },
+  "10": {
+    "class_type": "Hy3DMultiViewsGenerator",
+    "inputs": {
+      "trimesh": ["8", 0],
+      "camera_config": ["9", 0],
+      "view_size": 512,
+      "image": ["5", 0],
+      "steps": 10,
+      "guidance_scale": 3.0,
+      "texture_size": 1024,
+      "unwrap_mesh": true,
+      "seed": 123
+    }
+  },
+  "11": {
+    "class_type": "Hy3DBakeMultiViews",
+    "inputs": {
+      "pipeline": ["10", 0],
+      "camera_config": ["9", 0],
+      "albedo": ["10", 1],
+      "mr": ["10", 2]
+    }
+  },
+  "12": {
+    "class_type": "Hy3DInPaint",
+    "inputs": {
+      "pipeline": ["11", 0],
+      "albedo": ["11", 1],
+      "albedo_mask": ["11", 2],
+      "mr": ["11", 3],
+      "mr_mask": ["11", 4],
+      "output_mesh_name": "image-to-textured-mesh-2-1"
+    }
+  },
+  "13": {
+    "class_type": "Hy3D21ExportMesh",
+    "inputs": {
+      "trimesh": ["12", 2],
+      "filename_prefix": "3d/image-to-textured-mesh-2.1",
+      "file_format": "glb",
+      "save_file": true
+    }
+  },
+  "14": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": ["4", 1]
+    }
+  },
+  "15": {
+    "class_type": "ImageBlend",
+    "inputs": {
+      "image1": ["1", 0],
+      "image2": ["14", 0],
+      "blend_factor": 1.0,
+      "blend_mode": "multiply"
+    }
+  }
+}

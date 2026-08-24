@@ -1,109 +1,45 @@
 # Battle Damage & Wear Workflow
 
-Apply realistic battle damage including dirt, blood, torn clothing, and combat wear to characters and surfaces. Creates gritty, battle-worn effects perfect for horror and action scenes.
+Apply realistic battle damage — dirt, blood, torn clothing, and combat wear — to a photo. Creates gritty, battle-worn effects perfect for horror and action scenes.
 
-## Description
+## How it works
 
-This workflow generates battle-worn and damaged appearances with customizable levels of:
-- Blood splatter and stains
-- Dirt and grime accumulation
-- Torn and cut clothing damage
-- General combat wear and tear
-
-Perfect for horror scenes, action sequences, character design with damage, and gritty visual effects.
-
-## Usage
-
-### API
-
-```
-POST /api/v1/generate/horror-battle-damage
-```
-
-### Presets
-
-- **Subtle**: Minimal damage for realistic wear
-- **Cinematic**: Moderate damage with dramatic blood effects
-- **Extreme**: Heavy damage with maximum gore effects
+This is an img2img redraw of the uploaded photo: the source image is scaled, VAE-encoded, and redrawn by an SDXL/SD1.5 checkpoint with `damage_intensity` as the denoise strength (0 = barely touched, 1 = fully redrawn). The blood/dirt/tear sliders each blend a dedicated concept prompt ("blood splatter, blood stains...", "dirt, grime, mud...", "torn fabric, ripped clothing...") into the positive conditioning via `ConditioningAverage`, on top of whatever you write in `prompt`.
 
 ## Input Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| image | string | required | Base image to apply battle damage to |
-| prompt | string | "" | Positive prompt for additional details |
-| negative_prompt | string | "" | Negative prompt for undesirable elements |
-| damage_intensity | number | 0.7 | Intensity of battle damage (0=none, 1=extreme) |
-| blood_amount | number | 0.6 | Amount of blood effect (0=none, 1=heavy) |
-| dirt_amount | number | 0.5 | Amount of dirt and grime (0=none, 1=heavy) |
-| tear_amount | number | 0.4 | Amount of torn/cut damage (0=none, 1=extreme) |
-| seed | integer | -1 | Random seed (-1 for random) |
-| cfg | number | 7.0 | Guidance scale |
-| steps | integer | 25 | Number of inference steps |
-
-## Models
-
-### Required
-- Checkpoint: flux, sdxl, sd15, qwen, wan, hunyuan
-- VAE: ae, vae-ft-mse-840000-ema-pruned
-
-### Optional
-- ControlNet: depth, canny, normal
-- LoRA: damage-overlay, blood-textures, dirt-grime, torn-cloth
-
-## Hardware Requirements
-
-- Minimum VRAM: 12 GB
-- Recommended VRAM: 24 GB
-- Supports Low VRAM mode
-- Supports CPU offload
+| checkpoint | model | reedXXXIllustrious_v150.safetensors | SDXL/SD1.5 checkpoint to sample with |
+| image | file | required | Photo to apply battle damage to |
+| prompt | textarea | see manifest | Positive prompt for additional details |
+| negative_prompt | textarea | see manifest | Negative prompt for undesirable elements |
+| damage_intensity | float | 0.7 | How strongly the source is redrawn (denoise strength) |
+| blood_amount | float | 0.6 | How much the blood-splatter concept is blended in |
+| dirt_amount | float | 0.5 | How much the dirt/grime concept is blended in |
+| tear_amount | float | 0.4 | How much the torn-cloth concept is blended in |
+| seed | int | -1 | Random seed (-1 for random) |
+| cfg | float | 7.0 | Classifier-free guidance scale |
+| steps | int | 25 | Number of inference steps |
+| width / height | int | 1024 / 1024 | Source image is scaled to this before redrawing |
 
 ## Presets
 
-### Subtle
-- Damage intensity: 0.3-0.4
-- Blood amount: 0.2-0.3
-- Dirt amount: 0.4-0.5
-- Tear amount: 0.2-0.3
-- Realistic minimal wear
+- **Subtle** — minimal damage for realistic wear
+- **Cinematic** — moderate damage with dramatic blood effects
+- **Extreme** — heavy damage with maximum gore effects
 
-### Cinematic
-- Damage intensity: 0.6-0.7
-- Blood amount: 0.5-0.6
-- Dirt amount: 0.5-0.6
-- Tear amount: 0.4-0.5
-- Dramatic action effects
+## Models
 
-### Extreme
-- Damage intensity: 0.8-1.0
-- Blood amount: 0.8-1.0
-- Dirt amount: 0.7-0.9
-- Tear amount: 0.7-1.0
-- Maximum gore effects
+- Checkpoint: any installed SDXL or SD1.5 checkpoint (defaults to `reedXXXIllustrious_v150.safetensors`)
 
-## Example
+## Hardware Requirements
 
-```bash
-curl -X POST http://localhost:8080/api/v1/generate/horror-battle-damage \
-  -H "Content-Type: application/json" \
-  -d '{
-    "image": "https://example.com/character.jpg",
-    "prompt": "battle damage, blood splatter, torn clothing, dirt and grime",
-    "negative_prompt": "clean, fresh, new, pristine",
-    "damage_intensity": 0.7,
-    "blood_amount": 0.6,
-    "dirt_amount": 0.5,
-    "tear_amount": 0.4,
-    "seed": 42,
-    "cfg": 7.0,
-    "steps": 25
-  }'
-```
+- Minimum VRAM: 6 GB
+- Recommended VRAM: 12 GB
+- Supports Low VRAM mode
+- Supports CPU offload
 
 ## Output
 
-Generated image with dimensions:
-- Width: 1024-2048 pixels (original image scaled)
-- Height: 1024-2048 pixels (original image scaled)
-- Format: WEBP
-- Contains: Battle damage effects including blood, dirt, and torn clothing
+Redrawn image (WEBP), same aspect ratio as the scaled source.

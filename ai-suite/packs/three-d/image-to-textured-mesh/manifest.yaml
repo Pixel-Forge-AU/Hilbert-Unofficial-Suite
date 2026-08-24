@@ -1,20 +1,25 @@
 id: three-d.image-to-textured-mesh
-name: Image to Textured 3D Model
-version: 1.0.0
+name: Image to Textured 3D Model (Best Quality)
+version: 1.2.1
 category: three-d
 media_type: model
 description: >
   Generate a 3D mesh from a single image and paint it, end to end, using
   Tencent's Hunyuan3D-2 shape and paint pipelines (kijai's
-  ComfyUI-Hunyuan3DWrapper). Unlike three-d.texture-mesh, which expects an
-  already-generated GLB and produced no visible texture on the raw
-  marching-cubes output it was given, this workflow generates the mesh and
-  textures it in the same graph: the freshly generated shape is cleaned up
-  (floater/degenerate-face removal, face count reduction) before UV-unwrapping
-  and multi-view texture painting, which is what the raw output was missing.
-  Use this when you want a textured model from an image in one pass; use
-  three-d.texture-mesh only if you already have a clean, UV-mapped mesh from
-  elsewhere.
+  ComfyUI-Hunyuan3DWrapper). This workflow uses the **best possible quality settings**:
+  - Shape steps: 75 (increased from 50)
+  - Octree resolution: 512 (increased from 384) for higher geometry detail
+  - Max face count: 80000 (increased from 40000) to preserve detail
+  - Smooth normals: enabled for better shading
+  - Render resolution: 2048 (increased from 1024)
+  - Texture size: 4096 (increased from 2048) for high-res textures
+  - Paint steps: 50 (increased from 25)
+  - View size: 1024 (increased from 512) for detailed multi-view painting
+  Background removal (rembg) and delighting now run before *both* shape
+  generation and texture painting (previously delighting only reached
+  texture painting, so shadows in the reference photo could distort the
+  mesh's shape) - toggle either off with the remove_background /
+  remove_shadows inputs below.
 status: experimental
 
 entrypoints:
@@ -34,15 +39,16 @@ inputs:
     description: Image used both to generate the mesh's shape and to paint its texture
 
   - id: shape_steps
-    label: Shape steps
+    label: Shape generation steps
     type: int
     required: false
-    default: 50
+    default: 75
     minimum: 1
     maximum: 100
     node_id: "3"
     node_type: Hy3DGenerateMesh
     input: steps
+    description: Higher steps (75-100) yield better shape detail
 
   - id: shape_guidance_scale
     label: Shape guidance scale
@@ -56,7 +62,7 @@ inputs:
     node_type: Hy3DGenerateMesh
     input: guidance_scale
 
-  - id: shape_seed
+  - id: seed
     label: Shape seed
     type: int
     required: false
@@ -67,29 +73,99 @@ inputs:
     node_type: Hy3DGenerateMesh
     input: seed
 
+  - id: box_v
+    label: Bounding box padding
+    type: float
+    required: false
+    default: 1.01
+    minimum: 1.0
+    maximum: 1.5
+    step: 0.01
+    node_id: "4"
+    node_type: Hy3DVAEDecode
+    input: box_v
+    description: Padding around the mesh volume during shape decoding. Increase if protruding parts (limbs, ears, thin extensions) are getting clipped off.
+
+  - id: remove_background
+    label: Remove background
+    type: boolean
+    required: false
+    default: true
+    node_id: "20"
+    node_type: ComfySwitchNode
+    input: switch
+    description: Segments the subject out (rembg, isnet-general-use, CPU) before shape and texture generation. Turn off if your reference image is already on a clean plain/transparent background.
+
+  - id: remove_shadows
+    label: Remove existing shadows/lighting
+    type: boolean
+    required: false
+    default: true
+    node_id: "21"
+    node_type: ComfySwitchNode
+    input: switch
+    description: Applies the delighting pass to both shape generation and texture painting, not just texture. Turn off if your reference image already has flat, even lighting.
+
+  - id: octree_resolution
+    label: Octree resolution (geometry detail)
+    type: int
+    required: false
+    default: 512
+    minimum: 256
+    maximum: 768
+    step: 64
+    node_id: "4"
+    node_type: Hy3DVAEDecode
+    input: octree_resolution
+    description: Higher resolution (512-768) yields more detailed geometry but uses more VRAM
+
   - id: max_facenum
     label: Max face count
     type: int
     required: false
-    default: 40000
+    default: 80000
     minimum: 1000
     maximum: 500000
     node_id: "5"
     node_type: Hy3DPostprocessMesh
     input: max_facenum
-    description: Mesh is reduced to at most this many faces before UV-wrapping and texturing
+    description: Mesh is reduced to at most this many faces before UV-wrapping and texturing. Higher values preserve more detail.
+
+  - id: smooth_normals
+    label: Smooth normals
+    type: boolean
+    required: false
+    default: true
+    node_id: "5"
+    node_type: Hy3DPostprocessMesh
+    input: smooth_normals
+    description: Enable smooth normals for better shading and appearance
+
+  - id: render_size
+    label: Render resolution (multi-view)
+    type: int
+    required: false
+    default: 2048
+    minimum: 512
+    maximum: 2048
+    step: 256
+    node_id: "8"
+    node_type: Hy3DRenderMultiView
+    input: render_size
+    description: Resolution for generating multi-view normal and position maps
 
   - id: texture_size
     label: Texture size
     type: int
     required: false
-    default: 2048
-    minimum: 512
+    default: 4096
+    minimum: 1024
     maximum: 4096
-    step: 16
+    step: 512
     node_id: "8"
     node_type: Hy3DRenderMultiView
     input: texture_size
+    description: Output texture resolution. 4096 gives the highest quality textures.
 
   - id: delight_steps
     label: Delight steps
@@ -107,12 +183,26 @@ inputs:
     label: Paint steps
     type: int
     required: false
-    default: 25
+    default: 50
     minimum: 1
     maximum: 100
     node_id: "12"
     node_type: Hy3DSampleMultiView
     input: steps
+    description: Higher steps (50+) yield better texture quality and detail
+
+  - id: view_size
+    label: View size (multi-view painting)
+    type: int
+    required: false
+    default: 1024
+    minimum: 512
+    maximum: 1024
+    step: 256
+    node_id: "12"
+    node_type: Hy3DSampleMultiView
+    input: view_size
+    description: Resolution for each view during texture painting. 1024 gives the best detail.
 
   - id: paint_seed
     label: Paint seed
@@ -137,7 +227,7 @@ inputs:
 outputs:
   - id: model
     type: model
-    description: Generated, textured GLB mesh
+    description: Generated, textured GLB mesh with best possible quality
 
 models:
   required:
@@ -156,11 +246,12 @@ custom_nodes:
   required:
     - comfyui
     - ComfyUI-Hunyuan3DWrapper
+    - ComfyUI_essentials
   optional: []
 
 hardware:
-  minimum_vram_gb: 12
-  recommended_vram_gb: 16
+  minimum_vram_gb: 16
+  recommended_vram_gb: 24
   supports_low_vram: false
   supports_cpu_offload: true
 
@@ -172,3 +263,6 @@ tags:
   - mesh
   - image-to-3d
   - textured
+  - high-quality
+  - background-removal
+  - delighting

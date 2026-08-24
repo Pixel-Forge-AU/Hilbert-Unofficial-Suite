@@ -17,20 +17,20 @@ media_type: video
 entrypoints:
   ui: workflow.json
 inputs:
-  - id: 138.value
+  - id: 136.prompt
     label: Prompt
     type: textarea
     required: false
     default: >
       Reference <Picture 1> and <Picture 2> by tag, then describe the target
       scene, motion, and audio.
-    node_id: '138'
-    node_type: PrimitiveStringMultiline
-    input: value
+    node_id: '136'
+    node_type: MiniMaxH3ReferenceToVideo
+    input: prompt
     description: Reference each connected input by tag in connection order, e.g. "<Picture 1>"
   - id: 137.image
     label: Reference image 1
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '137'
@@ -40,7 +40,7 @@ inputs:
     description: First reference image (referenced as "<Picture 1>" in the prompt)
   - id: 139.image
     label: Reference image 2
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '139'
@@ -80,22 +80,24 @@ inputs:
     node_type: MiniMaxH3ReferenceToVideo
     input: ref_image_size
     description: "'match' scales refs to generation resolution (faster); 'max' keeps up to 2048px short edge for stronger identity fidelity, slower"
-  - id: 132.value
+  - id: 131.values.a
     label: Duration (seconds)
     type: float
     required: false
     default: 5
     minimum: 0.5
     maximum: 15
-    node_id: '132'
-    node_type: PrimitiveFloat
-    input: value
+    node_id: '131'
+    node_type: ComfyMathExpression
+    input: values.a
     description: Converted to a valid frame length by the Math Expression node
-  - id: 129.noise_seed
+  - id: seed
     label: Seed
     type: int
     required: false
-    default: 157368968253448
+    default: -1
+    minimum: -1
+    maximum: 1152921504606846975
     node_id: '129'
     node_type: RandomNoise
     input: noise_seed
