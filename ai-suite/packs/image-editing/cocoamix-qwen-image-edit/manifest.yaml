@@ -50,7 +50,7 @@ inputs:
     node_id: '5'
     node_type: LoraLoaderModelOnly
     input: strength_model
-  - id: 10.seed
+  - id: seed
     label: Seed
     type: int
     required: false

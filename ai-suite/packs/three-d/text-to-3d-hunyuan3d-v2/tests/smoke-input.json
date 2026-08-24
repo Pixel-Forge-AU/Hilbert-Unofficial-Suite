@@ -1,0 +1,10 @@
+{
+  "prompt": "A cute anime girl with gigantic fennec ears and a big fluffy fox tail, long wavy blonde hair, large blue eyes, wearing a pink sweater and a black winter coat",
+  "negative_prompt": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs",
+  "steps": 25,
+  "guidance_scale": 5.5,
+  "seed": 42,
+  "max_facenum": 30000,
+  "octree_resolution": 256,
+  "filename_prefix": "3d/text-to-3d-hunyuan3d-v2/smoke-test"
+}

@@ -78,7 +78,7 @@ inputs:
     node_id: '7'
     node_type: WanImageToVideo
     input: length
-  - id: 8.seed
+  - id: seed
     label: Seed
     type: int
     required: false

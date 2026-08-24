@@ -45,7 +45,7 @@ inputs:
   node_type: KSampler
   input: cfg
   accept: image/png,image/jpeg,image/webp,image/bmp
-- id: 102_sg_3.seed
+- id: seed
   label: Seed
   type: int
   required: false

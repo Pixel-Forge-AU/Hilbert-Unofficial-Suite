@@ -1,0 +1,7 @@
+# Balanced preset for Text to 3D (Hunyuan3D-2)
+# Good balance between quality and generation time
+
+steps: 50
+guidance_scale: 5.5
+max_facenum: 40000
+octree_resolution: 384

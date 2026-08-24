@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-08-06T04:22:40.616322Z",
-  "total_packs": 12,
-  "total_workflows": 89,
+  "generated_at": "2026-08-24T12:31:37.349345Z",
+  "total_packs": 14,
+  "total_workflows": 91,
   "categories": [
     "audio",
     "character",
@@ -10,6 +10,8 @@
     "horror-gore",
     "image-analysis",
     "image-editing",
+    "image-gen",
+    "image-stylized",
     "llm-orchestration",
     "three-d",
     "video-edit",
@@ -39,7 +41,6 @@
       "version": "2.0.0",
       "description": "Character creation and consistency workflows including character sheets, identity preservation, and various character generation modes.\n",
       "workflows": [
-        "character.portrait",
         "character.full-body",
         "character.character-sheet",
         "character.expression-sheet",
@@ -63,13 +64,6 @@
       "version": "2.0.0",
       "description": "Fundamental image generation workflows including text-to-image, image-to-image, inpainting, and upscaling capabilities.\n",
       "workflows": [
-        "core.text-to-image",
-        "core.text-to-image-hq",
-        "core.text-to-image-fast",
-        "core.text-to-image-quality",
-        "core.text-to-image-extreme",
-        "core.text-to-image-low-vram",
-        "core.text-to-image-batch",
         "core.image-to-image",
         "core.inpainting",
         "core.outpainting-square-to-landscape",
@@ -80,9 +74,7 @@
         "core.upscale-simple",
         "core.upscale-high-quality",
         "core.multi-model-comparison",
-        "core.hidream-i1-dev-gguf",
-        "community.animepasteldream-soft-bakedvae",
-        "community.krea2-masterpieces-v51"
+        "core.hidream-i1-dev-gguf"
       ],
       "default_enabled": true,
       "dependencies": [],
@@ -161,6 +153,40 @@
       "manifest_path": "packs\\image-editing\\pack-manifest.yaml"
     },
     {
+      "id": "image-gen",
+      "name": "Image Generation",
+      "version": "1.0.0",
+      "description": "Generating images from text\n",
+      "workflows": [
+        "core.text-to-image-quality",
+        "core.text-to-image",
+        "core.text-to-image-fast",
+        "core.text-to-image-extreme",
+        "core.text-to-image-low-vram",
+        "core.text-to-image-hq",
+        "core.text-to-image-batch"
+      ],
+      "default_enabled": true,
+      "dependencies": [],
+      "relative_path": "image-gen\\pack-manifest.yaml",
+      "manifest_path": "packs\\image-gen\\pack-manifest.yaml"
+    },
+    {
+      "id": "image-stylized",
+      "name": "Stylize",
+      "version": "1.0.0",
+      "description": "Different stylizations\n",
+      "workflows": [
+        "community.ghostmix-v20-bakedvae",
+        "community.animepasteldream-soft-bakedvae",
+        "community.pixel-f2-lora"
+      ],
+      "default_enabled": true,
+      "dependencies": [],
+      "relative_path": "image-stylized\\pack-manifest.yaml",
+      "manifest_path": "packs\\image-stylized\\pack-manifest.yaml"
+    },
+    {
       "id": "llm-orchestration",
       "name": "LLM Orchestration",
       "version": "2.0.0",
@@ -195,6 +221,8 @@
         "three-d.text-to-3d",
         "three-d.texture-mesh",
         "three-d.image-to-textured-mesh",
+        "three-d.image-to-textured-mesh-2-1",
+        "three-d.text-to-3d-hunyuan3d-v2",
         "studio.text-to-3d-local-zimage-hunyuan3d"
       ],
       "default_enabled": true,
@@ -1591,350 +1619,13 @@
       "manifest_path": "packs\\character\\identity-consistency\\manifest.yaml"
     },
     {
-      "id": "character.portrait",
-      "name": "Character Portrait",
-      "version": "1.0.0",
-      "category": "character",
-      "subcategory": "portrait",
-      "description": "High-quality character portrait generation focusing on face and upper body. Optimized for detailed facial features, expressions, and character consistency. Perfect for character designs, headshots, and detailed portraits.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the character portrait"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "low quality, worst quality, lowres, blurry, text, watermark, signature, cropped, out of frame, extra fingers, extra digits, mutated hands",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 768,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 7.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "steps",
-          "type": "int",
-          "required": false,
-          "default": 25,
-          "minimum": 10,
-          "maximum": 100,
-          "step": 1,
-          "description": "Number of inference steps"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "juggernaut-xl-v9.safetensors",
-          "description": "Checkpoint model to use"
-        },
-        {
-          "id": "reference_image",
-          "label": "Reference image",
-          "type": "file",
-          "required": false,
-          "accept": "image/png,image/jpeg,image/webp,image/bmp",
-          "description": "Reference image for character consistency"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated character portrait"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "flux",
-              "sdxl",
-              "sd15",
-              "sd3"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": [
-              "character-style",
-              "portrait-posing"
-            ]
-          },
-          {
-            "role": "controlnet",
-            "suggested": [
-              "depth",
-              "pose"
-            ]
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux",
-          "comfyui-pulid",
-          "comfyui-instantid"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 6,
-        "recommended_vram_gb": 12,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "medium",
-        "batch_supported": true
-      },
-      "content": {
-        "themes": [
-          "character-design",
-          "portrait",
-          "headshot",
-          "detailed-face",
-          "expressions"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "portrait",
-        "character",
-        "face",
-        "upper-body",
-        "detailed",
-        "headshot",
-        "expressions",
-        "768x1024"
-      ],
-      "presets": [
-        "quick",
-        "detailed"
-      ],
-      "relative_path": "character\\portrait\\manifest.yaml",
-      "manifest_path": "packs\\character\\portrait\\manifest.yaml"
-    },
-    {
-      "id": "community.animepasteldream-soft-bakedvae",
-      "name": "AnimePastelDream (Soft, Baked VAE)",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "sdxl",
-      "description": "Self-contained SDXL-family anime checkpoint with a baked-in VAE, tuned for a soft pastel look.",
-      "status": "experimental",
-      "entrypoints": {
-        "ui": "workflow.json"
-      },
-      "inputs": [
-        {
-          "id": "2.text",
-          "label": "Prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "masterpiece, best quality, highly detailed, anime style,",
-          "node_id": "2",
-          "node_type": "CLIPTextEncode",
-          "input": "text"
-        },
-        {
-          "id": "3.text",
-          "label": "Negative prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark",
-          "node_id": "3",
-          "node_type": "CLIPTextEncode",
-          "input": "text"
-        },
-        {
-          "id": "4.width",
-          "label": "Width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "node_id": "4",
-          "node_type": "EmptyLatentImage",
-          "input": "width"
-        },
-        {
-          "id": "4.height",
-          "label": "Height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "node_id": "4",
-          "node_type": "EmptyLatentImage",
-          "input": "height"
-        },
-        {
-          "id": "5.seed",
-          "label": "Seed",
-          "type": "int",
-          "required": false,
-          "default": 42,
-          "node_id": "5",
-          "node_type": "KSampler",
-          "input": "seed"
-        },
-        {
-          "id": "5.steps",
-          "label": "Steps",
-          "type": "int",
-          "required": false,
-          "default": 20,
-          "minimum": 1,
-          "maximum": 100,
-          "node_id": "5",
-          "node_type": "KSampler",
-          "input": "steps"
-        },
-        {
-          "id": "5.cfg",
-          "label": "CFG",
-          "type": "float",
-          "required": false,
-          "default": 7.0,
-          "minimum": 0,
-          "maximum": 20,
-          "node_id": "5",
-          "node_type": "KSampler",
-          "input": "cfg"
-        },
-        {
-          "id": "1.ckpt_name",
-          "label": "Checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "animePastelDream_softBakedVae.safetensors",
-          "node_id": "1",
-          "node_type": "CheckpointLoaderSimple",
-          "input": "ckpt_name"
-        },
-        {
-          "id": "7.filename_prefix",
-          "label": "Output folder/prefix",
-          "type": "text",
-          "required": false,
-          "default": "animepasteldream-soft-bakedvae",
-          "node_id": "7",
-          "node_type": "SaveImage",
-          "input": "filename_prefix"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "node_id": "1",
-            "node_type": "CheckpointLoaderSimple",
-            "name": "animePastelDream_softBakedVae.safetensors",
-            "directory": "checkpoints"
-          }
-        ],
-        "optional": []
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": []
-      },
-      "hardware": {
-        "minimum_vram_gb": 8,
-        "recommended_vram_gb": 12,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {},
-      "content": {},
-      "tags": [],
-      "presets": [],
-      "relative_path": "core-generation\\animepasteldream-soft-bakedvae\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\animepasteldream-soft-bakedvae\\manifest.yaml"
-    },
-    {
       "id": "core.hidream-i1-dev-gguf",
       "name": "HiDream-I1 Dev (GGUF)",
       "version": "1.0.0",
       "category": "core-generation",
       "subcategory": "hidream",
-      "description": "Built from the Q8 GGUF-quantized HiDream-I1 Dev diffusion transformer (hiDreamI1Dev_devQ8174GB.gguf), following node-for-node the official \"HiDream-I1\" ComfyUI native template bundled with this install (comfyui_workflow_templates_json/templates/hidream_i1_dev.json) - UnetLoaderGGUF in place of that template's plain UNETLoader, QuadrupleCLIPLoader, ModelSamplingSD3 (shift 6.0, the documented Dev value - Full and Fast use 3.0), EmptySD3LatentImage, KSampler (lcm/normal, 28 steps, cfg 1 per the template's own \"official sampling settings\" note for Dev), VAEDecode, SaveImage. HiDream-I1 shares Flux's VAE/latent format (comfy/supported_models.py: latent_format = latent_formats.Flux) - the installed ae.safetensors is an exact match, no substitution needed. Of QuadrupleCLIPLoader's 4 text encoder slots: t5xxl is covered by the installed t5xxl_fp16.safetensors (a precision/format variant of the same T5-XXL model the template's t5xxl_fp8_e4m3fn_scaled.safetensors calls for - same role, safe substitute); clip_l is pointed at the installed generic clip_l.safetensors as a best-effort stand-in, but this is NOT confirmed identical to the template's clip_l_hidream.safetensors (HiDream reportedly uses a long-context-tuned CLIP-L/G pair) so prompt fidelity may suffer; clip_g_hidream.safetensors and llama_3.1_8b_instruct_fp8_scaled.safetensors are not installed under any name in this suite - the installed llava_llama3_fp8_scaled.safetensors is a vision-tuned LLaVA fork of Llama-3, not the plain instruction-tuned text encoder HiDream expects, so it was deliberately NOT substituted in (risk of shape/tokenizer mismatch or silently wrong conditioning) - both missing files are flagged below with their real download URLs (taken directly from the bundled template's own model-links note, Comfy-Org/ HiDream-I1_ComfyUI on Hugging Face). Needs the city96/ComfyUI-GGUF custom node for UnetLoaderGGUF (already installed in this suite). Marked experimental until the two missing text encoders are in place - the graph will load but CLIP encoding will fail without them.\n",
-      "status": "experimental",
+      "description": "Built from the Q8 GGUF-quantized HiDream-I1 Dev diffusion transformer (hiDreamI1Dev_devQ8174GB.gguf), following node-for-node the official \"HiDream-I1\" ComfyUI native template bundled with this install (comfyui_workflow_templates_json/templates/hidream_i1_dev.json) - UnetLoaderGGUF in place of that template's plain UNETLoader, QuadrupleCLIPLoader, ModelSamplingSD3, EmptySD3LatentImage, KSampler, VAEDecode, SaveImage. HiDream-I1 shares Flux's VAE/latent format. \n",
+      "status": "stable",
       "entrypoints": {
         "ui": "workflow.json"
       },
@@ -1996,7 +1687,7 @@
           "input": "shift"
         },
         {
-          "id": "8.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -2111,134 +1802,194 @@
       "manifest_path": "packs\\core-generation\\hidream-i1-dev-gguf\\manifest.yaml"
     },
     {
-      "id": "community.krea2-masterpieces-v51",
-      "name": "Krea2 Masterpieces v51 (Krea2 LoRA)",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "krea2",
-      "description": "Standalone preset for the krea2-masterpieces-v51 quality/style LoRA, applied over the Moody Cutie Mix Krea2 v2.0 checkpoint.\n",
+      "id": "horror.battle-damage",
+      "name": "Battle Damage & Wear",
+      "version": "1.1.0",
+      "category": "horror-gore",
+      "subcategory": "battle-damage",
+      "description": "Apply realistic battle damage including dirt, blood, torn clothing, and combat wear to a photo. Img2img redraw of the source image, with the blood/dirt/tear sliders each blending a dedicated concept prompt into the positive conditioning and damage_intensity driving how strongly the source is redrawn.\n",
       "status": "experimental",
       "entrypoints": {
         "ui": "workflow.json"
       },
       "inputs": [
         {
-          "id": "5.text",
+          "id": "checkpoint",
+          "label": "Checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "reedXXXIllustrious_v150.safetensors",
+          "node_id": "2",
+          "node_type": "CheckpointLoaderSimple",
+          "input": "ckpt_name",
+          "description": "SDXL/SD1.5 checkpoint to sample with."
+        },
+        {
+          "id": "image",
+          "label": "Base image",
+          "type": "file",
+          "required": true,
+          "default": "example.jpg",
+          "node_id": "1",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp",
+          "description": "Photo to apply battle damage to."
+        },
+        {
+          "id": "prompt",
           "label": "Prompt",
           "type": "textarea",
           "required": false,
-          "default": "masterpiece, best quality, highly detailed, photorealistic,",
-          "node_id": "5",
+          "default": "battle damage, blood splatter, torn clothing, dirt and grime, combat wear, gritty texture, violent damage, realistic wear, gory effects, horror atmosphere, action scene, cinematic lighting",
+          "node_id": "3",
           "node_type": "CLIPTextEncode",
-          "input": "text"
+          "input": "text",
+          "description": "Positive prompt for additional details."
         },
         {
-          "id": "6.text",
+          "id": "negative_prompt",
           "label": "Negative prompt",
           "type": "textarea",
           "required": false,
-          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark",
-          "node_id": "6",
+          "default": "clean, fresh, new, pristine, no damage, smooth skin, intact clothing, no blood, no dirt, no tears, no gore, no violence, no horror elements",
+          "node_id": "4",
           "node_type": "CLIPTextEncode",
-          "input": "text"
+          "input": "text",
+          "description": "Negative prompt for undesirable elements."
         },
         {
-          "id": "7.width",
+          "id": "damage_intensity",
+          "label": "Damage intensity",
+          "type": "float",
+          "required": false,
+          "default": 0.7,
+          "minimum": 0.05,
+          "maximum": 1.0,
+          "step": 0.05,
+          "node_id": "13",
+          "node_type": "KSampler",
+          "input": "denoise",
+          "description": "How strongly the source image is redrawn (0=barely touched, 1=fully redrawn)."
+        },
+        {
+          "id": "blood_amount",
+          "label": "Blood amount",
+          "type": "float",
+          "required": false,
+          "default": 0.6,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "step": 0.05,
+          "node_id": "8",
+          "node_type": "ConditioningAverage",
+          "input": "conditioning_to_strength",
+          "description": "How much the blood-splatter concept is blended into the prompt."
+        },
+        {
+          "id": "dirt_amount",
+          "label": "Dirt amount",
+          "type": "float",
+          "required": false,
+          "default": 0.5,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "step": 0.05,
+          "node_id": "9",
+          "node_type": "ConditioningAverage",
+          "input": "conditioning_to_strength",
+          "description": "How much the dirt/grime concept is blended into the prompt."
+        },
+        {
+          "id": "tear_amount",
+          "label": "Tear amount",
+          "type": "float",
+          "required": false,
+          "default": 0.4,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "step": 0.05,
+          "node_id": "10",
+          "node_type": "ConditioningAverage",
+          "input": "conditioning_to_strength",
+          "description": "How much the torn-cloth concept is blended into the prompt."
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "node_id": "13",
+          "node_type": "KSampler",
+          "input": "seed",
+          "description": "Random seed for reproducibility (-1 for random)."
+        },
+        {
+          "id": "cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 1.0,
+          "maximum": 20.0,
+          "step": 0.5,
+          "node_id": "13",
+          "node_type": "KSampler",
+          "input": "cfg",
+          "description": "Classifier-free guidance scale."
+        },
+        {
+          "id": "steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 25,
+          "minimum": 10,
+          "maximum": 100,
+          "step": 1,
+          "node_id": "13",
+          "node_type": "KSampler",
+          "input": "steps",
+          "description": "Number of inference steps."
+        },
+        {
+          "id": "width",
           "label": "Width",
           "type": "int",
           "required": false,
           "default": 1024,
           "minimum": 256,
           "maximum": 2048,
-          "node_id": "7",
-          "node_type": "EmptyLatentImage",
-          "input": "width"
+          "step": 64,
+          "node_id": "11",
+          "node_type": "ImageScale",
+          "input": "width",
+          "description": "Source image is scaled to this width before redrawing."
         },
         {
-          "id": "7.height",
+          "id": "height",
           "label": "Height",
           "type": "int",
           "required": false,
           "default": 1024,
           "minimum": 256,
           "maximum": 2048,
-          "node_id": "7",
-          "node_type": "EmptyLatentImage",
-          "input": "height"
+          "step": 64,
+          "node_id": "11",
+          "node_type": "ImageScale",
+          "input": "height",
+          "description": "Source image is scaled to this height before redrawing."
         },
         {
-          "id": "8.seed",
-          "label": "Seed",
-          "type": "int",
-          "required": false,
-          "default": 42,
-          "node_id": "8",
-          "node_type": "KSampler",
-          "input": "seed"
-        },
-        {
-          "id": "8.steps",
-          "label": "Steps",
-          "type": "int",
-          "required": false,
-          "default": 25,
-          "minimum": 1,
-          "maximum": 100,
-          "node_id": "8",
-          "node_type": "KSampler",
-          "input": "steps"
-        },
-        {
-          "id": "8.cfg",
-          "label": "CFG",
-          "type": "float",
-          "required": false,
-          "default": 4.0,
-          "minimum": 0,
-          "maximum": 20,
-          "node_id": "8",
-          "node_type": "KSampler",
-          "input": "cfg"
-        },
-        {
-          "id": "1.unet_name",
-          "label": "Checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "moodyCutieMixKrea2_v20.safetensors",
-          "node_id": "1",
-          "node_type": "UNETLoader",
-          "input": "unet_name"
-        },
-        {
-          "id": "4.lora_name",
-          "label": "LoRA",
-          "type": "model",
-          "required": false,
-          "default": "krea2-masterpieces-v51.safetensors",
-          "node_id": "4",
-          "node_type": "LoraLoaderModelOnly",
-          "input": "lora_name"
-        },
-        {
-          "id": "4.strength_model",
-          "label": "LoRA strength",
-          "type": "float",
-          "required": false,
-          "default": 0.8,
-          "minimum": -2,
-          "maximum": 2,
-          "node_id": "4",
-          "node_type": "LoraLoaderModelOnly",
-          "input": "strength_model"
-        },
-        {
-          "id": "10.filename_prefix",
+          "id": "filename_prefix",
           "label": "Output folder/prefix",
           "type": "text",
           "required": false,
-          "default": "krea2-masterpieces-v51",
-          "node_id": "10",
+          "default": "ai-suite/battle-damage",
+          "node_id": "15",
           "node_type": "SaveImage",
           "input": "filename_prefix"
         }
@@ -2247,33 +1998,15 @@
         {
           "id": "image",
           "type": "image",
-          "description": "Generated image output"
+          "description": "Source image redrawn with battle damage effects"
         }
       ],
       "models": {
         "required": [
           {
-            "node_id": "1",
-            "node_type": "UNETLoader",
-            "name": "moodyCutieMixKrea2_v20.safetensors",
-            "directory": "diffusion_models"
-          },
-          {
-            "node_type": "CLIPLoader",
-            "name": "qwen3vl_4b_fp8_scaled.safetensors",
-            "directory": "text_encoders",
-            "url": "https://huggingface.co/Comfy-Org/Krea-2/resolve/main/text_encoders/qwen3vl_4b_fp8_scaled.safetensors"
-          },
-          {
-            "node_type": "VAELoader",
-            "name": "qwen_image_vae.safetensors",
-            "directory": "vae"
-          },
-          {
-            "node_id": "4",
-            "node_type": "LoraLoaderModelOnly",
-            "name": "krea2-masterpieces-v51.safetensors",
-            "directory": "loras"
+            "type": "checkpoints",
+            "name": "reedXXXIllustrious_v150.safetensors",
+            "url": ""
           }
         ],
         "optional": []
@@ -2285,1387 +2018,13 @@
         "optional": []
       },
       "hardware": {
-        "minimum_vram_gb": 12,
-        "recommended_vram_gb": 24,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {},
-      "content": {},
-      "tags": [],
-      "presets": [],
-      "relative_path": "core-generation\\krea2-masterpieces-v51\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\krea2-masterpieces-v51\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image",
-      "name": "Text to Image",
-      "version": "2.0.0",
-      "category": "core-generation",
-      "subcategory": "",
-      "description": "Fast text-to-image generation using the migrated Z-Image Turbo workflow.",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json"
-      },
-      "inputs": [
-        {
-          "id": "67.text",
-          "label": "Prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "anime RPG game style, cute anime girl with gigantic fennec ears and a big fluffy fox tail with long wavy blonde hair and large blue eyes blonde colored eyelashes wearing a pink sweater a large oversized gold trimmed black winter coat and a long blue maxi skirt and a red scarf, she is sitting beside a campfire in the wilderness at night playing guitar with a milky way galaxy sky",
-          "legacy_kind": "textarea",
-          "node_id": "67",
-          "node_type": "CLIPTextEncode",
-          "input": "text",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "71.text",
-          "label": "Negative prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs",
-          "legacy_kind": "textarea",
-          "node_id": "71",
-          "node_type": "CLIPTextEncode",
-          "input": "text",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.width",
-          "label": "Width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "width",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.height",
-          "label": "Height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "height",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.steps",
-          "label": "Steps",
-          "type": "int",
-          "required": false,
-          "default": 8,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "steps",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.cfg",
-          "label": "CFG",
-          "type": "int",
-          "required": false,
-          "default": 1,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "cfg",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.batch_size",
-          "label": "Batch",
-          "type": "int",
-          "required": false,
-          "default": 1,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "batch_size",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.seed",
-          "label": "Seed",
-          "type": "int",
-          "required": false,
-          "default": 42,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "seed",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "9.filename_prefix",
-          "label": "Output folder/prefix",
-          "type": "text",
-          "required": false,
-          "default": "ComfyUI",
-          "legacy_kind": "text",
-          "node_id": "9",
-          "node_type": "SaveImage",
-          "input": "filename_prefix",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "69.shift",
-          "label": "ModelSamplingAuraFlow shift",
-          "type": "int",
-          "required": false,
-          "default": 3,
-          "legacy_kind": "number",
-          "node_id": "69",
-          "node_type": "ModelSamplingAuraFlow",
-          "input": "shift",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.denoise",
-          "label": "Denoise",
-          "type": "int",
-          "required": false,
-          "default": 1,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "denoise",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "node_id": "62",
-            "node_type": "CLIPLoader",
-            "name": "qwen_3_4b.safetensors",
-            "directory": "text_encoders",
-            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
-          },
-          {
-            "node_id": "63",
-            "node_type": "VAELoader",
-            "name": "ae.safetensors",
-            "directory": "vae",
-            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
-          },
-          {
-            "node_id": "66",
-            "node_type": "UNETLoader",
-            "name": "z_image_turbo_bf16.safetensors",
-            "directory": "diffusion_models",
-            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
-          }
-        ],
-        "optional": []
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": []
-      },
-      "hardware": {
-        "minimum_vram_gb": 8,
-        "recommended_vram_gb": 16,
-        "supports_low_vram": true,
-        "supports_cpu_offload": false
-      },
-      "runtime": {},
-      "content": {},
-      "tags": [],
-      "presets": [],
-      "relative_path": "core-generation\\text-to-image\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-batch",
-      "name": "Text to Image Batch",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "text-to-image",
-      "description": "Batch processing support for generating multiple images from prompts. Perfect for exploring variations and creating image collections.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the desired image"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "batch_size",
-          "type": "int",
-          "required": false,
-          "default": 4,
-          "minimum": 1,
-          "maximum": 16,
-          "step": 1,
-          "description": "Number of images to generate in batch"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 8.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "sdxl",
-          "description": "Checkpoint model to use"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "images",
-          "type": "array[image]",
-          "description": "Array of generated images"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "sdxl",
-              "flux",
-              "sd15",
-              "sd3"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l",
-              "clip-g"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": []
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 8,
-        "recommended_vram_gb": 12,
-        "supports_low_vram": false,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "batch",
-        "batch_supported": true
-      },
-      "content": {
-        "themes": [
-          "batch",
-          "multiple",
-          "collection",
-          "variations"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "batch",
-        "multiple",
-        "collection",
-        "variations",
-        "25-steps",
-        "sdxl"
-      ],
-      "presets": [
-        "fast",
-        "balanced",
-        "quality"
-      ],
-      "relative_path": "core-generation\\text-to-image-batch\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-batch\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-extreme",
-      "name": "Text to Image Extreme",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "text-to-image",
-      "description": "High-quality text-to-image generation with 50 steps for maximum detail. Optimized for ultimate quality at the cost of longer generation time.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the desired image"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 8.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "sdxl",
-          "description": "Checkpoint model to use"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "sdxl",
-              "flux",
-              "sd15",
-              "sd3"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l",
-              "clip-g"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": []
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 12,
-        "recommended_vram_gb": 16,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "high",
-        "batch_supported": true
-      },
-      "content": {
-        "themes": [
-          "high-quality",
-          "extreme-detail",
-          "professional",
-          "premium"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "extreme",
-        "high-quality",
-        "detailed",
-        "professional",
-        "50-steps",
-        "sdxl"
-      ],
-      "presets": [
-        "fast",
-        "balanced",
-        "quality"
-      ],
-      "relative_path": "core-generation\\text-to-image-extreme\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-extreme\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-fast",
-      "name": "Text to Image Fast",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "text-to-image",
-      "description": "Fast text-to-image generation with 12 steps for quick drafts, thumbnails, and concept art. Optimized for speed while maintaining acceptable quality for rapid iteration.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the desired image"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 2.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "juggernaut-xl-v9.safetensors",
-          "description": "Checkpoint model to use"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "flux",
-              "sdxl",
-              "sd15",
-              "sd3",
-              "sdxl-lightning"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": []
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 4,
-        "recommended_vram_gb": 8,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "light",
-        "batch_supported": true
-      },
-      "content": {
-        "themes": [
-          "general",
-          "drafting",
-          "thumbnailing",
-          "quick-iterations"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "fast",
-        "quick",
-        "draft",
-        "thumbnail",
-        "rapid-iteration",
-        "12-steps",
-        "low-resource"
-      ],
-      "presets": [
-        "fast",
-        "balanced",
-        "quality"
-      ],
-      "relative_path": "core-generation\\text-to-image-fast\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-fast\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-hq",
-      "name": "Text to Image (HQ, high RAM)",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "",
-      "description": "Higher-fidelity text-to-image generation using the non-distilled Qwen-Image checkpoint (~20B params). Unlike core.text-to-image (a step/cfg-distilled \"turbo\" model), this is a full diffusion model: steps and cfg are real quality levers here, not just speed knobs.\n",
-      "status": "experimental",
-      "entrypoints": {
-        "ui": "workflow.json"
-      },
-      "inputs": [
-        {
-          "id": "67.text",
-          "label": "Prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "A breathtaking cinematic landscape at golden hour, dramatic clouds, rich detail, painterly light, high fidelity, evocative atmosphere",
-          "legacy_kind": "textarea",
-          "node_id": "67",
-          "node_type": "CLIPTextEncode",
-          "input": "text",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "71.text",
-          "label": "Negative prompt",
-          "type": "textarea",
-          "required": false,
-          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark, text",
-          "legacy_kind": "textarea",
-          "node_id": "71",
-          "node_type": "CLIPTextEncode",
-          "input": "text",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.width",
-          "label": "Width",
-          "type": "int",
-          "required": false,
-          "default": 1328,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "width",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.height",
-          "label": "Height",
-          "type": "int",
-          "required": false,
-          "default": 1328,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "height",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.steps",
-          "label": "Steps",
-          "type": "int",
-          "required": false,
-          "default": 20,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "steps",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.cfg",
-          "label": "CFG",
-          "type": "int",
-          "required": false,
-          "default": 4,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "cfg",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "68.batch_size",
-          "label": "Batch",
-          "type": "int",
-          "required": false,
-          "default": 1,
-          "legacy_kind": "number",
-          "node_id": "68",
-          "node_type": "EmptySD3LatentImage",
-          "input": "batch_size",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.seed",
-          "label": "Seed",
-          "type": "int",
-          "required": false,
-          "default": 42,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "seed",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "9.filename_prefix",
-          "label": "Output folder/prefix",
-          "type": "text",
-          "required": false,
-          "default": "ComfyUI",
-          "legacy_kind": "text",
-          "node_id": "9",
-          "node_type": "SaveImage",
-          "input": "filename_prefix",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "69.shift",
-          "label": "ModelSamplingAuraFlow shift",
-          "type": "number",
-          "required": false,
-          "default": 3.1,
-          "legacy_kind": "number",
-          "node_id": "69",
-          "node_type": "ModelSamplingAuraFlow",
-          "input": "shift",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        },
-        {
-          "id": "70.denoise",
-          "label": "Denoise",
-          "type": "int",
-          "required": false,
-          "default": 1,
-          "legacy_kind": "number",
-          "node_id": "70",
-          "node_type": "KSampler",
-          "input": "denoise",
-          "accept": "image/png,image/jpeg,image/webp,image/bmp"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "node_id": "62",
-            "node_type": "CLIPLoader",
-            "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
-            "directory": "text_encoders",
-            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
-          },
-          {
-            "node_id": "63",
-            "node_type": "VAELoader",
-            "name": "qwen_image_vae.safetensors",
-            "directory": "vae",
-            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
-          },
-          {
-            "node_id": "66",
-            "node_type": "UNETLoader",
-            "name": "qwen_image_fp8_e4m3fn.safetensors",
-            "directory": "diffusion_models",
-            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors"
-          }
-        ],
-        "optional": []
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": []
-      },
-      "hardware": {
-        "minimum_vram_gb": 24,
-        "recommended_vram_gb": 32,
-        "supports_low_vram": false,
-        "supports_cpu_offload": false
-      },
-      "runtime": {},
-      "content": {},
-      "tags": [],
-      "presets": [],
-      "relative_path": "core-generation\\text-to-image-hq\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-hq\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-low-vram",
-      "name": "Text to Image Low VRAM",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "text-to-image",
-      "description": "Optimized text-to-image generation for low VRAM systems. Uses CPU offloading and memory-efficient settings.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the desired image"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 768,
-          "minimum": 256,
-          "maximum": 1536,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 768,
-          "minimum": 256,
-          "maximum": 1536,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 7.0,
-          "minimum": 1.0,
-          "maximum": 15.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "sdxl",
-          "description": "Checkpoint model to use"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "sdxl",
-              "flux",
-              "sd15",
-              "sd3"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l",
-              "clip-g"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": []
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 4,
-        "recommended_vram_gb": 6,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "low",
-        "batch_supported": false
-      },
-      "content": {
-        "themes": [
-          "low-vram",
-          "memory-efficient",
-          "budget",
-          "portable"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "low-vram",
-        "memory-efficient",
-        "budget",
-        "portable",
-        "25-steps",
-        "sdxl"
-      ],
-      "presets": [
-        "fast",
-        "balanced",
-        "quality"
-      ],
-      "relative_path": "core-generation\\text-to-image-low-vram\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-low-vram\\manifest.yaml"
-    },
-    {
-      "id": "core.text-to-image-quality",
-      "name": "Text to Image Quality",
-      "version": "1.0.0",
-      "category": "core-generation",
-      "subcategory": "text-to-image",
-      "description": "Balanced text-to-image generation with 25 steps for high-quality results. Optimized for good quality with reasonable generation time.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": true,
-          "description": "Positive prompt describing the desired image"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "width",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image width in pixels"
-        },
-        {
-          "id": "height",
-          "type": "int",
-          "required": false,
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 2048,
-          "step": 64,
-          "description": "Output image height in pixels"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 7.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "checkpoint",
-          "type": "model",
-          "required": false,
-          "default": "sdxl",
-          "description": "Checkpoint model to use"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Generated image output"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "sdxl",
-              "flux",
-              "sd15",
-              "sd3"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "text_encoder",
-            "suggested": [
-              "t5xxl",
-              "clip-l",
-              "clip-g"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": []
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 8,
+        "minimum_vram_gb": 6,
         "recommended_vram_gb": 12,
         "supports_low_vram": true,
         "supports_cpu_offload": true
       },
       "runtime": {
         "class": "medium",
-        "batch_supported": true
-      },
-      "content": {
-        "themes": [
-          "general",
-          "high-quality",
-          "balanced",
-          "professional"
-        ],
-        "adult_only": false
-      },
-      "tags": [
-        "quality",
-        "balanced",
-        "general",
-        "professional",
-        "25-steps",
-        "sdxl"
-      ],
-      "presets": [
-        "fast",
-        "balanced",
-        "quality"
-      ],
-      "relative_path": "core-generation\\text-to-image-quality\\manifest.yaml",
-      "manifest_path": "packs\\core-generation\\text-to-image-quality\\manifest.yaml"
-    },
-    {
-      "id": "horror.battle-damage",
-      "name": "Battle Damage & Wear",
-      "version": "1.0.0",
-      "category": "horror-gore",
-      "subcategory": "battle-damage",
-      "description": "Apply realistic battle damage including dirt, blood, torn clothing, and  combat wear to characters and surfaces. Creates gritty, battle-worn effects perfect for horror and action scenes.\n",
-      "status": "stable",
-      "entrypoints": {
-        "ui": "workflow.json",
-        "api": "workflow-api.json"
-      },
-      "inputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "required": true,
-          "description": "Base image to apply battle damage to"
-        },
-        {
-          "id": "prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Positive prompt for additional details"
-        },
-        {
-          "id": "negative_prompt",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "description": "Negative prompt for undesirable elements"
-        },
-        {
-          "id": "damage_intensity",
-          "type": "float",
-          "required": false,
-          "default": 0.7,
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "step": 0.05,
-          "description": "Intensity of battle damage (0=none, 1=extreme)"
-        },
-        {
-          "id": "blood_amount",
-          "type": "float",
-          "required": false,
-          "default": 0.6,
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "step": 0.05,
-          "description": "Amount of blood effect"
-        },
-        {
-          "id": "dirt_amount",
-          "type": "float",
-          "required": false,
-          "default": 0.5,
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "step": 0.05,
-          "description": "Amount of dirt and grime"
-        },
-        {
-          "id": "tear_amount",
-          "type": "float",
-          "required": false,
-          "default": 0.4,
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "step": 0.05,
-          "description": "Amount of torn/cut damage"
-        },
-        {
-          "id": "seed",
-          "type": "int",
-          "required": false,
-          "default": -1,
-          "minimum": -1,
-          "maximum": 1152921504606846975,
-          "description": "Random seed for reproducibility (-1 for random)"
-        },
-        {
-          "id": "cfg",
-          "type": "float",
-          "required": false,
-          "default": 7.0,
-          "minimum": 1.0,
-          "maximum": 20.0,
-          "step": 0.5,
-          "description": "Classifier-free guidance scale"
-        },
-        {
-          "id": "steps",
-          "type": "int",
-          "required": false,
-          "default": 25,
-          "minimum": 10,
-          "maximum": 100,
-          "step": 1,
-          "description": "Number of inference steps"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "image",
-          "type": "image",
-          "description": "Image with applied battle damage effects"
-        },
-        {
-          "id": "mask",
-          "type": "mask",
-          "description": "Damage mask showing applied effects"
-        }
-      ],
-      "models": {
-        "required": [
-          {
-            "role": "checkpoint",
-            "family": [
-              "flux",
-              "sdxl",
-              "sd15",
-              "qwen",
-              "wan",
-              "hunyuan"
-            ]
-          },
-          {
-            "role": "vae",
-            "suggested": [
-              "ae",
-              "vae-ft-mse-840000-ema-pruned"
-            ]
-          },
-          {
-            "role": "controlnet",
-            "suggested": [
-              "depth",
-              "canny",
-              "normal"
-            ]
-          }
-        ],
-        "optional": [
-          {
-            "role": "lora",
-            "suggested": [
-              "damage-overlay",
-              "blood-textures",
-              "dirt-grime",
-              "torn-cloth"
-            ]
-          }
-        ]
-      },
-      "custom_nodes": {
-        "required": [
-          "comfyui"
-        ],
-        "optional": [
-          "comfyui-impact-pack",
-          "comfyui-controlnet-aux",
-          "comfyui-better-images"
-        ]
-      },
-      "hardware": {
-        "minimum_vram_gb": 12,
-        "recommended_vram_gb": 24,
-        "supports_low_vram": true,
-        "supports_cpu_offload": true
-      },
-      "runtime": {
-        "class": "heavy",
         "batch_supported": false
       },
       "content": {
@@ -3690,7 +2049,8 @@
         "blood",
         "torn-cloth",
         "action",
-        "violence"
+        "violence",
+        "img2img"
       ],
       "presets": [
         "subtle",
@@ -4770,7 +3130,7 @@
           "alpha_mask": true
         },
         {
-          "id": "111.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -5200,7 +3560,7 @@
           "input": "strength_model"
         },
         {
-          "id": "10.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -5382,7 +3742,7 @@
           "input": "height"
         },
         {
-          "id": "8.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -5982,7 +4342,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "108_sg_3.seed",
+          "id": "seed",
           "label": "Seed (KSampler 108_sg_3)",
           "type": "int",
           "required": false,
@@ -6792,7 +5152,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "21.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -6989,7 +5349,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "102_sg_3.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -7672,6 +6032,1673 @@
       "presets": [],
       "relative_path": "image-editing\\object-removal\\manifest.yaml",
       "manifest_path": "packs\\image-editing\\object-removal\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image",
+      "name": "Text to Image",
+      "version": "2.0.0",
+      "category": "image-gen",
+      "subcategory": "",
+      "description": "Fast text-to-image generation using the migrated Z-Image Turbo workflow.",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "67.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "anime RPG game style, cute anime girl with gigantic fennec ears and a big fluffy fox tail with long wavy blonde hair and large blue eyes blonde colored eyelashes wearing a pink sweater a large oversized gold trimmed black winter coat and a long blue maxi skirt and a red scarf, she is sitting beside a campfire in the wilderness at night playing guitar with a milky way galaxy sky",
+          "legacy_kind": "textarea",
+          "node_id": "67",
+          "node_type": "CLIPTextEncode",
+          "input": "text",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "71.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs",
+          "legacy_kind": "textarea",
+          "node_id": "71",
+          "node_type": "CLIPTextEncode",
+          "input": "text",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "width",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "height",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 8,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "steps",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.cfg",
+          "label": "CFG",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "cfg",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.batch_size",
+          "label": "Batch",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "batch_size",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "seed",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "9.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "ComfyUI",
+          "legacy_kind": "text",
+          "node_id": "9",
+          "node_type": "SaveImage",
+          "input": "filename_prefix",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "69.shift",
+          "label": "ModelSamplingAuraFlow shift",
+          "type": "int",
+          "required": false,
+          "default": 3,
+          "legacy_kind": "number",
+          "node_id": "69",
+          "node_type": "ModelSamplingAuraFlow",
+          "input": "shift",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.denoise",
+          "label": "Denoise",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "denoise",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "62",
+            "node_type": "CLIPLoader",
+            "name": "qwen_3_4b.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
+          },
+          {
+            "node_id": "63",
+            "node_type": "VAELoader",
+            "name": "ae.safetensors",
+            "directory": "vae",
+            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+          },
+          {
+            "node_id": "66",
+            "node_type": "UNETLoader",
+            "name": "z_image_turbo_bf16.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 16,
+        "supports_low_vram": true,
+        "supports_cpu_offload": false
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-gen\\text-to-image\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-batch",
+      "name": "Text to Image Batch",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "text-to-image",
+      "description": "Batch processing support for generating multiple images from prompts. Perfect for exploring variations and creating image collections.\n",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "type": "text",
+          "required": true,
+          "description": "Positive prompt describing the desired image"
+        },
+        {
+          "id": "negative_prompt",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "description": "Negative prompt for undesirable elements"
+        },
+        {
+          "id": "width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image width in pixels"
+        },
+        {
+          "id": "height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image height in pixels"
+        },
+        {
+          "id": "batch_size",
+          "type": "int",
+          "required": false,
+          "default": 4,
+          "minimum": 1,
+          "maximum": 16,
+          "step": 1,
+          "description": "Number of images to generate in batch"
+        },
+        {
+          "id": "seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "description": "Random seed for reproducibility (-1 for random)"
+        },
+        {
+          "id": "cfg",
+          "type": "float",
+          "required": false,
+          "default": 8.0,
+          "minimum": 1.0,
+          "maximum": 20.0,
+          "step": 0.5,
+          "description": "Classifier-free guidance scale"
+        },
+        {
+          "id": "checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "sdxl",
+          "description": "Checkpoint model to use"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "images",
+          "type": "array[image]",
+          "description": "Array of generated images"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "role": "checkpoint",
+            "family": [
+              "sdxl",
+              "flux",
+              "sd15",
+              "sd3"
+            ]
+          },
+          {
+            "role": "vae",
+            "suggested": [
+              "ae",
+              "vae-ft-mse-840000-ema-pruned"
+            ]
+          },
+          {
+            "role": "text_encoder",
+            "suggested": [
+              "t5xxl",
+              "clip-l",
+              "clip-g"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "role": "lora",
+            "suggested": []
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": [
+          "comfyui-impact-pack",
+          "comfyui-controlnet-aux"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": false,
+        "supports_cpu_offload": true
+      },
+      "runtime": {
+        "class": "batch",
+        "batch_supported": true
+      },
+      "content": {
+        "themes": [
+          "batch",
+          "multiple",
+          "collection",
+          "variations"
+        ],
+        "adult_only": false
+      },
+      "tags": [
+        "batch",
+        "multiple",
+        "collection",
+        "variations",
+        "25-steps",
+        "sdxl"
+      ],
+      "presets": [
+        "fast",
+        "balanced",
+        "quality"
+      ],
+      "relative_path": "image-gen\\text-to-image-batch\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-batch\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-extreme",
+      "name": "Text to Image Extreme",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "text-to-image",
+      "description": "High-quality text-to-image generation with 50 steps for maximum detail. Optimized for ultimate quality at the cost of longer generation time.\n",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "type": "text",
+          "required": true,
+          "description": "Positive prompt describing the desired image"
+        },
+        {
+          "id": "negative_prompt",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "description": "Negative prompt for undesirable elements"
+        },
+        {
+          "id": "width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image width in pixels"
+        },
+        {
+          "id": "height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image height in pixels"
+        },
+        {
+          "id": "seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "description": "Random seed for reproducibility (-1 for random)"
+        },
+        {
+          "id": "cfg",
+          "type": "float",
+          "required": false,
+          "default": 8.0,
+          "minimum": 1.0,
+          "maximum": 20.0,
+          "step": 0.5,
+          "description": "Classifier-free guidance scale"
+        },
+        {
+          "id": "checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "sdxl",
+          "description": "Checkpoint model to use"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "role": "checkpoint",
+            "family": [
+              "sdxl",
+              "flux",
+              "sd15",
+              "sd3"
+            ]
+          },
+          {
+            "role": "vae",
+            "suggested": [
+              "ae",
+              "vae-ft-mse-840000-ema-pruned"
+            ]
+          },
+          {
+            "role": "text_encoder",
+            "suggested": [
+              "t5xxl",
+              "clip-l",
+              "clip-g"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "role": "lora",
+            "suggested": []
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": [
+          "comfyui-impact-pack",
+          "comfyui-controlnet-aux"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 12,
+        "recommended_vram_gb": 16,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {
+        "class": "high",
+        "batch_supported": true
+      },
+      "content": {
+        "themes": [
+          "high-quality",
+          "extreme-detail",
+          "professional",
+          "premium"
+        ],
+        "adult_only": false
+      },
+      "tags": [
+        "extreme",
+        "high-quality",
+        "detailed",
+        "professional",
+        "50-steps",
+        "sdxl"
+      ],
+      "presets": [
+        "fast",
+        "balanced",
+        "quality"
+      ],
+      "relative_path": "image-gen\\text-to-image-extreme\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-extreme\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-fast",
+      "name": "Text to Image Fast",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "text-to-image",
+      "description": "Fast text-to-image generation with 12 steps for quick drafts, thumbnails, and concept art. Optimized for speed while maintaining acceptable quality for rapid iteration.\n",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "type": "text",
+          "required": true,
+          "description": "Positive prompt describing the desired image"
+        },
+        {
+          "id": "negative_prompt",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "description": "Negative prompt for undesirable elements"
+        },
+        {
+          "id": "width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image width in pixels"
+        },
+        {
+          "id": "height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image height in pixels"
+        },
+        {
+          "id": "seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "description": "Random seed for reproducibility (-1 for random)"
+        },
+        {
+          "id": "cfg",
+          "type": "float",
+          "required": false,
+          "default": 2.0,
+          "minimum": 1.0,
+          "maximum": 20.0,
+          "step": 0.5,
+          "description": "Classifier-free guidance scale"
+        },
+        {
+          "id": "checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "juggernaut-xl-v9.safetensors",
+          "description": "Checkpoint model to use"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "role": "checkpoint",
+            "family": [
+              "flux",
+              "sdxl",
+              "sd15",
+              "sd3",
+              "sdxl-lightning"
+            ]
+          },
+          {
+            "role": "vae",
+            "suggested": [
+              "ae",
+              "vae-ft-mse-840000-ema-pruned"
+            ]
+          },
+          {
+            "role": "text_encoder",
+            "suggested": [
+              "t5xxl",
+              "clip-l"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "role": "lora",
+            "suggested": []
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": [
+          "comfyui-impact-pack",
+          "comfyui-controlnet-aux"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 4,
+        "recommended_vram_gb": 8,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {
+        "class": "light",
+        "batch_supported": true
+      },
+      "content": {
+        "themes": [
+          "general",
+          "drafting",
+          "thumbnailing",
+          "quick-iterations"
+        ],
+        "adult_only": false
+      },
+      "tags": [
+        "fast",
+        "quick",
+        "draft",
+        "thumbnail",
+        "rapid-iteration",
+        "12-steps",
+        "low-resource"
+      ],
+      "presets": [
+        "fast",
+        "balanced",
+        "quality"
+      ],
+      "relative_path": "image-gen\\text-to-image-fast\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-fast\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-hq",
+      "name": "Text to Image (HQ, high RAM)",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "",
+      "description": "Higher-fidelity text-to-image generation using the non-distilled Qwen-Image checkpoint (~20B params). Unlike core.text-to-image (a step/cfg-distilled \"turbo\" model), this is a full diffusion model: steps and cfg are real quality levers here, not just speed knobs.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "67.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "A breathtaking cinematic landscape at golden hour, dramatic clouds, rich detail, painterly light, high fidelity, evocative atmosphere",
+          "legacy_kind": "textarea",
+          "node_id": "67",
+          "node_type": "CLIPTextEncode",
+          "input": "text",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "71.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark, text",
+          "legacy_kind": "textarea",
+          "node_id": "71",
+          "node_type": "CLIPTextEncode",
+          "input": "text",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1328,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "width",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1328,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "height",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "steps",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.cfg",
+          "label": "CFG",
+          "type": "int",
+          "required": false,
+          "default": 4,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "cfg",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "68.batch_size",
+          "label": "Batch",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "legacy_kind": "number",
+          "node_id": "68",
+          "node_type": "EmptySD3LatentImage",
+          "input": "batch_size",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "seed",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "9.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "ComfyUI",
+          "legacy_kind": "text",
+          "node_id": "9",
+          "node_type": "SaveImage",
+          "input": "filename_prefix",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "69.shift",
+          "label": "ModelSamplingAuraFlow shift",
+          "type": "number",
+          "required": false,
+          "default": 3.1,
+          "legacy_kind": "number",
+          "node_id": "69",
+          "node_type": "ModelSamplingAuraFlow",
+          "input": "shift",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        },
+        {
+          "id": "70.denoise",
+          "label": "Denoise",
+          "type": "int",
+          "required": false,
+          "default": 1,
+          "legacy_kind": "number",
+          "node_id": "70",
+          "node_type": "KSampler",
+          "input": "denoise",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "62",
+            "node_type": "CLIPLoader",
+            "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+          },
+          {
+            "node_id": "63",
+            "node_type": "VAELoader",
+            "name": "qwen_image_vae.safetensors",
+            "directory": "vae",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+          },
+          {
+            "node_id": "66",
+            "node_type": "UNETLoader",
+            "name": "qwen_image_fp8_e4m3fn.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 24,
+        "recommended_vram_gb": 32,
+        "supports_low_vram": false,
+        "supports_cpu_offload": false
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-gen\\text-to-image-hq\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-hq\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-low-vram",
+      "name": "Text to Image Low VRAM",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "text-to-image",
+      "description": "Optimized text-to-image generation for low VRAM systems. Uses CPU offloading and memory-efficient settings.\n",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "type": "text",
+          "required": true,
+          "description": "Positive prompt describing the desired image"
+        },
+        {
+          "id": "negative_prompt",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "description": "Negative prompt for undesirable elements"
+        },
+        {
+          "id": "width",
+          "type": "int",
+          "required": false,
+          "default": 768,
+          "minimum": 256,
+          "maximum": 1536,
+          "step": 64,
+          "description": "Output image width in pixels"
+        },
+        {
+          "id": "height",
+          "type": "int",
+          "required": false,
+          "default": 768,
+          "minimum": 256,
+          "maximum": 1536,
+          "step": 64,
+          "description": "Output image height in pixels"
+        },
+        {
+          "id": "seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "description": "Random seed for reproducibility (-1 for random)"
+        },
+        {
+          "id": "cfg",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 1.0,
+          "maximum": 15.0,
+          "step": 0.5,
+          "description": "Classifier-free guidance scale"
+        },
+        {
+          "id": "checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "sdxl",
+          "description": "Checkpoint model to use"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "role": "checkpoint",
+            "family": [
+              "sdxl",
+              "flux",
+              "sd15",
+              "sd3"
+            ]
+          },
+          {
+            "role": "vae",
+            "suggested": [
+              "ae",
+              "vae-ft-mse-840000-ema-pruned"
+            ]
+          },
+          {
+            "role": "text_encoder",
+            "suggested": [
+              "t5xxl",
+              "clip-l",
+              "clip-g"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "role": "lora",
+            "suggested": []
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": [
+          "comfyui-impact-pack",
+          "comfyui-controlnet-aux"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 4,
+        "recommended_vram_gb": 6,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {
+        "class": "low",
+        "batch_supported": false
+      },
+      "content": {
+        "themes": [
+          "low-vram",
+          "memory-efficient",
+          "budget",
+          "portable"
+        ],
+        "adult_only": false
+      },
+      "tags": [
+        "low-vram",
+        "memory-efficient",
+        "budget",
+        "portable",
+        "25-steps",
+        "sdxl"
+      ],
+      "presets": [
+        "fast",
+        "balanced",
+        "quality"
+      ],
+      "relative_path": "image-gen\\text-to-image-low-vram\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-low-vram\\manifest.yaml"
+    },
+    {
+      "id": "core.text-to-image-quality",
+      "name": "Text to Image Quality",
+      "version": "1.0.0",
+      "category": "image-gen",
+      "subcategory": "text-to-image",
+      "description": "Balanced text-to-image generation with 25 steps for high-quality results. Optimized for good quality with reasonable generation time.\n",
+      "status": "stable",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "type": "text",
+          "required": true,
+          "description": "Positive prompt describing the desired image"
+        },
+        {
+          "id": "negative_prompt",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "description": "Negative prompt for undesirable elements"
+        },
+        {
+          "id": "width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image width in pixels"
+        },
+        {
+          "id": "height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "step": 64,
+          "description": "Output image height in pixels"
+        },
+        {
+          "id": "seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
+          "description": "Random seed for reproducibility (-1 for random)"
+        },
+        {
+          "id": "cfg",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 1.0,
+          "maximum": 20.0,
+          "step": 0.5,
+          "description": "Classifier-free guidance scale"
+        },
+        {
+          "id": "checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "sdxl",
+          "description": "Checkpoint model to use"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "role": "checkpoint",
+            "family": [
+              "sdxl",
+              "flux",
+              "sd15",
+              "sd3"
+            ]
+          },
+          {
+            "role": "vae",
+            "suggested": [
+              "ae",
+              "vae-ft-mse-840000-ema-pruned"
+            ]
+          },
+          {
+            "role": "text_encoder",
+            "suggested": [
+              "t5xxl",
+              "clip-l",
+              "clip-g"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "role": "lora",
+            "suggested": []
+          }
+        ]
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": [
+          "comfyui-impact-pack",
+          "comfyui-controlnet-aux"
+        ]
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {
+        "class": "medium",
+        "batch_supported": true
+      },
+      "content": {
+        "themes": [
+          "general",
+          "high-quality",
+          "balanced",
+          "professional"
+        ],
+        "adult_only": false
+      },
+      "tags": [
+        "quality",
+        "balanced",
+        "general",
+        "professional",
+        "25-steps",
+        "sdxl"
+      ],
+      "presets": [
+        "fast",
+        "balanced",
+        "quality"
+      ],
+      "relative_path": "image-gen\\text-to-image-quality\\manifest.yaml",
+      "manifest_path": "packs\\image-gen\\text-to-image-quality\\manifest.yaml"
+    },
+    {
+      "id": "community.animepasteldream-soft-bakedvae",
+      "name": "AnimePastelDream (Soft, Baked VAE)",
+      "version": "1.0.0",
+      "category": "image-stylized",
+      "subcategory": "sdxl",
+      "description": "Self-contained SDXL-family anime checkpoint with a baked-in VAE, tuned for a soft pastel look.",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "2.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "masterpiece, best quality, highly detailed, anime style,",
+          "node_id": "2",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "3.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark",
+          "node_id": "3",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "4.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "4",
+          "node_type": "EmptyLatentImage",
+          "input": "width"
+        },
+        {
+          "id": "4.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "4",
+          "node_type": "EmptyLatentImage",
+          "input": "height"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "5.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "5.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "1.ckpt_name",
+          "label": "Checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "animePastelDream_softBakedVae.safetensors",
+          "node_id": "1",
+          "node_type": "CheckpointLoaderSimple",
+          "input": "ckpt_name"
+        },
+        {
+          "id": "7.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "animepasteldream-soft-bakedvae",
+          "node_id": "7",
+          "node_type": "SaveImage",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "1",
+            "node_type": "CheckpointLoaderSimple",
+            "name": "animePastelDream_softBakedVae.safetensors",
+            "directory": "checkpoints"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-stylized\\animepasteldream-soft-bakedvae\\manifest.yaml",
+      "manifest_path": "packs\\image-stylized\\animepasteldream-soft-bakedvae\\manifest.yaml"
+    },
+    {
+      "id": "community.ghostmix-v20-bakedvae",
+      "name": "GhostMix v2.0 (Baked VAE)",
+      "version": "1.0.0",
+      "category": "image-stylized",
+      "subcategory": "sd15",
+      "description": "Self-contained SD1.5 checkpoint with baked VAE, a well-known anime/realistic hybrid merge.",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "2.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "masterpiece, best quality, highly detailed, anime style,",
+          "node_id": "2",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "3.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark",
+          "node_id": "3",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "4.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "4",
+          "node_type": "EmptyLatentImage",
+          "input": "width"
+        },
+        {
+          "id": "4.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "4",
+          "node_type": "EmptyLatentImage",
+          "input": "height"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "5.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "5.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "5",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "1.ckpt_name",
+          "label": "Checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "ghostmix_v20Bakedvae.safetensors",
+          "node_id": "1",
+          "node_type": "CheckpointLoaderSimple",
+          "input": "ckpt_name"
+        },
+        {
+          "id": "7.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "ghostmix-v20-bakedvae",
+          "node_id": "7",
+          "node_type": "SaveImage",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "1",
+            "node_type": "CheckpointLoaderSimple",
+            "name": "ghostmix_v20Bakedvae.safetensors",
+            "directory": "checkpoints"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-stylized\\ghostmix-v20-bakedvae\\manifest.yaml",
+      "manifest_path": "packs\\image-stylized\\ghostmix-v20-bakedvae\\manifest.yaml"
+    },
+    {
+      "id": "community.pixel-f2-lora",
+      "name": "Pixel F2 (SD1.5 LoRA)",
+      "version": "1.0.0",
+      "category": "image-stylized",
+      "subcategory": "sd15",
+      "description": "Standalone preset for the 'pixel_f2' LoRA. Training metadata records AOM3A1B.safetensors (Abyss Orange Mix 3A1B) as the base; not installed, so it's paired with ReV Animated v2 Rebirth (a similarly anime-leaning SD1.5 checkpoint) as a reasonable substitute.",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json"
+      },
+      "inputs": [
+        {
+          "id": "3.text",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "masterpiece, best quality, highly detailed, anime style,",
+          "node_id": "3",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "4.text",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs, blurry, watermark",
+          "node_id": "4",
+          "node_type": "CLIPTextEncode",
+          "input": "text"
+        },
+        {
+          "id": "5.width",
+          "label": "Width",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "5",
+          "node_type": "EmptyLatentImage",
+          "input": "width"
+        },
+        {
+          "id": "5.height",
+          "label": "Height",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 256,
+          "maximum": 2048,
+          "node_id": "5",
+          "node_type": "EmptyLatentImage",
+          "input": "height"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": 42,
+          "node_id": "6",
+          "node_type": "KSampler",
+          "input": "seed"
+        },
+        {
+          "id": "6.steps",
+          "label": "Steps",
+          "type": "int",
+          "required": false,
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "6",
+          "node_type": "KSampler",
+          "input": "steps"
+        },
+        {
+          "id": "6.cfg",
+          "label": "CFG",
+          "type": "float",
+          "required": false,
+          "default": 7.0,
+          "minimum": 0,
+          "maximum": 20,
+          "node_id": "6",
+          "node_type": "KSampler",
+          "input": "cfg"
+        },
+        {
+          "id": "1.ckpt_name",
+          "label": "Checkpoint",
+          "type": "model",
+          "required": false,
+          "default": "revAnimated_v2Rebirth.safetensors",
+          "node_id": "1",
+          "node_type": "CheckpointLoaderSimple",
+          "input": "ckpt_name"
+        },
+        {
+          "id": "2.lora_name",
+          "label": "LoRA",
+          "type": "model",
+          "required": false,
+          "default": "pixel_f2.safetensors",
+          "node_id": "2",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "lora_name"
+        },
+        {
+          "id": "2.strength_model",
+          "label": "LoRA strength",
+          "type": "float",
+          "required": false,
+          "default": 0.8,
+          "minimum": -2,
+          "maximum": 2,
+          "node_id": "2",
+          "node_type": "LoraLoaderModelOnly",
+          "input": "strength_model"
+        },
+        {
+          "id": "8.filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "pixel-f2-lora",
+          "node_id": "8",
+          "node_type": "SaveImage",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "image",
+          "type": "image",
+          "description": "Generated image output"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "node_id": "1",
+            "node_type": "CheckpointLoaderSimple",
+            "name": "revAnimated_v2Rebirth.safetensors",
+            "directory": "checkpoints"
+          },
+          {
+            "node_id": "2",
+            "node_type": "LoraLoaderModelOnly",
+            "name": "pixel_f2.safetensors",
+            "directory": "loras"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 8,
+        "recommended_vram_gb": 12,
+        "supports_low_vram": true,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [],
+      "presets": [],
+      "relative_path": "image-stylized\\pixel-f2-lora\\manifest.yaml",
+      "manifest_path": "packs\\image-stylized\\pixel-f2-lora\\manifest.yaml"
     },
     {
       "id": "llm.best-of-n",
@@ -8853,11 +8880,11 @@
     },
     {
       "id": "three-d.image-to-textured-mesh",
-      "name": "Image to Textured 3D Model",
-      "version": "1.0.0",
+      "name": "Image to Textured 3D Model (Best Quality)",
+      "version": "1.2.1",
       "category": "three-d",
       "subcategory": "",
-      "description": "Generate a 3D mesh from a single image and paint it, end to end, using Tencent's Hunyuan3D-2 shape and paint pipelines (kijai's ComfyUI-Hunyuan3DWrapper). Unlike three-d.texture-mesh, which expects an already-generated GLB and produced no visible texture on the raw marching-cubes output it was given, this workflow generates the mesh and textures it in the same graph: the freshly generated shape is cleaned up (floater/degenerate-face removal, face count reduction) before UV-unwrapping and multi-view texture painting, which is what the raw output was missing. Use this when you want a textured model from an image in one pass; use three-d.texture-mesh only if you already have a clean, UV-mapped mesh from elsewhere.\n",
+      "description": "Generate a 3D mesh from a single image and paint it, end to end, using Tencent's Hunyuan3D-2 shape and paint pipelines (kijai's ComfyUI-Hunyuan3DWrapper). This workflow uses the **best possible quality settings**: - Shape steps: 75 (increased from 50) - Octree resolution: 512 (increased from 384) for higher geometry detail - Max face count: 80000 (increased from 40000) to preserve detail - Smooth normals: enabled for better shading - Render resolution: 2048 (increased from 1024) - Texture size: 4096 (increased from 2048) for high-res textures - Paint steps: 50 (increased from 25) - View size: 1024 (increased from 512) for detailed multi-view painting Background removal (rembg) and delighting now run before *both* shape generation and texture painting (previously delighting only reached texture painting, so shadows in the reference photo could distort the mesh's shape) - toggle either off with the remove_background / remove_shadows inputs below.\n",
       "status": "experimental",
       "entrypoints": {
         "ui": "workflow.json",
@@ -8878,15 +8905,16 @@
         },
         {
           "id": "shape_steps",
-          "label": "Shape steps",
+          "label": "Shape generation steps",
           "type": "int",
           "required": false,
-          "default": 50,
+          "default": 75,
           "minimum": 1,
           "maximum": 100,
           "node_id": "3",
           "node_type": "Hy3DGenerateMesh",
-          "input": "steps"
+          "input": "steps",
+          "description": "Higher steps (75-100) yield better shape detail"
         },
         {
           "id": "shape_guidance_scale",
@@ -8902,7 +8930,7 @@
           "input": "guidance_scale"
         },
         {
-          "id": "shape_seed",
+          "id": "seed",
           "label": "Shape seed",
           "type": "int",
           "required": false,
@@ -8914,30 +8942,106 @@
           "input": "seed"
         },
         {
+          "id": "box_v",
+          "label": "Bounding box padding",
+          "type": "float",
+          "required": false,
+          "default": 1.01,
+          "minimum": 1.0,
+          "maximum": 1.5,
+          "step": 0.01,
+          "node_id": "4",
+          "node_type": "Hy3DVAEDecode",
+          "input": "box_v",
+          "description": "Padding around the mesh volume during shape decoding. Increase if protruding parts (limbs, ears, thin extensions) are getting clipped off."
+        },
+        {
+          "id": "remove_background",
+          "label": "Remove background",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "node_id": "20",
+          "node_type": "ComfySwitchNode",
+          "input": "switch",
+          "description": "Segments the subject out (rembg, isnet-general-use, CPU) before shape and texture generation. Turn off if your reference image is already on a clean plain/transparent background."
+        },
+        {
+          "id": "remove_shadows",
+          "label": "Remove existing shadows/lighting",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "node_id": "21",
+          "node_type": "ComfySwitchNode",
+          "input": "switch",
+          "description": "Applies the delighting pass to both shape generation and texture painting, not just texture. Turn off if your reference image already has flat, even lighting."
+        },
+        {
+          "id": "octree_resolution",
+          "label": "Octree resolution (geometry detail)",
+          "type": "int",
+          "required": false,
+          "default": 512,
+          "minimum": 256,
+          "maximum": 768,
+          "step": 64,
+          "node_id": "4",
+          "node_type": "Hy3DVAEDecode",
+          "input": "octree_resolution",
+          "description": "Higher resolution (512-768) yields more detailed geometry but uses more VRAM"
+        },
+        {
           "id": "max_facenum",
           "label": "Max face count",
           "type": "int",
           "required": false,
-          "default": 40000,
+          "default": 80000,
           "minimum": 1000,
           "maximum": 500000,
           "node_id": "5",
           "node_type": "Hy3DPostprocessMesh",
           "input": "max_facenum",
-          "description": "Mesh is reduced to at most this many faces before UV-wrapping and texturing"
+          "description": "Mesh is reduced to at most this many faces before UV-wrapping and texturing. Higher values preserve more detail."
+        },
+        {
+          "id": "smooth_normals",
+          "label": "Smooth normals",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "node_id": "5",
+          "node_type": "Hy3DPostprocessMesh",
+          "input": "smooth_normals",
+          "description": "Enable smooth normals for better shading and appearance"
+        },
+        {
+          "id": "render_size",
+          "label": "Render resolution (multi-view)",
+          "type": "int",
+          "required": false,
+          "default": 2048,
+          "minimum": 512,
+          "maximum": 2048,
+          "step": 256,
+          "node_id": "8",
+          "node_type": "Hy3DRenderMultiView",
+          "input": "render_size",
+          "description": "Resolution for generating multi-view normal and position maps"
         },
         {
           "id": "texture_size",
           "label": "Texture size",
           "type": "int",
           "required": false,
-          "default": 2048,
-          "minimum": 512,
+          "default": 4096,
+          "minimum": 1024,
           "maximum": 4096,
-          "step": 16,
+          "step": 512,
           "node_id": "8",
           "node_type": "Hy3DRenderMultiView",
-          "input": "texture_size"
+          "input": "texture_size",
+          "description": "Output texture resolution. 4096 gives the highest quality textures."
         },
         {
           "id": "delight_steps",
@@ -8957,12 +9061,27 @@
           "label": "Paint steps",
           "type": "int",
           "required": false,
-          "default": 25,
+          "default": 50,
           "minimum": 1,
           "maximum": 100,
           "node_id": "12",
           "node_type": "Hy3DSampleMultiView",
-          "input": "steps"
+          "input": "steps",
+          "description": "Higher steps (50+) yield better texture quality and detail"
+        },
+        {
+          "id": "view_size",
+          "label": "View size (multi-view painting)",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 512,
+          "maximum": 1024,
+          "step": 256,
+          "node_id": "12",
+          "node_type": "Hy3DSampleMultiView",
+          "input": "view_size",
+          "description": "Resolution for each view during texture painting. 1024 gives the best detail."
         },
         {
           "id": "paint_seed",
@@ -8991,7 +9110,7 @@
         {
           "id": "model",
           "type": "model",
-          "description": "Generated, textured GLB mesh"
+          "description": "Generated, textured GLB mesh with best possible quality"
         }
       ],
       "models": {
@@ -9017,13 +9136,14 @@
       "custom_nodes": {
         "required": [
           "comfyui",
-          "ComfyUI-Hunyuan3DWrapper"
+          "ComfyUI-Hunyuan3DWrapper",
+          "ComfyUI_essentials"
         ],
         "optional": []
       },
       "hardware": {
-        "minimum_vram_gb": 12,
-        "recommended_vram_gb": 16,
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
         "supports_low_vram": false,
         "supports_cpu_offload": true
       },
@@ -9036,11 +9156,303 @@
         "glb",
         "mesh",
         "image-to-3d",
-        "textured"
+        "textured",
+        "high-quality",
+        "background-removal",
+        "delighting"
       ],
       "presets": [],
       "relative_path": "three-d\\image-to-textured-mesh\\manifest.yaml",
       "manifest_path": "packs\\three-d\\image-to-textured-mesh\\manifest.yaml"
+    },
+    {
+      "id": "three-d.image-to-textured-mesh-2-1",
+      "name": "Image to Textured 3D Model (Hunyuan3D 2.1, PBR)",
+      "version": "0.1.0",
+      "category": "three-d",
+      "subcategory": "",
+      "description": "Generate a 3D mesh from a single image and paint it with proper PBR materials (separate albedo + metallic-roughness, not just a flat baked texture) using Tencent's Hunyuan3D-2.1 shape and paint pipelines (visualbruno's ComfyUI-Hunyuan3d-2-1 wrapper). Unlike `three-d.image-to-textured-mesh` (Hunyuan3D-2.0, kijai's wrapper), 2.1's multi-view paint model is a single integrated node rather than a separate render/delight/sample chain.\nRequires custom_rasterizer and mesh_inpaint_processor built from source against this machine's ROCm/HIP toolchain (CUDA-only upstream) - see Runtime notes. All model weights (~15GB: dit + vae checkpoints, plus the full PBR paint diffusers pipeline) auto-download on first run via Hy3D21ModelLoader / Hy3DMultiViewsGenerator; nothing needs to be pre-downloaded.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "image",
+          "label": "Reference image",
+          "type": "file",
+          "required": true,
+          "default": "example.png",
+          "node_id": "1",
+          "node_type": "LoadImage",
+          "input": "image",
+          "accept": "image/png,image/jpeg,image/webp,image/bmp",
+          "description": "Image used both to generate the mesh's shape and to paint its PBR texture"
+        },
+        {
+          "id": "remove_background",
+          "label": "Remove background",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "node_id": "5",
+          "node_type": "ComfySwitchNode",
+          "input": "switch",
+          "description": "Segments the subject out (rembg, isnet-general-use, CPU) before shape and texture generation. Turn off if your reference image is already on a clean plain/transparent background."
+        },
+        {
+          "id": "shape_steps",
+          "label": "Shape generation steps",
+          "type": "int",
+          "required": false,
+          "default": 50,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "6",
+          "node_type": "Hy3D21MeshGenerator",
+          "input": "steps",
+          "description": "Diffusion steps for shape generation"
+        },
+        {
+          "id": "shape_guidance_scale",
+          "label": "Shape guidance scale",
+          "type": "float",
+          "required": false,
+          "default": 5.0,
+          "minimum": 1.0,
+          "maximum": 30.0,
+          "step": 0.1,
+          "node_id": "6",
+          "node_type": "Hy3D21MeshGenerator",
+          "input": "guidance_scale"
+        },
+        {
+          "id": "shape_seed",
+          "label": "Shape seed",
+          "type": "int",
+          "required": false,
+          "default": 123,
+          "minimum": 0,
+          "maximum": 18446744073709551615,
+          "node_id": "6",
+          "node_type": "Hy3D21MeshGenerator",
+          "input": "seed"
+        },
+        {
+          "id": "attention_mode",
+          "label": "Shape generation attention mode",
+          "type": "select",
+          "required": false,
+          "default": "sdpa",
+          "options": [
+            "sdpa",
+            "sageattn"
+          ],
+          "node_id": "6",
+          "node_type": "Hy3D21MeshGenerator",
+          "input": "attention_mode",
+          "description": "sageattn is faster but needs the sageattention package installed separately; sdpa always works"
+        },
+        {
+          "id": "box_v",
+          "label": "Bounding box padding",
+          "type": "float",
+          "required": false,
+          "default": 1.01,
+          "minimum": -10.0,
+          "maximum": 10.0,
+          "step": 0.01,
+          "node_id": "7",
+          "node_type": "Hy3D21VAEDecode",
+          "input": "box_v",
+          "description": "Padding around the mesh volume during shape decoding. Increase if protruding parts are getting clipped off."
+        },
+        {
+          "id": "octree_resolution",
+          "label": "Octree resolution (geometry detail)",
+          "type": "int",
+          "required": false,
+          "default": 384,
+          "minimum": 8,
+          "maximum": 4096,
+          "step": 8,
+          "node_id": "7",
+          "node_type": "Hy3D21VAEDecode",
+          "input": "octree_resolution",
+          "description": "Higher resolution yields more detailed geometry but uses more VRAM"
+        },
+        {
+          "id": "mc_algo",
+          "label": "Marching cubes algorithm",
+          "type": "select",
+          "required": false,
+          "default": "mc",
+          "options": [
+            "mc",
+            "dmc"
+          ],
+          "node_id": "7",
+          "node_type": "Hy3D21VAEDecode",
+          "input": "mc_algo"
+        },
+        {
+          "id": "max_facenum",
+          "label": "Max face count",
+          "type": "int",
+          "required": false,
+          "default": 40000,
+          "minimum": 1000,
+          "maximum": 500000,
+          "node_id": "8",
+          "node_type": "Hy3D21PostprocessMesh",
+          "input": "max_facenum",
+          "description": "Mesh is reduced to at most this many faces before UV-wrapping and texturing"
+        },
+        {
+          "id": "smooth_normals",
+          "label": "Smooth normals",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "node_id": "8",
+          "node_type": "Hy3D21PostprocessMesh",
+          "input": "smooth_normals"
+        },
+        {
+          "id": "view_size",
+          "label": "View size (multi-view painting)",
+          "type": "int",
+          "required": false,
+          "default": 512,
+          "minimum": 512,
+          "maximum": 1024,
+          "step": 256,
+          "node_id": "10",
+          "node_type": "Hy3DMultiViewsGenerator",
+          "input": "view_size"
+        },
+        {
+          "id": "paint_steps",
+          "label": "Paint steps",
+          "type": "int",
+          "required": false,
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "10",
+          "node_type": "Hy3DMultiViewsGenerator",
+          "input": "steps",
+          "description": "Diffusion steps for the multi-view PBR paint model"
+        },
+        {
+          "id": "paint_guidance_scale",
+          "label": "Paint guidance scale",
+          "type": "float",
+          "required": false,
+          "default": 3.0,
+          "minimum": 1.0,
+          "maximum": 10.0,
+          "step": 0.1,
+          "node_id": "10",
+          "node_type": "Hy3DMultiViewsGenerator",
+          "input": "guidance_scale"
+        },
+        {
+          "id": "texture_size",
+          "label": "Texture size",
+          "type": "int",
+          "required": false,
+          "default": 1024,
+          "minimum": 512,
+          "maximum": 4096,
+          "step": 512,
+          "node_id": "10",
+          "node_type": "Hy3DMultiViewsGenerator",
+          "input": "texture_size"
+        },
+        {
+          "id": "paint_seed",
+          "label": "Paint seed",
+          "type": "int",
+          "required": false,
+          "default": 123,
+          "minimum": 0,
+          "maximum": 18446744073709551615,
+          "node_id": "10",
+          "node_type": "Hy3DMultiViewsGenerator",
+          "input": "seed"
+        },
+        {
+          "id": "filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "3d/image-to-textured-mesh-2.1",
+          "node_id": "13",
+          "node_type": "Hy3D21ExportMesh",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "model",
+          "type": "model",
+          "description": "Generated, PBR-textured GLB mesh (separate albedo + metallic-roughness)"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "type": "diffusion_models",
+            "name": "hunyuan3D-dit-v2-1-fp16.ckpt",
+            "source": "tencent/Hunyuan3D-2.1"
+          },
+          {
+            "type": "vae",
+            "name": "Hunyuan3D-vae-v2-1-fp16.ckpt",
+            "source": "tencent/Hunyuan3D-2.1"
+          },
+          {
+            "type": "diffusers",
+            "name": "hunyuan3d-paintpbr-v2-1",
+            "source": "tencent/Hunyuan3D-2.1"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "ComfyUI-Hunyuan3d-2-1",
+          "ComfyUI_essentials"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "supports_low_vram": false,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [
+        "3d",
+        "texture",
+        "hunyuan3d",
+        "hunyuan3d-2.1",
+        "glb",
+        "mesh",
+        "image-to-3d",
+        "textured",
+        "pbr",
+        "background-removal",
+        "experimental"
+      ],
+      "presets": [],
+      "relative_path": "three-d\\image-to-textured-mesh-2-1\\manifest.yaml",
+      "manifest_path": "packs\\three-d\\image-to-textured-mesh-2-1\\manifest.yaml"
     },
     {
       "id": "three-d.multiview",
@@ -9361,6 +9773,152 @@
       "manifest_path": "packs\\three-d\\scan-completion\\manifest.yaml"
     },
     {
+      "id": "three-d.text-to-3d-hunyuan3d-v2",
+      "name": "Text to 3D (Hunyuan3D-2)",
+      "version": "1.0.0",
+      "category": "three-d",
+      "subcategory": "",
+      "description": "Generate a 3D mesh directly from text using Tencent's Hunyuan3D-2 shape generation model. This workflow uses the native text-to-3d capabilities of Hunyuan3D-DiT-v2-0, which is a large-scale flow-based diffusion transformer that creates geometry aligned with text conditions.\n",
+      "status": "experimental",
+      "entrypoints": {
+        "ui": "workflow.json",
+        "api": "workflow-api.json"
+      },
+      "inputs": [
+        {
+          "id": "prompt",
+          "label": "Prompt",
+          "type": "textarea",
+          "required": true,
+          "default": "A cute anime girl with gigantic fennec ears and a big fluffy fox tail, long wavy blonde hair, large blue eyes, wearing a pink sweater and a black winter coat",
+          "description": "Text description of the 3D model to generate"
+        },
+        {
+          "id": "negative_prompt",
+          "label": "Negative prompt",
+          "type": "textarea",
+          "required": false,
+          "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs",
+          "description": "Text to guide what to avoid in the generation"
+        },
+        {
+          "id": "steps",
+          "label": "Generation steps",
+          "type": "int",
+          "required": false,
+          "default": 50,
+          "minimum": 1,
+          "maximum": 100,
+          "node_id": "3",
+          "node_type": "Hy3DGenerateMesh",
+          "input": "steps"
+        },
+        {
+          "id": "guidance_scale",
+          "label": "Guidance scale",
+          "type": "float",
+          "required": false,
+          "default": 5.5,
+          "minimum": 0.0,
+          "maximum": 20.0,
+          "step": 0.1,
+          "node_id": "3",
+          "node_type": "Hy3DGenerateMesh",
+          "input": "guidance_scale"
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "required": false,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 18446744073709551615,
+          "node_id": "3",
+          "node_type": "Hy3DGenerateMesh",
+          "input": "seed"
+        },
+        {
+          "id": "max_facenum",
+          "label": "Max face count",
+          "type": "int",
+          "required": false,
+          "default": 40000,
+          "minimum": 1000,
+          "maximum": 500000,
+          "node_id": "5",
+          "node_type": "Hy3DPostprocessMesh",
+          "input": "max_facenum"
+        },
+        {
+          "id": "octree_resolution",
+          "label": "Octree resolution",
+          "type": "int",
+          "required": false,
+          "default": 384,
+          "minimum": 128,
+          "maximum": 512,
+          "step": 64,
+          "node_id": "4",
+          "node_type": "Hy3DVAEDecode",
+          "input": "octree_resolution"
+        },
+        {
+          "id": "filename_prefix",
+          "label": "Output folder/prefix",
+          "type": "text",
+          "required": false,
+          "default": "3d/text-to-3d-hunyuan3d-v2",
+          "node_id": "17",
+          "node_type": "Hy3DExportMesh",
+          "input": "filename_prefix"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "model",
+          "type": "model",
+          "description": "Generated GLB mesh from text prompt"
+        }
+      ],
+      "models": {
+        "required": [
+          {
+            "type": "diffusion_models",
+            "name": "hunyuan3d-dit-v2-0-fp16.safetensors",
+            "source": "Kijai/Hunyuan3D-2_safetensors"
+          }
+        ],
+        "optional": []
+      },
+      "custom_nodes": {
+        "required": [
+          "comfyui",
+          "ComfyUI-Hunyuan3DWrapper"
+        ],
+        "optional": []
+      },
+      "hardware": {
+        "minimum_vram_gb": 12,
+        "recommended_vram_gb": 16,
+        "supports_low_vram": false,
+        "supports_cpu_offload": true
+      },
+      "runtime": {},
+      "content": {},
+      "tags": [
+        "3d",
+        "hunyuan3d",
+        "glb",
+        "mesh",
+        "text-to-3d",
+        "hunyuan3d-2"
+      ],
+      "presets": [],
+      "relative_path": "three-d\\text-to-3d-hunyuan3d-v2\\manifest.yaml",
+      "manifest_path": "packs\\three-d\\text-to-3d-hunyuan3d-v2\\manifest.yaml"
+    },
+    {
       "id": "studio.text-to-3d-local-zimage-hunyuan3d",
       "name": "Text to 3d local zimage hunyuan3d",
       "version": "2.0.0",
@@ -9493,7 +10051,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "70.seed",
+          "id": "seed",
           "label": "Seed (KSampler 70)",
           "type": "int",
           "required": false,
@@ -9795,7 +10353,7 @@
           "input": "steps"
         },
         {
-          "id": "paint_seed",
+          "id": "seed",
           "label": "Paint seed",
           "type": "int",
           "required": false,
@@ -9901,7 +10459,7 @@
         {
           "id": "31.image",
           "label": "Input image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "31",
@@ -9958,7 +10516,7 @@
           "input": "steps"
         },
         {
-          "id": "19.noise_seed",
+          "id": "seed",
           "label": "Seed (high-noise expert)",
           "type": "int",
           "required": false,
@@ -10430,7 +10988,7 @@
           "input": "steps"
         },
         {
-          "id": "23.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -10719,7 +11277,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "167_sg_141.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -11405,7 +11963,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "127.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -11676,7 +12234,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "129.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -11904,7 +12462,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "25.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -12934,7 +13492,7 @@
           "input": "frame_rate"
         },
         {
-          "id": "11.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -13163,7 +13721,7 @@
           "accept": "image/png,image/jpeg,image/webp,image/bmp"
         },
         {
-          "id": "72.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -13232,7 +13790,7 @@
         {
           "id": "114.image",
           "label": "First frame image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "114",
@@ -13280,20 +13838,20 @@
           "input": "height"
         },
         {
-          "id": "105_sg_111.value",
+          "id": "105_sg_107.values.a",
           "label": "Duration (seconds)",
           "type": "float",
           "required": false,
           "default": 5,
           "minimum": 0.5,
           "maximum": 15,
-          "node_id": "105_sg_111",
-          "node_type": "PrimitiveFloat",
-          "input": "value",
+          "node_id": "105_sg_107",
+          "node_type": "ComfyMathExpression",
+          "input": "values.a",
           "description": "Converted to a valid frame length on the model's 17-frame-per-block grid at 24fps"
         },
         {
-          "id": "105_sg_15.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -13385,20 +13943,20 @@
       },
       "inputs": [
         {
-          "id": "138.value",
+          "id": "136.prompt",
           "label": "Prompt",
           "type": "textarea",
           "required": false,
           "default": "Reference <Picture 1> and <Picture 2> by tag, then describe the target scene, motion, and audio.\n",
-          "node_id": "138",
-          "node_type": "PrimitiveStringMultiline",
-          "input": "value",
+          "node_id": "136",
+          "node_type": "MiniMaxH3ReferenceToVideo",
+          "input": "prompt",
           "description": "Reference each connected input by tag in connection order, e.g. \"<Picture 1>\""
         },
         {
           "id": "137.image",
           "label": "Reference image 1",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "137",
@@ -13410,7 +13968,7 @@
         {
           "id": "139.image",
           "label": "Reference image 2",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "139",
@@ -13461,24 +14019,26 @@
           "description": "'match' scales refs to generation resolution (faster); 'max' keeps up to 2048px short edge for stronger identity fidelity, slower"
         },
         {
-          "id": "132.value",
+          "id": "131.values.a",
           "label": "Duration (seconds)",
           "type": "float",
           "required": false,
           "default": 5,
           "minimum": 0.5,
           "maximum": 15,
-          "node_id": "132",
-          "node_type": "PrimitiveFloat",
-          "input": "value",
+          "node_id": "131",
+          "node_type": "ComfyMathExpression",
+          "input": "values.a",
           "description": "Converted to a valid frame length by the Math Expression node"
         },
         {
-          "id": "129.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
-          "default": 157368968253448,
+          "default": -1,
+          "minimum": -1,
+          "maximum": 1152921504606846975,
           "node_id": "129",
           "node_type": "RandomNoise",
           "input": "noise_seed"
@@ -13604,20 +14164,20 @@
           "input": "height"
         },
         {
-          "id": "105_sg_111.value",
+          "id": "105_sg_107.values.a",
           "label": "Duration (seconds)",
           "type": "float",
           "required": false,
           "default": 5,
           "minimum": 0.5,
           "maximum": 15,
-          "node_id": "105_sg_111",
-          "node_type": "PrimitiveFloat",
-          "input": "value",
+          "node_id": "105_sg_107",
+          "node_type": "ComfyMathExpression",
+          "input": "values.a",
           "description": "Converted to a valid frame length on the model's 17-frame-per-block grid at 24fps"
         },
         {
-          "id": "105_sg_15.noise_seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -14056,7 +14616,7 @@
           "input": "length"
         },
         {
-          "id": "8.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -14186,7 +14746,7 @@
         {
           "id": "164.image",
           "label": "Reference image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "164",
@@ -14231,7 +14791,7 @@
           "input": "length"
         },
         {
-          "id": "108.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -14380,7 +14940,7 @@
         {
           "id": "164.image",
           "label": "Reference image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "164",
@@ -14425,7 +14985,7 @@
           "input": "length"
         },
         {
-          "id": "108.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -14832,7 +15392,7 @@
         {
           "id": "189.image",
           "label": "First frame image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "189",
@@ -14843,7 +15403,7 @@
         {
           "id": "295.image",
           "label": "Last frame image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "295",
@@ -14924,7 +15484,7 @@
           "input": "Number"
         },
         {
-          "id": "251.seed",
+          "id": "seed",
           "label": "Seed",
           "type": "int",
           "required": false,
@@ -15084,7 +15644,7 @@
         {
           "id": "54.image",
           "label": "Input image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "54",
@@ -15129,7 +15689,7 @@
           "input": "length"
         },
         {
-          "id": "71.noise_seed",
+          "id": "seed",
           "label": "Seed (high-noise expert)",
           "type": "int",
           "required": false,
@@ -15258,7 +15818,7 @@
         {
           "id": "22.image",
           "label": "Starting image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "22",
@@ -15603,7 +16163,7 @@
         {
           "id": "97.image",
           "label": "Input image",
-          "type": "image",
+          "type": "file",
           "required": false,
           "default": "",
           "node_id": "97",
@@ -15660,7 +16220,7 @@
           "input": "fps"
         },
         {
-          "id": "86.noise_seed",
+          "id": "seed",
           "label": "Seed (high-noise expert)",
           "type": "int",
           "required": false,

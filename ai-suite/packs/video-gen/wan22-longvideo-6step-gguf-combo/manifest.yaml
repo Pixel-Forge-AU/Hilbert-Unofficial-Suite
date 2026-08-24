@@ -51,7 +51,7 @@ entrypoints:
 inputs:
   - id: 22.image
     label: Starting image
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '22'

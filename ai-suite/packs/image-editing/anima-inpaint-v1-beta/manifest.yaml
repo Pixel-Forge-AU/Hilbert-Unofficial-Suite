@@ -45,7 +45,7 @@ inputs:
     input: image
     accept: image/png,image/jpeg,image/webp,image/bmp
     alpha_mask: true
-  - id: 111.seed
+  - id: seed
     label: Seed
     type: int
     required: false

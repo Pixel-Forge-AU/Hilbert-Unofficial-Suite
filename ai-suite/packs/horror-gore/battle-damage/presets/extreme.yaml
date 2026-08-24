@@ -1,33 +1,9 @@
-# Extreme Preset for Battle Damage
-
 name: Extreme
 description: Maximum gore effects with heavy battle damage
-
-generation:
-  width: 1024
-  height: 1024
-  steps: 30
-  cfg: 7.5
-  batch_size: 1
-
-sampling:
-  sampler: dpmpp_2m
-  scheduler: simple
-  denoise: 1.0
-
-damage:
-  intensity: 0.9
+values:
+  damage_intensity: 0.9
   blood_amount: 0.9
   dirt_amount: 0.8
   tear_amount: 0.85
-
-quality:
-  enable_upscale: true
-  enable_face_restore: false
-  enable_sharpen: true
-
-runtime:
-  low_vram: false
-  cpu_offload: false
-  enable_tiling: false
-  enable_cpu_offload: false
+  steps: 30
+  cfg: 7.5

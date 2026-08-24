@@ -1,33 +1,9 @@
-# Cinematic Preset for Battle Damage
-
 name: Cinematic
 description: Dramatic battle damage with moderate gore effects
-
-generation:
-  width: 1024
-  height: 1024
-  steps: 25
-  cfg: 7.0
-  batch_size: 1
-
-sampling:
-  sampler: dpmpp_2m
-  scheduler: simple
-  denoise: 1.0
-
-damage:
-  intensity: 0.65
+values:
+  damage_intensity: 0.65
   blood_amount: 0.55
   dirt_amount: 0.55
   tear_amount: 0.45
-
-quality:
-  enable_upscale: false
-  enable_face_restore: false
-  enable_sharpen: false
-
-runtime:
-  low_vram: false
-  cpu_offload: true
-  enable_tiling: false
-  enable_cpu_offload: true
+  steps: 25
+  cfg: 7.0

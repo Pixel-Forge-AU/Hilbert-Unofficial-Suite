@@ -45,5 +45,10 @@ ai-suite/playwright-artifacts/
 ai-suite/repos/
 ai-suite/safetensors/
 ai-suite/storyboards/
+ai-suite/cinematics/
 ai-suite/songs/
 ai-suite/disk_check.txt
+
+# Local package manager cache and training data (not source, not for this repo)
+.pnpm-store/
+ai-training/

@@ -126,7 +126,7 @@ inputs:
     node_id: '10'
     node_type: LTXVConditioning
     input: frame_rate
-  - id: 11.noise_seed
+  - id: seed
     label: Seed
     type: int
     required: false

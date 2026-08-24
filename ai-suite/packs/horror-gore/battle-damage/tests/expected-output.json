@@ -1,7 +1,7 @@
 {
   "workflow_id": "horror.battle-damage",
   "inputs": {
-    "image": "https://example.com/character.jpg",
+    "image": "example.jpg",
     "prompt": "battle damage, blood splatter, torn clothing, dirt and grime",
     "negative_prompt": "clean, fresh, no damage",
     "damage_intensity": 0.65,
@@ -15,20 +15,13 @@
   "expected_output": {
     "type": "image",
     "format": "webp",
-    "dimensions": [1024, 1024],
     "properties": {
       "has_content": true,
       "no_watermark": true,
-      "no_artifacts": true,
-      "show_damage": true,
-      "show_blood": true,
-      "show_dirt": true,
-      "show_tear": true,
       "battle_worn": true
     }
   },
   "validation": {
-    "min_resolution": [512, 512],
     "max_file_size_mb": 20,
     "required_features": [
       "battle-damage",

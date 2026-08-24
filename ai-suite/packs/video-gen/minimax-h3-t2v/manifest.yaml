@@ -49,18 +49,18 @@ inputs:
     node_id: 105_sg_104
     node_type: MiniMaxH3ImageToVideo
     input: height
-  - id: 105_sg_111.value
+  - id: 105_sg_107.values.a
     label: Duration (seconds)
     type: float
     required: false
     default: 5
     minimum: 0.5
     maximum: 15
-    node_id: 105_sg_111
-    node_type: PrimitiveFloat
-    input: value
+    node_id: 105_sg_107
+    node_type: ComfyMathExpression
+    input: values.a
     description: Converted to a valid frame length on the model's 17-frame-per-block grid at 24fps
-  - id: 105_sg_15.noise_seed
+  - id: seed
     label: Seed
     type: int
     required: false

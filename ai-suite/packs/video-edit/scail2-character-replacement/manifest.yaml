@@ -132,7 +132,7 @@ inputs:
     node_id: '22'
     node_type: BasicScheduler
     input: steps
-  - id: 23.noise_seed
+  - id: seed
     label: Seed
     type: int
     required: false

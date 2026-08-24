@@ -1,0 +1,54 @@
+{
+  "1": {
+    "class_type": "Hy3DModelLoader",
+    "inputs": {
+      "model": "hunyuan3d-dit-v2-0-fp16.safetensors",
+      "attention_mode": "sdpa",
+      "cublas_ops": false
+    }
+  },
+  "2": {
+    "class_type": "Hy3DGenerateMesh",
+    "inputs": {
+      "pipeline": ["1", 0],
+      "image": null,
+      "prompt": "A cute anime girl with gigantic fennec ears and a big fluffy fox tail, long wavy blonde hair, large blue eyes, wearing a pink sweater and a black winter coat",
+      "negative_prompt": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs",
+      "guidance_scale": 5.5,
+      "steps": 50,
+      "seed": -1
+    }
+  },
+  "3": {
+    "class_type": "Hy3DVAEDecode",
+    "inputs": {
+      "vae": ["1", 1],
+      "latents": ["2", 0],
+      "box_v": 1.01,
+      "octree_resolution": 384,
+      "num_chunks": 8000,
+      "mc_level": 0.0,
+      "mc_algo": "mc"
+    }
+  },
+  "4": {
+    "class_type": "Hy3DPostprocessMesh",
+    "inputs": {
+      "trimesh": ["3", 0],
+      "remove_floaters": true,
+      "remove_degenerate_faces": true,
+      "reduce_faces": true,
+      "max_facenum": 40000,
+      "smooth_normals": false
+    }
+  },
+  "5": {
+    "class_type": "Hy3DExportMesh",
+    "inputs": {
+      "trimesh": ["4", 0],
+      "filename_prefix": "3d/text-to-3d-hunyuan3d-v2",
+      "file_format": "glb",
+      "save_file": true
+    }
+  }
+}

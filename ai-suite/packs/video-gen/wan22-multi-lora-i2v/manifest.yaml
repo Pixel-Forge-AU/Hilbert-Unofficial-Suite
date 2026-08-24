@@ -32,7 +32,7 @@ inputs:
     input: text
   - id: 97.image
     label: Input image
-    type: image
+    type: file
     required: false
     default: ''
     node_id: '97'
@@ -79,7 +79,7 @@ inputs:
     node_id: '94'
     node_type: CreateVideo
     input: fps
-  - id: 86.noise_seed
+  - id: seed
     label: Seed (high-noise expert)
     type: int
     required: false

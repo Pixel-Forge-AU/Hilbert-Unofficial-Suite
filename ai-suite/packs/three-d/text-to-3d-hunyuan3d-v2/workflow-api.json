@@ -1,0 +1,19 @@
+{
+  "input": {
+    "required": {
+      "prompt": ["STRING", {"multiline": true, "default": "A cute anime girl with gigantic fennec ears and a big fluffy fox tail, long wavy blonde hair, large blue eyes, wearing a pink sweater and a black winter coat"}],
+      "steps": ["INT", {"default": 50, "min": 1, "max": 100}],
+      "guidance_scale": ["FLOAT", {"default": 5.5, "min": 0.0, "max": 20.0, "step": 0.1}],
+      "seed": ["INT", {"default": -1, "min": -1, "max": 18446744073709551615}],
+      "max_facenum": ["INT", {"default": 40000, "min": 1000, "max": 500000}],
+      "octree_resolution": ["INT", {"default": 384, "min": 128, "max": 512, "step": 64}],
+      "filename_prefix": ["STRING", {"default": "3d/text-to-3d-hunyuan3d-v2"}]
+    },
+    "optional": {
+      "negative_prompt": ["STRING", {"multiline": true, "default": "low quality, bad anatomy, extra digits, missing digits, extra limbs, missing limbs"}]
+    }
+  },
+  "output": {
+    "model": ["MODEL"]
+  }
+}

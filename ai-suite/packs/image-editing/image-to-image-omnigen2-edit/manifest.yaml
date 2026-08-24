@@ -95,7 +95,7 @@ inputs:
   node_type: EmptySD3LatentImage
   input: batch_size
   accept: image/png,image/jpeg,image/webp,image/bmp
-- id: 21.noise_seed
+- id: seed
   label: Seed
   type: int
   required: false

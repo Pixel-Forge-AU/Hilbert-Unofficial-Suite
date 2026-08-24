@@ -173,6 +173,15 @@
             color: #2a0a30;
         }
 
+        /* Under Development: experimental/unstable features - red */
+        .tab-group-underdev .tab-group-label { color: #e57373; }
+        .tab-group-underdev .tab-btn:hover:not(.active) { border-color: rgba(229, 115, 115, 0.55); }
+        .tab-group-underdev .tab-btn.active {
+            background: #e57373;
+            border-color: #e57373;
+            color: #2a0a0a;
+        }
+
         .tab-panel {
             display: none;
         }
@@ -2232,10 +2241,16 @@
                 <div class="tab-group-buttons">
                     <button class="tab-btn" type="button" data-tab="catalogue">Catalogue</button>
                     <button class="tab-btn" type="button" data-tab="studio">Studio</button>
-                    <button class="tab-btn" type="button" data-tab="composer">Composer</button>
-                    <button class="tab-btn" type="button" data-tab="musicvideo">Music Video</button>
                     <button class="tab-btn" type="button" data-tab="storyboard">Storyboard</button>
                     <button class="tab-btn" type="button" data-tab="library">Library</button>
+                </div>
+            </div>
+            <div class="tab-group tab-group-underdev">
+                <span class="tab-group-label">Under Development</span>
+                <div class="tab-group-buttons">
+                    <button class="tab-btn" type="button" data-tab="musicvideo">Music Video</button>
+                    <button class="tab-btn" type="button" data-tab="composer">Composer</button>
+                    <button class="tab-btn" type="button" data-tab="cinematic">Cinematic</button>
                 </div>
             </div>
         </nav>
@@ -3092,6 +3107,72 @@
             </section>
         </section>
 
+        <section class="tab-panel" id="tab-cinematic">
+            <section class="service-panel" id="cinListView">
+                <h3>Cinematic Sequences</h3>
+                <p>Scenes made of shots with camera direction (framing, movement). Each scene generates its own video from consecutive shot pairs; scenes then stitch together into one sequence.</p>
+                <div class="inline-form-actions" style="margin: 1rem 0;">
+                    <button class="btn btn-primary" type="button" id="cinNewButton">New Sequence</button>
+                    <button class="btn btn-secondary" type="button" id="cinRefreshButton">Refresh</button>
+                </div>
+                <div class="workbench-gallery" id="cinList"></div>
+            </section>
+
+            <section class="workbench composer-layout" aria-label="Cinematic sequence editor" id="cinEditorView" style="display:none;">
+                <section class="workbench-composer">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Cinematic Sequence</h3>
+                            <p>Each scene is its own shot list with camera framing/movement per shot. Camera movement steers the generation prompt but is not enforced by the model - treat it as unverified, same as Storyboard.</p>
+                        </div>
+                        <button class="btn btn-secondary" type="button" id="cinBackButton">Back to list</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="cinTitle">Title</label>
+                        <input id="cinTitle" type="text" placeholder="Sequence title">
+                    </div>
+                    <div id="cinSceneList"></div>
+                    <div class="inline-form-actions">
+                        <button class="btn btn-secondary" type="button" id="cinAddScene">Add Scene</button>
+                        <button class="btn btn-secondary" type="button" id="cinSave">Save Sequence</button>
+                        <button class="btn btn-secondary" type="button" id="cinDelete">Delete Sequence</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="cinTransitionModel">Transition model</label>
+                        <select id="cinTransitionModel">
+                            <option value="fast" selected>Fast (4-step LoRA, ~5x fewer steps)</option>
+                            <option value="quality">Quality (full ~20-step sampler, much slower)</option>
+                        </select>
+                    </div>
+                    <div class="inline-form-actions">
+                        <button class="btn btn-primary" type="button" id="cinGenerateSequence">Generate Full Sequence</button>
+                    </div>
+                    <div class="workbench-status" id="cinStatus">Ready.</div>
+                </section>
+
+                <section class="workbench-preview">
+                    <div class="workbench-heading">
+                        <div>
+                            <h3>Progress</h3>
+                            <p>Each shot pair within a scene uses a 14B model and is slow (many minutes per pair) - see the "Unverified" note on video.keyframe-video in the Catalogue. Cost multiplies with scene count, so check the estimate before generating a long sequence.</p>
+                        </div>
+                    </div>
+                    <div class="editor-progress" id="cinProgress">
+                        <div class="editor-progress-top">
+                            <span id="cinProgressLabel">No active generation</span>
+                            <span id="cinProgressPercent">0%</span>
+                        </div>
+                        <div class="editor-progress-bar">
+                            <div class="editor-progress-fill" id="cinProgressFill"></div>
+                        </div>
+                    </div>
+                    <div class="workbench-media" id="cinMediaStage">
+                        <div class="preview-empty">No sequence video yet.</div>
+                    </div>
+                </section>
+            </section>
+        </section>
+
         <section class="tab-panel" id="tab-library">
             <section class="service-panel">
                 <h3>Media Library</h3>
@@ -3306,6 +3387,26 @@
         </div>
     </div>
 
+    <div class="modal" id="cinImagePickerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Set Shot Image</h2>
+                <button class="close-btn" onclick="closeCinImagePickerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="cinImageUploadInput">Upload a new image</label>
+                    <input id="cinImageUploadInput" type="file" accept="image/*">
+                </div>
+                <p style="margin: 1rem 0 0.5rem; color: rgba(255,255,255,0.6);">Or choose from existing outputs:</p>
+                <div id="cinImagePickerGrid" class="workbench-gallery"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeCinImagePickerModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="storedInputPickerModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -3438,6 +3539,7 @@
             initComposer();
             initMusicVideo();
             initStoryboard();
+            initCinematic();
             refreshServiceStatus();
             refreshPerformanceStatus();
             refreshOutputLibrary();
@@ -8939,6 +9041,651 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 status.textContent = error.message;
                 setSbProgress(error.message, 0);
                 showToast('Storyboard video generation failed', error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // ---- Cinematic Sequences ----
+
+        let currentCinematic = null;
+        let cinImagePickerTarget = null;
+
+        const CIN_FRAMING_OPTIONS = ['extreme-wide', 'wide', 'medium-wide', 'medium', 'medium-close', 'close-up', 'extreme-close-up', 'over-the-shoulder', 'pov', 'insert'];
+        const CIN_MOVEMENT_OPTIONS = ['static', 'pan-left', 'pan-right', 'tilt-up', 'tilt-down', 'dolly-in', 'dolly-out', 'truck-left', 'truck-right', 'crane-up', 'crane-down', 'handheld', 'whip-pan', 'zoom-in', 'zoom-out', 'orbit'];
+
+        // Natural-language phrasing for prompts - these models follow "camera slowly dollies in"
+        // far more reliably than the raw hyphenated enum value "dolly-in".
+        const CIN_FRAMING_PHRASES = {
+            'extreme-wide': 'extreme wide shot, subject small within a vast environment',
+            'wide': 'wide shot, full scene and surroundings visible',
+            'medium-wide': 'medium-wide shot, full body with some environment visible',
+            'medium': 'medium shot, subject framed from the waist up',
+            'medium-close': 'medium-close shot, subject framed from the chest up',
+            'close-up': 'close-up shot, tightly framed on the face',
+            'extreme-close-up': 'extreme close-up shot, tightly framed on a single detail',
+            'over-the-shoulder': 'over-the-shoulder shot, foreground shoulder framing the subject beyond',
+            'pov': 'point-of-view shot, seen through the subject\'s own eyes',
+            'insert': 'insert shot, extreme close detail on a single object',
+        };
+        const CIN_MOVEMENT_PHRASES = {
+            'static': 'camera is locked off and static',
+            'pan-left': 'camera pans left',
+            'pan-right': 'camera pans right',
+            'tilt-up': 'camera tilts upward',
+            'tilt-down': 'camera tilts downward',
+            'dolly-in': 'camera slowly dollies in toward the subject',
+            'dolly-out': 'camera slowly dollies out away from the subject',
+            'truck-left': 'camera trucks left, moving sideways',
+            'truck-right': 'camera trucks right, moving sideways',
+            'crane-up': 'camera cranes upward, rising above the scene',
+            'crane-down': 'camera cranes downward, descending toward the scene',
+            'handheld': 'handheld camera with natural shake',
+            'whip-pan': 'camera whip-pans rapidly across the scene',
+            'zoom-in': 'camera zooms in on the subject',
+            'zoom-out': 'camera zooms out from the subject',
+            'orbit': 'camera orbits around the subject',
+        };
+
+        function cinGenId() {
+            return Math.random().toString(16).slice(2, 10);
+        }
+
+        function cinEmptyShot() {
+            return { id: cinGenId(), description: '', framing: 'wide', camera_movement: 'static', lens_mm: null, duration_s: null, steering: '', image: null };
+        }
+
+        function cinEmptyScene() {
+            return { id: cinGenId(), heading: '', action: '', shots: [cinEmptyShot()], video: null };
+        }
+
+        function initCinematic() {
+            document.getElementById('cinNewButton').addEventListener('click', createNewCinematic);
+            document.getElementById('cinRefreshButton').addEventListener('click', refreshCinematicList);
+            document.getElementById('cinBackButton').addEventListener('click', showCinematicList);
+            document.getElementById('cinAddScene').addEventListener('click', function() { addScene(); });
+            document.getElementById('cinSave').addEventListener('click', function() { saveCinematic(true); });
+            document.getElementById('cinDelete').addEventListener('click', deleteCurrentCinematic);
+            document.getElementById('cinGenerateSequence').addEventListener('click', generateFullSequence);
+        }
+
+        function showCinematicList() {
+            document.getElementById('cinListView').style.display = '';
+            document.getElementById('cinEditorView').style.display = 'none';
+            currentCinematic = null;
+            refreshCinematicList();
+        }
+
+        function showCinematicEditor() {
+            document.getElementById('cinListView').style.display = 'none';
+            document.getElementById('cinEditorView').style.display = '';
+        }
+
+        async function refreshCinematicList() {
+            const list = document.getElementById('cinList');
+            try {
+                const response = await fetch('/api/cinematics');
+                const data = await response.json();
+                const sequences = data.cinematics || [];
+                if (!sequences.length) {
+                    list.innerHTML = '<div class="preview-empty">No cinematic sequences yet. Create one to get started.</div>';
+                    return;
+                }
+                list.innerHTML = sequences.map(function(seq) {
+                    const thumb = seq.thumbnail_url
+                        ? `<img src="${seq.thumbnail_url}" alt="">`
+                        : `<div class="preview-empty" style="aspect-ratio:1;">No image yet</div>`;
+                    return `
+                        <article style="cursor:pointer;" onclick="openCinematic('${seq.id}')">
+                            <div class="media-tile">${thumb}</div>
+                            <div title="${escapeHtml(seq.title)}" style="margin-top:0.35rem; font-size:0.85rem;">
+                                ${escapeHtml(seq.title)}<br>
+                                <small style="color:rgba(255,255,255,0.6);">${seq.scene_count} scene${seq.scene_count === 1 ? '' : 's'} - ${seq.shots_with_images}/${seq.shot_count} shots${seq.has_video ? ' - video ready' : ''}</small>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+            } catch (error) {
+                list.innerHTML = `<div class="preview-empty">Could not load cinematic sequences: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function createNewCinematic() {
+            const response = await fetch('/api/cinematics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: 'Untitled Sequence' })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not create sequence', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentCinematic = data;
+            showCinematicEditor();
+            renderCinematicEditor();
+        }
+
+        async function openCinematic(id) {
+            const response = await fetch(`/api/cinematics/${id}`);
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Could not open sequence', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentCinematic = data;
+            showCinematicEditor();
+            renderCinematicEditor();
+        }
+
+        function renderCinematicEditor() {
+            document.getElementById('cinTitle').value = currentCinematic.title || '';
+            document.getElementById('cinMediaStage').innerHTML = currentCinematic.video
+                ? `<video src="${currentCinematic.video.url}" controls style="max-width:100%; border-radius:8px;"></video>`
+                : '<div class="preview-empty">No sequence video yet.</div>';
+            renderSceneRows();
+        }
+
+        function renderSceneRows() {
+            const container = document.getElementById('cinSceneList');
+            container.innerHTML = '';
+            currentCinematic.scenes.forEach(function(scene, sceneIndex) {
+                const card = document.createElement('div');
+                card.className = 'job-item';
+                card.dataset.sceneIndex = String(sceneIndex);
+                card.style.marginBottom = '1rem';
+                const sceneVideoBadge = scene.video ? ' - video ready' : '';
+                const isFirst = sceneIndex === 0;
+                const isLast = sceneIndex === currentCinematic.scenes.length - 1;
+                card.innerHTML = `
+                    <div style="width:100%;">
+                        <div class="inline-form-actions" style="align-items:center; justify-content:space-between;">
+                            <strong>Scene ${sceneIndex + 1}${sceneVideoBadge}</strong>
+                            <div style="display:flex; gap:0.4rem;">
+                                <button class="btn btn-secondary cin-scene-up" type="button" title="Move scene up" ${isFirst ? 'disabled' : ''}>&uarr;</button>
+                                <button class="btn btn-secondary cin-scene-down" type="button" title="Move scene down" ${isLast ? 'disabled' : ''}>&darr;</button>
+                                <button class="btn btn-secondary cin-scene-generate" type="button">Generate Scene Video</button>
+                                <button class="btn btn-secondary cin-scene-remove" type="button">Remove Scene</button>
+                            </div>
+                        </div>
+                        <input class="cin-scene-heading" type="text" style="width:100%; margin-top:0.4rem;" placeholder="Scene heading (e.g. EXT. ROOFTOP - NIGHT)" value="${escapeHtml(scene.heading || '')}">
+                        <textarea class="cin-scene-action" rows="2" style="width:100%; margin-top:0.4rem;" placeholder="Scene action / description...">${escapeHtml(scene.action || '')}</textarea>
+                        <div class="cin-shot-list" style="margin-top:0.6rem;"></div>
+                        <div class="inline-form-actions" style="margin-top:0.4rem;">
+                            <button class="btn btn-secondary cin-shot-add" type="button">Add Shot</button>
+                            <button class="btn btn-secondary cin-shot-generate-all" type="button">Generate All Shot Images</button>
+                        </div>
+                    </div>
+                `;
+                card.querySelector('.cin-scene-heading').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].heading = event.target.value;
+                    saveCinematic(false);
+                });
+                card.querySelector('.cin-scene-action').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].action = event.target.value;
+                    saveCinematic(false);
+                });
+                card.querySelector('.cin-scene-up').addEventListener('click', function() { moveScene(sceneIndex, -1); });
+                card.querySelector('.cin-scene-down').addEventListener('click', function() { moveScene(sceneIndex, 1); });
+                card.querySelector('.cin-scene-generate').addEventListener('click', function() { generateSceneVideo(sceneIndex); });
+                card.querySelector('.cin-scene-remove').addEventListener('click', function() { removeScene(sceneIndex); });
+                card.querySelector('.cin-shot-add').addEventListener('click', function() { addCinShot(sceneIndex); });
+                card.querySelector('.cin-shot-generate-all').addEventListener('click', function() { generateAllShotImages(sceneIndex); });
+                renderShotRowsForScene(card.querySelector('.cin-shot-list'), sceneIndex);
+                container.append(card);
+            });
+        }
+
+        function renderShotRowsForScene(listEl, sceneIndex) {
+            const scene = currentCinematic.scenes[sceneIndex];
+            listEl.innerHTML = '';
+            scene.shots.forEach(function(shot, shotIndex) {
+                const row = document.createElement('div');
+                row.className = 'job-item';
+                row.dataset.shotIndex = String(shotIndex);
+                const thumb = shot.image
+                    ? `<a href="${shot.image.url}" target="_blank" rel="noreferrer"><img src="${shot.image.url}" alt="" style="width:72px; height:72px; object-fit:cover; border-radius:6px;"></a>`
+                    : `<div class="preview-empty" style="width:72px; height:72px; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">No image</div>`;
+                const framingOptions = CIN_FRAMING_OPTIONS.map(function(opt) {
+                    return `<option value="${opt}"${shot.framing === opt ? ' selected' : ''}>${opt}</option>`;
+                }).join('');
+                const movementOptions = CIN_MOVEMENT_OPTIONS.map(function(opt) {
+                    return `<option value="${opt}"${shot.camera_movement === opt ? ' selected' : ''}>${opt}</option>`;
+                }).join('');
+                const isFirst = shotIndex === 0;
+                const isLast = shotIndex === scene.shots.length - 1;
+                const labelStyle = 'font-size:0.7rem; color:rgba(255,255,255,0.55); display:block; margin-bottom:0.15rem;';
+                row.innerHTML = `
+                    <div class="job-info" style="align-items:center;">
+                        ${thumb}
+                        <div style="flex:1; min-width:0;">
+                            <div class="inline-form-actions" style="align-items:center; justify-content:space-between;">
+                                <strong>Shot ${shotIndex + 1}</strong>
+                                <div style="display:flex; gap:0.3rem;">
+                                    <button class="btn btn-secondary cin-shot-up" type="button" title="Move shot up" ${isFirst ? 'disabled' : ''}>&uarr;</button>
+                                    <button class="btn btn-secondary cin-shot-down" type="button" title="Move shot down" ${isLast ? 'disabled' : ''}>&darr;</button>
+                                </div>
+                            </div>
+                            <textarea class="cin-shot-desc" rows="2" style="width:100%; margin-top:0.25rem;" placeholder="Describe this shot...">${escapeHtml(shot.description || '')}</textarea>
+                            <div style="display:flex; gap:0.6rem; margin-top:0.4rem; flex-wrap:wrap;">
+                                <div>
+                                    <label style="${labelStyle}">Framing</label>
+                                    <select class="cin-shot-framing">${framingOptions}</select>
+                                </div>
+                                <div>
+                                    <label style="${labelStyle}">Movement</label>
+                                    <select class="cin-shot-movement">${movementOptions}</select>
+                                </div>
+                                <div>
+                                    <label style="${labelStyle}">Lens mm (reference only)</label>
+                                    <input class="cin-shot-lens" type="number" placeholder="e.g. 35" style="width:100px;" value="${shot.lens_mm != null ? shot.lens_mm : ''}">
+                                </div>
+                                <div>
+                                    <label style="${labelStyle}">Duration s (reference only)</label>
+                                    <input class="cin-shot-duration" type="number" step="0.1" placeholder="e.g. 2.5" style="width:110px;" value="${shot.duration_s != null ? shot.duration_s : ''}">
+                                </div>
+                            </div>
+                            <textarea class="cin-shot-steer" rows="1" style="width:100%; margin-top:0.4rem;" placeholder="Steering notes (style, lighting, mood...) - optional">${escapeHtml(shot.steering || '')}</textarea>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                        <button class="btn btn-secondary cin-shot-generate" type="button">${shot.image ? 'Regenerate' : 'Generate'}</button>
+                        <button class="btn btn-secondary cin-shot-set-image" type="button">Upload / Choose...</button>
+                        <button class="btn btn-secondary cin-shot-remove" type="button">Remove</button>
+                    </div>
+                `;
+                row.querySelector('.cin-shot-desc').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].description = event.target.value;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-framing').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].framing = event.target.value;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-movement').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].camera_movement = event.target.value;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-lens').addEventListener('change', function(event) {
+                    const value = event.target.value.trim();
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].lens_mm = value ? Number(value) : null;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-duration').addEventListener('change', function(event) {
+                    const value = event.target.value.trim();
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].duration_s = value ? Number(value) : null;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-steer').addEventListener('change', function(event) {
+                    currentCinematic.scenes[sceneIndex].shots[shotIndex].steering = event.target.value;
+                    saveCinematic(false);
+                });
+                row.querySelector('.cin-shot-up').addEventListener('click', function() { moveShot(sceneIndex, shotIndex, -1); });
+                row.querySelector('.cin-shot-down').addEventListener('click', function() { moveShot(sceneIndex, shotIndex, 1); });
+                row.querySelector('.cin-shot-generate').addEventListener('click', function() { generateCinShotImage(sceneIndex, shotIndex); });
+                row.querySelector('.cin-shot-set-image').addEventListener('click', function() { openCinImagePicker(sceneIndex, shotIndex); });
+                row.querySelector('.cin-shot-remove').addEventListener('click', function() { removeCinShot(sceneIndex, shotIndex); });
+                listEl.append(row);
+            });
+        }
+
+        function addScene() {
+            currentCinematic.scenes.push(cinEmptyScene());
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        function removeScene(sceneIndex) {
+            const scene = currentCinematic.scenes[sceneIndex];
+            const hasContent = scene.video || scene.shots.some(function(s) { return s.image; });
+            if (hasContent && !confirm(`Scene ${sceneIndex + 1} has generated images or video. Remove it anyway?`)) return;
+            currentCinematic.scenes.splice(sceneIndex, 1);
+            if (!currentCinematic.scenes.length) currentCinematic.scenes.push(cinEmptyScene());
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        function moveScene(sceneIndex, direction) {
+            const target = sceneIndex + direction;
+            const scenes = currentCinematic.scenes;
+            if (target < 0 || target >= scenes.length) return;
+            [scenes[sceneIndex], scenes[target]] = [scenes[target], scenes[sceneIndex]];
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        function addCinShot(sceneIndex) {
+            currentCinematic.scenes[sceneIndex].shots.push(cinEmptyShot());
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        function removeCinShot(sceneIndex, shotIndex) {
+            const shots = currentCinematic.scenes[sceneIndex].shots;
+            if (shots[shotIndex].image && !confirm(`Shot ${shotIndex + 1} has a generated image. Remove it anyway?`)) return;
+            shots.splice(shotIndex, 1);
+            if (!shots.length) shots.push(cinEmptyShot());
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        function moveShot(sceneIndex, shotIndex, direction) {
+            const target = shotIndex + direction;
+            const shots = currentCinematic.scenes[sceneIndex].shots;
+            if (target < 0 || target >= shots.length) return;
+            [shots[shotIndex], shots[target]] = [shots[target], shots[shotIndex]];
+            renderSceneRows();
+            saveCinematic(false);
+        }
+
+        async function generateAllShotImages(sceneIndex) {
+            const status = document.getElementById('cinStatus');
+            const scene = currentCinematic.scenes[sceneIndex];
+            const targets = scene.shots
+                .map(function(s, i) { return i; })
+                .filter(function(i) { return !scene.shots[i].image && (scene.shots[i].description || '').trim(); });
+            if (!targets.length) {
+                status.textContent = `Scene ${sceneIndex + 1}: no shots need generating (already have images, or missing descriptions).`;
+                return;
+            }
+            for (const shotIndex of targets) {
+                await generateCinShotImage(sceneIndex, shotIndex);
+            }
+            status.textContent = `Scene ${sceneIndex + 1}: generated ${targets.length} shot image${targets.length === 1 ? '' : 's'}.`;
+        }
+
+        async function generateCinShotImage(sceneIndex, shotIndex) {
+            const status = document.getElementById('cinStatus');
+            const shot = currentCinematic.scenes[sceneIndex].shots[shotIndex];
+            const description = (shot.description || '').trim();
+            const steering = (shot.steering || '').trim();
+            if (!description) {
+                status.textContent = `Enter a description for scene ${sceneIndex + 1}, shot ${shotIndex + 1} first.`;
+                return;
+            }
+            const framingPhrase = CIN_FRAMING_PHRASES[shot.framing] || '';
+            const prompt = [framingPhrase, description, steering].filter(Boolean).join(', ');
+            status.textContent = `Generating scene ${sceneIndex + 1}, shot ${shotIndex + 1}...`;
+            setCinProgress(`Scene ${sceneIndex + 1}, Shot ${shotIndex + 1}: generating...`, 10);
+            try {
+                const output = await runComfyWorkflow('core.text-to-image', { '67.text': prompt }, 'image', {
+                    label: `Scene ${sceneIndex + 1} Shot ${shotIndex + 1}`, progressStart: 5, progressEnd: 95,
+                }, setCinProgress);
+                if (!output) throw new Error('Shot did not return an image.');
+                currentCinematic.scenes[sceneIndex].shots[shotIndex].image = output;
+                await saveCinematic(false);
+                status.textContent = `Scene ${sceneIndex + 1}, shot ${shotIndex + 1} done.`;
+                setCinProgress('Idle', 0);
+            } catch (error) {
+                status.textContent = error.message;
+                showToast('Shot generation failed', error.message, 'error');
+                setCinProgress(error.message, 0);
+            } finally {
+                renderSceneRows();
+            }
+        }
+
+        function openCinImagePicker(sceneIndex, shotIndex) {
+            cinImagePickerTarget = { sceneIndex, shotIndex };
+            document.getElementById('cinImageUploadInput').value = '';
+            document.getElementById('cinImagePickerModal').classList.add('active');
+            refreshCinImagePickerGrid();
+        }
+
+        function closeCinImagePickerModal() {
+            document.getElementById('cinImagePickerModal').classList.remove('active');
+            cinImagePickerTarget = null;
+        }
+
+        async function refreshCinImagePickerGrid() {
+            const grid = document.getElementById('cinImagePickerGrid');
+            grid.innerHTML = '<div class="preview-empty">Loading...</div>';
+            try {
+                const response = await fetch('/api/outputs?limit=200');
+                const data = await response.json();
+                const images = (data.outputs || []).filter(function(o) { return o.media_type === 'image'; });
+                if (!images.length) {
+                    grid.innerHTML = '<div class="preview-empty">No existing images found.</div>';
+                    return;
+                }
+                grid.innerHTML = '';
+                images.forEach(function(image) {
+                    const tile = document.createElement('button');
+                    tile.type = 'button';
+                    tile.className = 'media-tile';
+                    tile.title = image.filename;
+                    tile.innerHTML = `<img src="${image.url}" alt="">`;
+                    tile.addEventListener('click', function() {
+                        assignCinShotImage({ type: 'image', filename: image.filename, subfolder: image.subfolder || '', url: image.url });
+                    });
+                    grid.append(tile);
+                });
+            } catch (error) {
+                grid.innerHTML = `<div class="preview-empty">Could not load images: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function assignCinShotImage(imageRef) {
+            if (!cinImagePickerTarget) return;
+            const { sceneIndex, shotIndex } = cinImagePickerTarget;
+            currentCinematic.scenes[sceneIndex].shots[shotIndex].image = imageRef;
+            renderSceneRows();
+            saveCinematic(false);
+            closeCinImagePickerModal();
+        }
+
+        document.getElementById('cinImageUploadInput').addEventListener('change', async function(event) {
+            const file = event.target.files[0];
+            if (!file || !cinImagePickerTarget) return;
+            const status = document.getElementById('cinStatus');
+            try {
+                status.textContent = 'Uploading image...';
+                const form = new FormData();
+                form.append('file', file);
+                const response = await fetch('/api/uploads', { method: 'POST', body: form });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                assignCinShotImage({ type: 'image', filename: data.filename, subfolder: 'studio_uploads', url: data.url });
+                status.textContent = 'Image uploaded.';
+            } catch (error) {
+                status.textContent = error.message;
+                showToast('Image upload failed', error.message, 'error');
+            }
+        });
+
+        async function saveCinematic(notify) {
+            const status = document.getElementById('cinStatus');
+            currentCinematic.title = document.getElementById('cinTitle').value.trim() || 'Untitled Sequence';
+            const response = await fetch(`/api/cinematics/${currentCinematic.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentCinematic)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                showToast('Save failed', data.error || 'Unknown error', 'error');
+                return;
+            }
+            currentCinematic = data;
+            if (notify) {
+                status.textContent = 'Sequence saved.';
+                showToast('Sequence saved', currentCinematic.title, 'success');
+            }
+        }
+
+        async function deleteCurrentCinematic() {
+            if (!currentCinematic) return;
+            if (!confirm(`Delete "${currentCinematic.title || 'Untitled Sequence'}"? This cannot be undone.`)) return;
+            await fetch(`/api/cinematics/${currentCinematic.id}`, { method: 'DELETE' });
+            showToast('Sequence deleted', currentCinematic.title, 'info');
+            showCinematicList();
+        }
+
+        function setCinProgress(message, percent) {
+            const label = document.getElementById('cinProgressLabel');
+            const percentEl = document.getElementById('cinProgressPercent');
+            const fill = document.getElementById('cinProgressFill');
+            const value = Math.max(0, Math.min(100, Number(percent || 0)));
+            if (label) label.textContent = message;
+            if (percentEl) percentEl.textContent = `${value}%`;
+            if (fill) fill.style.width = `${value}%`;
+        }
+
+        function buildCinMotionPrompt(fromShot, toShot) {
+            const framing = CIN_FRAMING_PHRASES[toShot.framing] || `${toShot.framing} shot`;
+            const movement = CIN_MOVEMENT_PHRASES[toShot.camera_movement] || `camera ${toShot.camera_movement}`;
+            return `${framing}. ${movement}. `
+                + `Action: ${fromShot.description} → ${toShot.description}. `
+                + `${toShot.steering || ''}`.trim();
+        }
+
+        function getCinModelConfig() {
+            const modelChoice = document.getElementById('cinTransitionModel').value;
+            return modelChoice === 'quality'
+                ? { workflowId: 'video.keyframe-video', startField: '80.image', endField: '89.image', promptField: '90.text' }
+                : { workflowId: 'video.keyframe-video-fast', startField: '68.image', endField: '62.image', promptField: '6.text' };
+        }
+
+        async function generateSceneSegments(scene, modelConfig, labelPrefix, progressStart, progressEnd, statusEl) {
+            const shotsWithImages = scene.shots.filter(function(s) { return s.image; });
+            if (shotsWithImages.length < 2) {
+                throw new Error(`${labelPrefix} needs at least 2 shots with generated images.`);
+            }
+            const span = progressEnd - progressStart;
+            const uploadedNames = [];
+            for (let i = 0; i < shotsWithImages.length; i += 1) {
+                setCinProgress(`${labelPrefix}: uploading shot images (${i + 1}/${shotsWithImages.length})...`, progressStart + Math.round((i / shotsWithImages.length) * span * 0.1));
+                uploadedNames.push(await uploadGeneratedImage(shotsWithImages[i].image));
+            }
+
+            const pairCount = shotsWithImages.length - 1;
+            const segments = [];
+            const genStart = progressStart + Math.round(span * 0.1);
+            const genEnd = progressStart + Math.round(span * 0.85);
+            for (let i = 0; i < pairCount; i += 1) {
+                const label = `${labelPrefix}: transition ${i + 1} of ${pairCount}`;
+                if (statusEl) statusEl.textContent = `${label}...`;
+                const pairStart = genStart + Math.round((i / pairCount) * (genEnd - genStart));
+                const pairEnd = genStart + Math.round(((i + 1) / pairCount) * (genEnd - genStart));
+                const motionPrompt = buildCinMotionPrompt(shotsWithImages[i], shotsWithImages[i + 1]);
+                const segment = await runComfyWorkflow(modelConfig.workflowId, {
+                    [modelConfig.startField]: uploadedNames[i].name,
+                    [modelConfig.endField]: uploadedNames[i + 1].name,
+                    [modelConfig.promptField]: motionPrompt,
+                }, 'video', { label, progressStart: pairStart, progressEnd: pairEnd }, setCinProgress);
+                if (!segment) throw new Error(`${label} did not return a video.`);
+                segments.push(segment);
+                if (i < pairCount - 1) {
+                    if (statusEl) statusEl.textContent = `${labelPrefix}: preparing transition ${i + 2} of ${pairCount}...`;
+                    await coolDownComfy(`${labelPrefix}: preparing transition ${i + 2} of ${pairCount}`, setCinProgress, pairEnd);
+                }
+            }
+
+            let finalVideo = segments[0];
+            if (segments.length > 1) {
+                await coolDownComfy(`${labelPrefix}: preparing stitch`, setCinProgress, genEnd);
+                if (statusEl) statusEl.textContent = `${labelPrefix}: stitching...`;
+                setCinProgress(`${labelPrefix}: stitching...`, genEnd + Math.round(span * 0.05));
+                const stitchResponse = await fetch('/api/stitch-videos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ outputs: segments, workflow_id: 'cinematic-scene' })
+                });
+                const stitchPayload = await stitchResponse.json();
+                if (!stitchResponse.ok || !stitchPayload.output) {
+                    throw new Error(stitchPayload.error || `Could not stitch ${labelPrefix.toLowerCase()}.`);
+                }
+                finalVideo = stitchPayload.output;
+            }
+            setCinProgress(`${labelPrefix}: done`, progressEnd);
+            return finalVideo;
+        }
+
+        async function generateSceneVideo(sceneIndex) {
+            const status = document.getElementById('cinStatus');
+            const scene = currentCinematic.scenes[sceneIndex];
+            setCinProgress('Starting...', 2);
+            try {
+                const modelConfig = getCinModelConfig();
+                const video = await generateSceneSegments(scene, modelConfig, `Scene ${sceneIndex + 1}`, 2, 98, status);
+                scene.video = video;
+                await saveCinematic(false);
+                renderSceneRows();
+                status.textContent = `Scene ${sceneIndex + 1} video complete.`;
+                setCinProgress('Complete', 100);
+                showToast('Scene video complete', `Scene ${sceneIndex + 1}`, 'success');
+                refreshOutputLibrary();
+            } catch (error) {
+                status.textContent = error.message;
+                setCinProgress(error.message, 0);
+                showToast('Scene video generation failed', error.message, 'error');
+            }
+        }
+
+        async function generateFullSequence() {
+            const status = document.getElementById('cinStatus');
+            const scenes = currentCinematic.scenes;
+            const pairTotal = scenes.reduce(function(sum, scene) {
+                const withImages = scene.shots.filter(function(s) { return s.image; }).length;
+                return sum + Math.max(0, withImages - 1);
+            }, 0);
+            if (pairTotal < 1) {
+                status.textContent = 'Each scene needs at least 2 shots with generated images.';
+                return;
+            }
+            const estimateMinutes = pairTotal * 5;
+            const warningOk = confirm(
+                `This will run ${pairTotal} shot-pair generation${pairTotal === 1 ? '' : 's'} across ${scenes.length} scene${scenes.length === 1 ? '' : 's'}, `
+                + `plus stitching. Each pair takes several minutes on the 14B model - estimate at least ~${estimateMinutes} minutes. Continue?`
+            );
+            if (!warningOk) return;
+
+            const button = document.getElementById('cinGenerateSequence');
+            button.disabled = true;
+            setCinProgress('Starting...', 1);
+            try {
+                const modelConfig = getCinModelConfig();
+                const sceneVideos = [];
+                for (let i = 0; i < scenes.length; i += 1) {
+                    const scene = scenes[i];
+                    const progressStart = 1 + Math.round((i / scenes.length) * 85);
+                    const progressEnd = 1 + Math.round(((i + 1) / scenes.length) * 85);
+                    status.textContent = `Generating scene ${i + 1} of ${scenes.length}...`;
+                    const video = await generateSceneSegments(scene, modelConfig, `Scene ${i + 1} of ${scenes.length}`, progressStart, progressEnd, status);
+                    scene.video = video;
+                    sceneVideos.push(video);
+                    await saveCinematic(false);
+                    renderSceneRows();
+                }
+
+                let finalVideo = sceneVideos[0];
+                if (sceneVideos.length > 1) {
+                    await coolDownComfy('Preparing sequence stitch', setCinProgress, 88);
+                    status.textContent = 'Stitching scenes into full sequence...';
+                    setCinProgress('Stitching sequence...', 92);
+                    const stitchResponse = await fetch('/api/stitch-videos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ outputs: sceneVideos, workflow_id: 'cinematic-sequence' })
+                    });
+                    const stitchPayload = await stitchResponse.json();
+                    if (!stitchResponse.ok || !stitchPayload.output) {
+                        throw new Error(stitchPayload.error || 'Could not stitch the sequence.');
+                    }
+                    finalVideo = stitchPayload.output;
+                }
+
+                currentCinematic.video = finalVideo;
+                await saveCinematic(false);
+                document.getElementById('cinMediaStage').innerHTML = `<video src="${finalVideo.url}" controls style="max-width:100%; border-radius:8px;"></video>`;
+                status.textContent = 'Full sequence video complete.';
+                setCinProgress('Complete', 100);
+                showToast('Sequence video complete', currentCinematic.title, 'success');
+                refreshOutputLibrary();
+            } catch (error) {
+                status.textContent = error.message;
+                setCinProgress(error.message, 0);
+                showToast('Sequence video generation failed', error.message, 'error');
             } finally {
                 button.disabled = false;
             }

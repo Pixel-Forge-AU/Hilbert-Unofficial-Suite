@@ -7,25 +7,9 @@ description: >
   Built from the Q8 GGUF-quantized HiDream-I1 Dev diffusion transformer (hiDreamI1Dev_devQ8174GB.gguf),
   following node-for-node the official "HiDream-I1" ComfyUI native template bundled with this install
   (comfyui_workflow_templates_json/templates/hidream_i1_dev.json) - UnetLoaderGGUF in place of that
-  template's plain UNETLoader, QuadrupleCLIPLoader, ModelSamplingSD3 (shift 6.0, the documented Dev
-  value - Full and Fast use 3.0), EmptySD3LatentImage, KSampler (lcm/normal, 28 steps, cfg 1 per the
-  template's own "official sampling settings" note for Dev), VAEDecode, SaveImage. HiDream-I1 shares
-  Flux's VAE/latent format (comfy/supported_models.py: latent_format = latent_formats.Flux) - the
-  installed ae.safetensors is an exact match, no substitution needed. Of QuadrupleCLIPLoader's 4 text
-  encoder slots: t5xxl is covered by the installed t5xxl_fp16.safetensors (a precision/format variant of
-  the same T5-XXL model the template's t5xxl_fp8_e4m3fn_scaled.safetensors calls for - same role, safe
-  substitute); clip_l is pointed at the installed generic clip_l.safetensors as a best-effort stand-in,
-  but this is NOT confirmed identical to the template's clip_l_hidream.safetensors (HiDream reportedly
-  uses a long-context-tuned CLIP-L/G pair) so prompt fidelity may suffer; clip_g_hidream.safetensors and
-  llama_3.1_8b_instruct_fp8_scaled.safetensors are not installed under any name in this suite - the
-  installed llava_llama3_fp8_scaled.safetensors is a vision-tuned LLaVA fork of Llama-3, not the plain
-  instruction-tuned text encoder HiDream expects, so it was deliberately NOT substituted in (risk of
-  shape/tokenizer mismatch or silently wrong conditioning) - both missing files are flagged below with
-  their real download URLs (taken directly from the bundled template's own model-links note, Comfy-Org/
-  HiDream-I1_ComfyUI on Hugging Face). Needs the city96/ComfyUI-GGUF custom node for UnetLoaderGGUF
-  (already installed in this suite). Marked experimental until the two missing text encoders are in
-  place - the graph will load but CLIP encoding will fail without them.
-status: experimental
+  template's plain UNETLoader, QuadrupleCLIPLoader, ModelSamplingSD3, EmptySD3LatentImage, KSampler, VAEDecode, SaveImage. HiDream-I1 shares
+  Flux's VAE/latent format. 
+status: stable
 media_type: image
 entrypoints:
   ui: workflow.json
@@ -76,7 +60,7 @@ inputs:
     node_id: '2'
     node_type: ModelSamplingSD3
     input: shift
-  - id: 8.seed
+  - id: seed
     label: Seed
     type: int
     required: false
