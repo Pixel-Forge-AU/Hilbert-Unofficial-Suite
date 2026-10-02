@@ -1,0 +1,343 @@
+id: three-d.image-to-textured-mesh-2-1-ultra
+name: Image to Textured 3D Model (Hunyuan3D 2.1, Ultra Detail)
+version: 0.1.0
+category: three-d
+media_type: model
+description: >
+  Ultra-detail variant of `three-d.image-to-textured-mesh-2-1`. Same
+  Hunyuan3D-2.1 shape + PBR paint pipeline, but every resolution/quality
+  ceiling is raised to what the underlying nodes actually support (not just
+  the base pack's exposed range), plus three structural additions the base
+  pack doesn't have: a separate reference image for texture painting, wider
+  camera coverage for the texture bake, and a Real-ESRGAN 4x upscale of the
+  painted multi-view images before they're baked into the UV texture.
+  `three-d.image-to-textured-mesh-2-1` is left unmodified - use this pack
+  when you've already maxed that one's sliders and want more.
+status: experimental
+
+entrypoints:
+  ui: workflow.json
+  api: workflow-api.json
+
+inputs:
+  - id: image
+    label: Reference image
+    type: file
+    required: true
+    default: example.png
+    node_id: "1"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Drives the mesh's shape. Use a clean, unambiguous view of the subject - this image is not used for texture painting in this pack.
+
+  - id: texture_image
+    label: Texture reference image (optional)
+    type: file
+    required: false
+    default: example.png
+    node_id: "19"
+    node_type: LoadImage
+    input: image
+    accept: image/png,image/jpeg,image/webp,image/bmp
+    description: Separate image used only to paint the PBR texture. Leave as the default to reuse the same look as the shape image, or upload a sharper/better-lit/higher-resolution photo of the subject to bake in more texture detail than the shape image alone could provide. Background is always removed from this image before painting.
+
+  - id: remove_background
+    label: Remove background (shape image)
+    type: boolean
+    required: false
+    default: true
+    node_id: "5"
+    node_type: ComfySwitchNode
+    input: switch
+    description: Segments the subject out (rembg, isnet-general-use, CPU) before shape generation. Turn off if the shape reference image already has a clean plain/transparent background.
+
+  - id: shape_steps
+    label: Shape generation steps
+    type: int
+    required: false
+    default: 100
+    minimum: 1
+    maximum: 100
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator2
+    input: steps
+    description: Diffusion steps for shape generation. Defaulted to this node's actual maximum.
+
+  - id: shape_guidance_scale
+    label: Shape guidance scale
+    type: float
+    required: false
+    default: 5.0
+    minimum: 1.0
+    maximum: 30.0
+    step: 0.1
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator2
+    input: guidance_scale
+    description: Left at the base pack's default - this trades off fidelity to the image for stability, it isn't a detail slider, and pushing it to the max tends to distort geometry rather than sharpen it.
+
+  - id: shape_seed
+    label: Shape seed
+    type: int
+    required: false
+    default: 123
+    minimum: 0
+    maximum: 18446744073709551615
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator2
+    input: seed
+
+  - id: attention_mode
+    label: Shape generation attention mode
+    type: select
+    required: false
+    default: sdpa
+    options:
+      - sdpa
+      - sageattn
+    node_id: "6"
+    node_type: Hy3D21MeshGenerator2
+    input: attention_mode
+    description: sageattn is faster but needs the sageattention package installed separately; sdpa always works
+
+  - id: box_v
+    label: Bounding box padding
+    type: float
+    required: false
+    default: 1.01
+    minimum: -10.0
+    maximum: 10.0
+    step: 0.01
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: box_v
+    description: Padding around the mesh volume during shape decoding. Increase if protruding parts are getting clipped off.
+
+  - id: octree_resolution
+    label: Octree resolution (geometry detail)
+    type: int
+    required: false
+    default: 1536
+    minimum: 8
+    maximum: 4096
+    step: 8
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: octree_resolution
+    description: Higher resolution yields more detailed geometry but uses more system memory (with enable_flash_vdm off, memory scales as (resolution+1)^3 * 4 bytes - 1536 is ~14.5GB, 2048 is ~34GB, 2560 is ~67GB). Confirmed on this machine that FlashVDM's hierarchical decoder crashes (HIPBLAS_STATUS_NOT_SUPPORTED) as soon as its refinement ladder has more than one level, which happens at almost any resolution above the low-60s - not just very high ones. So this pack runs the plain dense decoder instead (enable_flash_vdm off) and controls memory directly through this value; stay well under your available unified/system memory since the model weights and everything else running need headroom too.
+
+  - id: mc_algo
+    label: Marching cubes algorithm
+    type: select
+    required: false
+    default: dmc
+    options:
+      - mc
+      - dmc
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: mc_algo
+    description: dmc (dual marching cubes) generally extracts a cleaner iso-surface than standard mc at the same octree resolution. Unverified against this specific wrapper/model - switch back to mc if you see artifacts.
+
+  - id: enable_flash_vdm
+    label: Use FlashVDM hierarchical decoding
+    type: boolean
+    required: false
+    default: false
+    node_id: "7"
+    node_type: Hy3D21VAEDecode
+    input: enable_flash_vdm
+    description: Left off - confirmed broken on this machine. Its dilate() refinement step throws RuntimeError CUDA error HIPBLAS_STATUS_NOT_SUPPORTED (a ROCm/hipBLAS conv3d limitation) as soon as its resolution ladder has more than one level, which happens at almost any octree_resolution above the low-60s, not just high ones - confirmed failing identically at ladder tops of both 4032 and 2016. With it off, mesh extraction uses the plain dense decoder instead, sized directly by octree_resolution (see that input's description for the memory tradeoff). Only turn this on to re-test whether an upstream fix (ROCm/rocBLAS update, or an env var workaround) has resolved the underlying op-support gap.
+
+  - id: max_facenum
+    label: Max face count
+    type: int
+    required: false
+    default: 300000
+    minimum: 1000
+    maximum: 2000000
+    node_id: "8"
+    node_type: Hy3D21PostprocessMesh
+    input: max_facenum
+    description: Mesh is reduced to at most this many faces before UV-wrapping and texturing. The base pack caps this at 500000, but the underlying node accepts up to 10,000,000 - raised here so a maxed octree_resolution doesn't get thrown away by an artificially low face cap. Very high values produce very large GLB files.
+
+  - id: reduce_faces
+    label: Reduce face count
+    type: boolean
+    required: false
+    default: true
+    node_id: "8"
+    node_type: Hy3D21PostprocessMesh
+    input: reduce_faces
+    description: Turn off to export the raw marching-cubes mesh with no simplification at all (ignores max_facenum). Produces the most geometric detail possible but can be tens of millions of faces - most 3D tools and printers will struggle with the file.
+
+  - id: smooth_normals
+    label: Smooth normals
+    type: boolean
+    required: false
+    default: false
+    node_id: "8"
+    node_type: Hy3D21PostprocessMesh
+    input: smooth_normals
+
+  - id: camera_azimuths
+    label: Bake camera azimuths (degrees)
+    type: text
+    required: false
+    default: "0, 45, 90, 135, 180, 225, 270, 315, 0, 180"
+    node_id: "9"
+    node_type: Hy3D21CameraConfig
+    input: camera_azimuths
+    description: Comma-separated azimuth angle per bake view. The base pack only renders 6 views (front/back/left/right/top/bottom); this defaults to 10 views (8 around + top/bottom) for denser texture coverage. Must have the same number of entries as camera_elevations and view_weights.
+
+  - id: camera_elevations
+    label: Bake camera elevations (degrees)
+    type: text
+    required: false
+    default: "0, 0, 0, 0, 0, 0, 0, 0, 90, -90"
+    node_id: "9"
+    node_type: Hy3D21CameraConfig
+    input: camera_elevations
+    description: Comma-separated elevation angle per bake view, matched index-for-index with camera_azimuths.
+
+  - id: view_weights
+    label: Bake view weights
+    type: text
+    required: false
+    default: "1.0, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.4, 0.4"
+    node_id: "9"
+    node_type: Hy3D21CameraConfig
+    input: view_weights
+    description: How strongly each view contributes to the final bake, matched index-for-index with camera_azimuths. The base pack heavily favors the front view (weights as low as 0.05 on the sides); these are much more even, which should reduce flat/under-textured sides and backs at the cost of a slightly less sharp front.
+
+  - id: ortho_scale
+    label: Bake camera ortho scale
+    type: float
+    required: false
+    default: 1.0
+    minimum: 0.1
+    maximum: 2.0
+    step: 0.01
+    node_id: "9"
+    node_type: Hy3D21CameraConfig
+    input: ortho_scale
+
+  - id: paint_steps
+    label: Paint steps
+    type: int
+    required: false
+    default: 100
+    minimum: 1
+    maximum: 100
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: steps
+    description: Diffusion steps for the multi-view PBR paint model. Defaulted to this node's actual maximum.
+
+  - id: paint_guidance_scale
+    label: Paint guidance scale
+    type: float
+    required: false
+    default: 3.0
+    minimum: 1.0
+    maximum: 10.0
+    step: 0.1
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: guidance_scale
+
+  - id: view_size
+    label: View size (multi-view painting)
+    type: int
+    required: false
+    default: 1024
+    minimum: 512
+    maximum: 1024
+    step: 256
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: view_size
+    description: Resolution the paint model renders each view at. 1024 is this node's hard maximum - this is the real ceiling on native texture detail, not texture_size. This pack compensates past that ceiling with a Real-ESRGAN 4x upscale of each painted view before baking (see below).
+
+  - id: texture_size
+    label: Texture size
+    type: int
+    required: false
+    default: 4096
+    minimum: 512
+    maximum: 4096
+    step: 512
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: texture_size
+    description: Resolution of the baked albedo/MR UV texture maps. Defaulted to this node's actual maximum. Only as sharp as the per-view source pixels feeding the bake - see view_size and the Real-ESRGAN upscale step.
+
+  - id: paint_seed
+    label: Paint seed
+    type: int
+    required: false
+    default: 123
+    minimum: 0
+    maximum: 18446744073709551615
+    node_id: "10"
+    node_type: Hy3DMultiViewsGenerator
+    input: seed
+
+  - id: filename_prefix
+    label: Output folder/prefix
+    type: text
+    required: false
+    default: 3d/image-to-textured-mesh-2.1-ultra
+    node_id: "13"
+    node_type: Hy3D21ExportMesh
+    input: filename_prefix
+
+outputs:
+  - id: model
+    type: model
+    description: Generated, PBR-textured GLB mesh (separate albedo + metallic-roughness), painted from Real-ESRGAN-upscaled multi-view renders
+
+models:
+  required:
+    - type: diffusion_models
+      name: hunyuan3D-dit-v2-1-fp16.ckpt
+      source: tencent/Hunyuan3D-2.1
+    - type: vae
+      name: Hunyuan3D-vae-v2-1-fp16.ckpt
+      source: tencent/Hunyuan3D-2.1
+    - type: diffusers
+      name: hunyuan3d-paintpbr-v2-1
+      source: tencent/Hunyuan3D-2.1
+    - type: upscale_models
+      name: RealESRGAN_x4plus.safetensors
+      source: Comfy-Org/Real-ESRGAN_repackaged
+  optional: []
+
+custom_nodes:
+  required:
+    - comfyui
+    - ComfyUI-Hunyuan3d-2-1
+    - ComfyUI_essentials
+  optional: []
+
+hardware:
+  minimum_vram_gb: 20
+  recommended_vram_gb: 32
+  supports_low_vram: false
+  supports_cpu_offload: true
+
+tags:
+  - 3d
+  - texture
+  - hunyuan3d
+  - hunyuan3d-2.1
+  - glb
+  - mesh
+  - image-to-3d
+  - textured
+  - pbr
+  - background-removal
+  - ultra
+  - upscale
+  - experimental

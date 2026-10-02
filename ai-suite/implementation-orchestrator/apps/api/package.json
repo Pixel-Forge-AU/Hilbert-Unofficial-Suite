@@ -16,9 +16,9 @@
     "@implementation-orchestrator/database": "workspace:*",
     "@implementation-orchestrator/orchestrator-core": "workspace:*",
     "@implementation-orchestrator/observability": "workspace:*",
-    "fastify": "^5.1.0",
+    "fastify": "^5.12.1",
     "bullmq": "^5.28.1",
-    "ioredis": "5.10.1",
+    "ioredis": "^5.11.1",
     "pino": "^9.5.0"
   },
   "devDependencies": {
@@ -26,6 +26,6 @@
     "tsx": "^4.19.2",
     "testcontainers": "^10.13.2",
     "@testcontainers/postgresql": "^10.13.2",
-    "vitest": "^3.2.6"
+    "vitest": "3.2.6"
   }
 }

@@ -22,7 +22,7 @@
     "@implementation-orchestrator/verification-runner": "workspace:*",
     "@implementation-orchestrator/observability": "workspace:*",
     "bullmq": "^5.28.1",
-    "ioredis": "5.10.1",
+    "ioredis": "^5.11.1",
     "pino": "^9.5.0"
   },
   "devDependencies": {
@@ -30,6 +30,6 @@
     "tsx": "^4.19.2",
     "testcontainers": "^10.13.2",
     "@testcontainers/postgresql": "^10.13.2",
-    "vitest": "^3.2.6"
+    "vitest": "3.2.6"
   }
 }

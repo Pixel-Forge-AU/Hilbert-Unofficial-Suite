@@ -1,0 +1,16 @@
+# ITV Pack Manifest
+
+id: itv
+name: ITV
+version: "1.0.0"
+
+description: >
+  Image to Video
+
+workflows:
+  - video.minimax-h3-r2v
+  - video.ltx2-director-i2v
+  - studio.hunyuan-video-15-720p-image-to-video
+  - video.wan21-vace-causvid-1.3b
+
+default_enabled: true

@@ -30,7 +30,7 @@ description: >
   "SVI_v2_PRO_Wan2.2-I2V-A14B_HIGH/LOW_lora_rank_128_fp16.safetensors" LoRAs that this long-video
   technique is actually named after and depends on for its per-clip continuity (Kijai/WanVideo_comfy,
   under LoRAs/Stable-Video-Infinity/v2.0/) - these are required for the SVI behavior itself, not
-  optional - the "remacri_original.pth" upscale model used in the (bypassable) upscale stage of each
+  optional - the "RealESRGAN_x4plus.safetensors" upscale model used in the (bypassable) upscale stage of each
   clip, and the "rife49.pth" RIFE checkpoint used in the (also bypassable) interpolation stage. The
   lightning LoRA used in the optional "Step 2" pass of each clip
   (wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors) was already installed under that exact
@@ -260,9 +260,8 @@ models:
     directory: loras
   - node_id: '356'
     node_type: UpscaleModelLoader
-    name: remacri_original.pth
+    name: RealESRGAN_x4plus.safetensors
     directory: upscale_models
-    url: https://huggingface.co/Kim2091/Remacri/resolve/main/remacri_original.pth
   - node_id: '365'
     node_type: RIFE VFI
     name: rife49.pth

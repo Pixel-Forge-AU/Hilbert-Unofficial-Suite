@@ -49,6 +49,15 @@ ai-suite/cinematics/
 ai-suite/songs/
 ai-suite/disk_check.txt
 
+# Local-only workflow collections and machine-specific deployment material
+ai-suite/packs/adult/
+ai-suite/packs/community-models/
+ai-suite/packs/broken/
+ai-suite/packs/*-favorites/
+ai-suite/gpu-worker/deploy-*/
+ai-suite/tools/sync_remote_comfy_assets.py
+ai-suite/docs/GPU_WORKER.md
+
 # Local package manager cache and training data (not source, not for this repo)
 .pnpm-store/
 ai-training/

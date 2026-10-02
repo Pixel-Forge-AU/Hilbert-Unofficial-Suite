@@ -1,7 +1,7 @@
 id: video.minimax-h3-r2v
 name: MiniMax H3 (Reference-to-Video)
 version: 1.0.0
-category: video-gen
+category: itv
 subcategory: minimax-h3
 description: >
   MiniMax H3's ref2va task: weaves up to 9 reference images, 3 reference videos
@@ -145,3 +145,7 @@ hardware:
   recommended_vram_gb: 24
   supports_low_vram: true
   supports_cpu_offload: true
+runtime:
+  # The Pascal P100 array can't run H3 - forced local to the main
+  # ComfyUI host instead of the automatic VRAM-based remote GPU offload.
+  gpu_worker: false

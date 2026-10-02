@@ -8,7 +8,7 @@ description: >
   prompt. Paint the area to edit as a white region on a black mask image, describe what should
   appear there, and this graph encodes only that region, samples it, and composites the result back
   onto the untouched source pixels. Defaults to the Reed XXX Illustrious checkpoint (an uncensored
-  SDXL finetune already used by the community-models pack) instead of Juggernaut XL, but the
+  SDXL finetune) instead of Juggernaut XL, but the
   checkpoint field can be swapped to any installed SDXL checkpoint.
 status: experimental
 entrypoints:

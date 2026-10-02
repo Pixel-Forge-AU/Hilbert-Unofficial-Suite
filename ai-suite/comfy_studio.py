@@ -16,6 +16,7 @@ import uuid
 from pathlib import Path
 
 from ai_manager import ROOT, load_config
+from identity import GUEST, slug as safe_identity_slug
 
 
 CONFIG = load_config()
@@ -33,6 +34,8 @@ SKIP_NODE_TYPES = {
     "Reroute",
     # rgthree-comfy nodes with no Python backend - frontend-only graph
     # organization widgets that never appear in ComfyUI's /object_info.
+    "Bookmark (rgthree)",
+    "Reroute (rgthree)",
     "Fast Groups Bypasser (rgthree)",
     "Fast Groups Muter (rgthree)",
 }
@@ -428,10 +431,10 @@ def node_feeds_mask(node):
     )
 
 
-def workflow_controls(path, workflow):
+def workflow_controls(path, workflow, object_info=None):
     controls = []
     if "nodes" in workflow:
-        prompt = workflow_to_api(workflow)
+        prompt = workflow_to_api(workflow, object_info=object_info)
         # Use the expanded (subgraph-flattened) node list for title lookups too - inner
         # subgraph nodes are renamed to "<outer_id>_sg_<inner_id>" during expansion, so
         # looking titles up against the raw pre-expansion workflow.nodes always misses,
@@ -1124,13 +1127,14 @@ def coerce_value(value, original):
     return str(value)
 
 
-def apply_controls(prompt, catalog_item, values):
+def apply_controls(prompt, catalog_item, values, user=GUEST):
     seed = None
     noise_seed = None
     voice_seed = None
     now = time.strftime("%Y%m%d-%H%M%S")
     media_type = catalog_item.get("media_type", "image")
-    default_prefix = f"Studio/{media_type}/{catalog_item['id']}/{now}"
+    user_slug = safe_identity_slug(user)
+    default_prefix = f"studio/{user_slug}/{media_type}/{catalog_item['id']}/{now}"
 
     for control in catalog_item.get("controls", []):
         node_id = control["node_id"]
@@ -1152,7 +1156,7 @@ def apply_controls(prompt, catalog_item, values):
                 voice_seed = value
         if input_name == "filename_prefix" and not str(raw_value or "").strip():
             if control.get("node_type") == "SaveAudio" and noise_seed is not None and voice_seed is not None:
-                value = f"Studio/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
+                value = f"studio/{user_slug}/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
             else:
                 value = default_prefix
         if node_id in prompt:
@@ -1163,17 +1167,25 @@ def apply_controls(prompt, catalog_item, values):
             inputs = node.setdefault("inputs", {})
             if not str(inputs.get("filename_prefix", "")).strip():
                 if node.get("class_type") == "SaveAudio" and noise_seed is not None and voice_seed is not None:
-                    inputs["filename_prefix"] = f"Studio/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
+                    inputs["filename_prefix"] = f"studio/{user_slug}/{media_type}/{catalog_item['id']}/song_{noise_seed}_{voice_seed}"
                 else:
                     inputs["filename_prefix"] = default_prefix
 
     return seed
 
 
-def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=None, config=None):
+def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=None, config=None, user=GUEST):
     path = Path(path)
     workflow = json.loads(path.read_text())
-    controls = workflow_controls(path, workflow)
+    # object_info has to be resolved before workflow_controls(): widget-based inputs (a
+    # CLIPTextEncode's "text", a KSampler's "seed", ...) only get discovered via the
+    # live /object_info schema - without it, workflow_to_api() only knows about
+    # link-based inputs, so workflow_controls() silently finds zero controls for a
+    # workflow like this one, apply_controls() below has nothing to override, and the
+    # generation quietly uses the workflow's own saved default prompt/settings instead
+    # of anything the caller actually asked for.
+    object_info = cached_object_info(config) if config else None
+    controls = workflow_controls(path, workflow, object_info=object_info)
     catalog_item = {
         "id": workflow_id or workflow_slug(path),
         "name": workflow_title(path),
@@ -1181,9 +1193,8 @@ def build_workflow_prompt_from_path(path, values, workflow_id=None, media_type=N
         "controls": controls,
         "media_type": media_type or infer_media_type(path, workflow),
     }
-    object_info = cached_object_info(config) if config else None
     prompt = workflow_to_api(workflow, object_info=object_info) if "nodes" in workflow else clean_api_prompt(workflow)
-    seed = apply_controls(prompt, catalog_item, values)
+    seed = apply_controls(prompt, catalog_item, values, user=user)
     return prompt, seed, catalog_item
 
 

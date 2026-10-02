@@ -1,0 +1,13 @@
+# TTV Pack Manifest
+
+id: ttv
+name: TTV
+version: "1.0.0"
+
+description: >
+  Text To Video
+
+workflows:
+  - studio.hunyuan-video-15-720p-text-to-video
+
+default_enabled: true

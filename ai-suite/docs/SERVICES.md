@@ -1,9 +1,10 @@
 # AI Suite - Additional Services
 
-This suite also hosts four services developed separately and integrated into this install:
+This suite also hosts several services developed separately and integrated into this install:
 an AI software-build pipeline (`planner-pipeline` + `implementation-orchestrator`), the real
 OpenHands agent-server (`open-hands/`) that orchestrator dispatches builder tasks to, and a
-standalone plugin-host runtime (`genesis-runtime`). All four are managed the same way as
+standalone plugin-host runtime (`genesis-runtime`). It also includes an optional remote
+GPU dispatcher (`gpu-worker`) for routing heavy ComfyUI jobs to a separate CUDA box. These are managed the same way as
 every other suite service - through `ai-switch` (`ai_manager.py`), the Studio web UI's new
 "Pipeline" tab, and the tkinter Switcher's "AI Build Pipeline" row. A fifth, optional piece -
 `pipeline-dashboard-server.mjs` (plus its terminal-only sibling `pipeline-status.mjs`) - gives
@@ -34,6 +35,8 @@ collides with other local dev tools. See `config.env` for the authoritative list
 | 39014 / 39015 | implementation-orchestrator MinIO API/console (docker, unused - artifact storage uses the filesystem provider) |
 | 39016 | pipeline dashboard (`pipeline-dashboard-server.mjs` web control panel) |
 | 39017 | openhands vscode (bundled web IDE - only used by the Docker path, see below) |
+| 39018 | **gpu-worker** remote ComfyUI dispatcher |
+| 39100+ | per-GPU ComfyUI shards on the remote GPU box |
 | 11434 | Ollama - **exception**, see below |
 
 **Ollama is not movable via `config.env`.** `ai_manager.py`'s `start_ollama()` just runs
@@ -49,6 +52,7 @@ means editing `/etc/systemd/system/ollama.service(.d/)` outside this repo, not `
 | `implementation-orchestrator` | Compiles an approved manifest into a task graph, dispatches it to builder agents, and independently verifies the result. | `implementation-orchestrator/` |
 | `openhands` | The real OpenHands agent-server (standalone `openhands-agent-server` PyPI package, not the whole Agent Canvas app) - runs actual coding-agent conversations for orchestrator's `openhands-local` builder profile. | `open-hands/` |
 | `genesis-runtime` | A minimal plugin-host runtime (infrastructure only - ships with zero plugins in this install). Unrelated to the other services. | `genesis-runtime/` |
+| `gpu-worker` | Remote GPU control plane for routing ComfyUI prompt jobs across P40/P100/P4 shards on an Ubuntu CUDA box. | `gpu-worker/` |
 | `pipeline-dashboard` | Web control panel for the three services above: start/stop, `.env` editing, plan submission, and a live OpenHands chat/IDE view. Optional - a convenience layer over the same `ai-switch` commands. | `pipeline-dashboard-server.mjs` |
 | `pipeline-status` | Terminal equivalent of the dashboard's status view (no service management) - polls plan/workflow state until Ctrl+C. Not managed as a background service; run it directly. | `pipeline-status.mjs` |
 
@@ -108,6 +112,8 @@ to point it at a real plugin catalog; this install ships zero plugins).
 ./ai-switch openhands-stop
 ./ai-switch genesis
 ./ai-switch genesis-stop
+./ai-switch gpu-worker
+./ai-switch gpu-worker-stop
 ./ai-switch pipeline-dashboard    # web control panel for all of the above, at :39016
 ./ai-switch pipeline-dashboard-stop
 ./ai-switch pipeline-status       # terminal status view - foreground, Ctrl+C to exit

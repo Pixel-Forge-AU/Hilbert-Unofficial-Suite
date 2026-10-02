@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.0] - 2026-10-02
+
+### New Features
+
+- Added an optional remote GPU dispatcher with hardware-aware workflow routing,
+  independent local/remote queue lanes, input staging, output retrieval, and
+  multi-GPU reservation support.
+- Added signed reverse-proxy identity handling with a safe guest fallback and
+  per-user Studio data separation.
+- Added configurable OpenAI-compatible LLM endpoint fallback and shared web-search
+  support for Studio and Hilbert Chat.
+- Added and reorganized image-to-video, text-to-video, lip-sync, LTX Director, and
+  Hunyuan3D workflow packs.
+
+### Changed
+
+- Regenerated the public registry from 17 public categories containing 92 workflows.
+- Updated planner, orchestrator, and Genesis Runtime dependencies.
+- Kept remote GPU execution disabled by default in the public configuration.
+
+### Fixed
+
+- Improved Studio output reuse, remote job reconciliation, and workflow default handling.
+- Corrected service launchers and model endpoint selection across local runtime modes.
+
+---
+
 ## [3.0.0] - 2026-07-24
 
 ### ✨ New Features

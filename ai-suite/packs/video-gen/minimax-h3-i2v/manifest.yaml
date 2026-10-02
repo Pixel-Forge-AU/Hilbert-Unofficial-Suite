@@ -121,3 +121,7 @@ hardware:
   recommended_vram_gb: 24
   supports_low_vram: true
   supports_cpu_offload: true
+runtime:
+  # The Pascal P100 array can't run H3 - forced local to the main
+  # ComfyUI host instead of the automatic VRAM-based remote GPU offload.
+  gpu_worker: false

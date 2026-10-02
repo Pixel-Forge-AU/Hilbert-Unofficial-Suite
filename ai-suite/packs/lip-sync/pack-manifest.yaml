@@ -1,0 +1,14 @@
+# Lip Sync Pack Manifest
+
+id: lip-sync
+name: Lip Sync
+version: "1.0.0"
+
+description: >
+  Lip Sync
+
+workflows:
+  - video.talking-head
+  - video.lip-sync
+
+default_enabled: true

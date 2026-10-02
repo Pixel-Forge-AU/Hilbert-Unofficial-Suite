@@ -9,11 +9,11 @@ import urllib.parse
 import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
-from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 from ai_manager import ROOT, load_config
+from duckduckgo_search import duckduckgo_http_search, normalize_duckduckgo_url
 
 
 CONFIG = load_config()
@@ -218,83 +218,21 @@ class BrowserSession:
                 break
         if normalized:
             return {"query": query, "results": normalized, "search_url": url, "backend": "playwright"}
+        # Each tier only used to fall through to the next on an *exception* - a
+        # tier that ran fine but legitimately found nothing (e.g. the headless
+        # browser got served a bot-check page instead of real results, or Bing's
+        # RSS feed came back empty for this query) returned early with an empty
+        # results list instead of trying the next, more basic fallback.
         try:
             fallback = bing_rss_search(query, limit)
-            fallback["backend"] = "bing-rss"
-            return fallback
+            if fallback.get("results"):
+                fallback["backend"] = "bing-rss"
+                return fallback
         except Exception:
-            fallback = duckduckgo_http_search(query, limit)
-            fallback["backend"] = "duckduckgo-http"
-            return fallback
-
-
-def normalize_duckduckgo_url(url):
-    parsed = urllib.parse.urlparse(url)
-    query = urllib.parse.parse_qs(parsed.query)
-    if "uddg" in query:
-        return query["uddg"][0]
-    return url
-
-
-class DuckDuckGoLiteParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.results = []
-        self.current = None
-        self.in_link = False
-        self.in_snippet = False
-        self.link_text = []
-        self.snippet_text = []
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if tag == "a" and "result-link" in attrs.get("class", ""):
-            if self.current and self.current.get("title"):
-                self.add_current()
-            self.current = {"url": normalize_duckduckgo_url(attrs.get("href", "")), "title": "", "snippet": ""}
-            self.in_link = True
-            self.link_text = []
-        elif tag == "td" and self.current and "result-snippet" in attrs.get("class", ""):
-            self.in_snippet = True
-            self.snippet_text = []
-
-    def handle_endtag(self, tag):
-        if tag == "a" and self.in_link:
-            if self.current:
-                self.current["title"] = clean_text(" ".join(self.link_text))
-            self.in_link = False
-        elif tag == "td" and self.in_snippet:
-            if self.current:
-                self.current["snippet"] = clean_text(" ".join(self.snippet_text))
-            self.in_snippet = False
-
-    def handle_data(self, data):
-        if self.in_link:
-            self.link_text.append(data)
-        elif self.in_snippet:
-            self.snippet_text.append(data)
-
-    def close(self):
-        super().close()
-        if self.current:
-            self.add_current()
-
-    def add_current(self):
-        item = self.current
-        self.current = None
-        if item and item.get("title") and item.get("url"):
-            self.results.append(item)
-
-
-def duckduckgo_http_search(query, limit):
-    url = "https://lite.duckduckgo.com/lite/?" + urllib.parse.urlencode({"q": query})
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 LocalPlaywright/0.1"})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        raw = response.read().decode("utf-8", "replace")
-    parser = DuckDuckGoLiteParser()
-    parser.feed(raw)
-    parser.close()
-    return {"query": query, "results": parser.results[:limit], "search_url": url}
+            pass
+        fallback = duckduckgo_http_search(query, limit, user_agent="Mozilla/5.0 LocalPlaywright/0.1")
+        fallback["backend"] = "duckduckgo-http"
+        return fallback
 
 
 def bing_rss_search(query, limit):
