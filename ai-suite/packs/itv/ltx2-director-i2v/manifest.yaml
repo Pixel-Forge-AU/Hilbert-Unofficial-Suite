@@ -1,0 +1,127 @@
+id: video.ltx2-director-i2v
+name: LTX-2.3 Director (GGUF Image-to-Video)
+version: 2.0.0
+category: itv
+subcategory: ltx2
+description: >
+  Full LTX2.3 All-in-One Director v2 workflow, imported from LatentHeart's v4.0 source bundle rather
+  than reconstructed as a reduced native-node graph. The original modular graph is preserved: LTX
+  Director timeline editing, text/image/audio-to-video, first/middle/last-frame guidance, ID LoRA,
+  ControlNet preprocessing, half-resolution generation, the LTX 2x latent upscaler, LTX detailer,
+  voice separation, color correction, Nvidia Video Super Resolution, RIFE interpolation, and separate
+  audio/video output. The workflow's built-in model selector is configured to use the suite's installed
+  ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf through KJNodes' GGUFLoaderKJ; its standard FP8 and 10Eros
+  alternatives remain present but bypassed. Image-to-video input is authored in the LTXDirector timeline:
+  add an image segment, extend it over the desired duration, and enter the segment prompt there.
+  Optional feature groups remain bypassable through the workflow's rgthree controls and require their
+  corresponding optional models before being enabled.
+status: experimental
+media_type: video
+entrypoints:
+  ui: workflow.json
+inputs:
+  - id: 211.value
+    label: Global prompt
+    type: textarea
+    required: false
+    default: A cinematic image-to-video shot with natural motion, coherent detail, and high production value.
+    node_id: '211'
+    node_type: PrimitiveStringMultiline
+    input: value
+  - id: 310.value
+    label: Seed
+    type: int
+    required: false
+    default: 984132663731362
+    node_id: '310'
+    node_type: easy globalSeed
+    input: value
+outputs:
+  - id: video
+    type: video
+    description: Generated video from the VHS Video Combine output node
+  - id: audio
+    type: audio
+    description: Optional separately saved generated audio
+models:
+  required:
+  - node_id: '19'
+    node_type: GGUFLoaderKJ
+    name: ltx219BAllYouNeedIs_ltx2Q80GGUF.gguf
+    directory: diffusion_models
+  - node_id: '14'
+    node_type: VAELoader
+    name: LTX23_video_vae_bf16.safetensors
+    directory: vae
+    url: https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/vae/LTX23_video_vae_bf16.safetensors
+  - node_id: '15'
+    node_type: VAELoaderKJ
+    name: LTX23_audio_vae_bf16.safetensors
+    directory: vae
+    url: https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/vae/LTX23_audio_vae_bf16.safetensors
+  - node_id: '35'
+    node_type: DualCLIPLoader
+    name: gemma_3_12B_it_fp8_scaled.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp8_scaled.safetensors
+  - node_id: '35'
+    node_type: DualCLIPLoader
+    name: ltx-2.3_text_projection_bf16.safetensors
+    directory: text_encoders
+    url: https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/text_encoders/ltx-2.3_text_projection_bf16.safetensors
+  optional:
+  - node_id: '39'
+    node_type: LatentUpscaleModelLoader
+    name: ltx-2.3-spatial-upscaler-x2-1.1.safetensors
+    directory: latent_upscale_models
+    url: https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.1.safetensors
+  - node_id: '34'
+    node_type: LoraLoaderModelOnly
+    name: LTX2.3/LTX-2_3-ID-LoRA-CelebVHQ-3K.safetensors
+    directory: loras
+    url: https://huggingface.co/Comfy-Org/ltx-2.3/resolve/main/split_files/loras/ltx-2.3-id-lora-celebvhq-3k.safetensors
+  - node_id: '43'
+    node_type: LTXICLoRALoaderModelOnly
+    name: LTX2.3/ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors
+    directory: loras
+    url: https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control/resolve/main/ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors
+  - node_id: '46'
+    node_type: LoraLoaderModelOnly
+    name: LTX2/ltx-2-19b-ic-lora-detailer.safetensors
+    directory: loras
+    url: https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Detailer/resolve/main/ltx-2-19b-ic-lora-detailer.safetensors
+  - node_id: '16'
+    node_type: MelBandRoFormerModelLoader
+    name: MelBandRoformer_fp16.safetensors
+    directory: diffusion_models
+    url: https://huggingface.co/Kijai/MelBandRoFormer_comfy/resolve/main/MelBandRoformer_fp16.safetensors
+  - node_id: '284'
+    node_type: RIFE VFI
+    name: rife49.pth
+    directory: rife
+custom_nodes:
+  required:
+  - comfyui
+  - WhatDreamsCost-ComfyUI
+  - ComfyUI-LTXVideo
+  - comfyui-kjnodes
+  - rgthree-comfy
+  - cg-use-everywhere
+  - comfyui-easy-use
+  - comfyui-impact-pack
+  - comfyui-videohelpersuite
+  - comfyui-melbandroformer
+  - comfyui-resolution-master
+  - crt-nodes
+  - listhelper
+  optional:
+  - comfyui_controlnet_aux
+  - comfyui_layerstyle
+  - comfyui_nvidia_rtx_nodes
+  - comfyui-custom-scripts
+  - comfyui-frame-interpolation
+hardware:
+  minimum_vram_gb: 20
+  recommended_vram_gb: 32
+  supports_low_vram: false
+  supports_cpu_offload: true

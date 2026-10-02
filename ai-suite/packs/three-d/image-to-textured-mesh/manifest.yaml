@@ -1,6 +1,6 @@
 id: three-d.image-to-textured-mesh
 name: Image to Textured 3D Model (Best Quality)
-version: 1.2.1
+version: 1.6.0
 category: three-d
 media_type: model
 description: >
@@ -104,7 +104,20 @@ inputs:
     node_id: "21"
     node_type: ComfySwitchNode
     input: switch
-    description: Applies the delighting pass to both shape generation and texture painting, not just texture. Turn off if your reference image already has flat, even lighting.
+    description: Applies the delighting pass to both shape generation and texture painting, not just texture.
+
+  - id: delight_cfg_image
+    label: Delight image guidance scale
+    type: float
+    required: false
+    default: 1.5
+    minimum: 1.01
+    maximum: 5.0
+    step: 0.01
+    node_id: "10"
+    node_type: Hy3DDelightImage
+    input: cfg_image
+    description: How strongly delighting must stay faithful to the reference image. Must stay above 1.0 - kijai's node ties its internal text-guidance_scale to whether this is exactly 1.0, and at exactly 1.0 classifier-free guidance never activates at all, so the pass runs ungrounded and can badly posterize/hallucinate the image. Raise if delighting still loses too much detail; lower (never to 1.0) if it isn't correcting shadows enough.
 
   - id: octree_resolution
     label: Octree resolution (geometry detail)
@@ -197,12 +210,12 @@ inputs:
     required: false
     default: 1024
     minimum: 512
-    maximum: 1024
+    maximum: 2048
     step: 256
     node_id: "12"
     node_type: Hy3DSampleMultiView
     input: view_size
-    description: Resolution for each view during texture painting. 1024 gives the best detail.
+    description: Resolution the paint diffusion model generates each of the 6 views at (not a resize target - this is real generation, unlike texture_size). Gets upscaled 4x by RealESRGAN before baking, so the default of 1024 already lands exactly on texture_size's 4096 ceiling; raising this past 1024 means the 4x upscale overshoots 4096 and the bake step downscales back down, which is still fine (a higher-quality source shrunk down beats a lower-quality one stretched up) but wastes upscale compute. Node's hard ceiling is 4096, capped lower here since going far past this model's native training resolution (unverified, likely 512-768) risks incoherent/artifacted output rather than more real detail. Untested above 1024 on this box - raise experimentally.
 
   - id: paint_seed
     label: Paint seed
@@ -240,6 +253,9 @@ models:
     - type: diffusers
       name: hunyuan3d-paint-v2-0
       source: tencent/Hunyuan3D-2
+    - type: upscale_models
+      name: RealESRGAN_x4plus.safetensors
+      source: Comfy-Org/Real-ESRGAN_repackaged
   optional: []
 
 custom_nodes:
@@ -266,3 +282,4 @@ tags:
   - high-quality
   - background-removal
   - delighting
+  - upscaling

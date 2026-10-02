@@ -104,6 +104,16 @@ def load_config():
         "OPENHANDS_PORT": "39009",
         "OPENHANDS_SESSION_API_KEY": "",
         "OPENHANDS_VSCODE_PORT": "39017",
+        "GPU_WORKER_DIR": str(ROOT / "gpu-worker"),
+        "GPU_WORKER_HOST": "0.0.0.0",
+        "GPU_WORKER_PORT": "39018",
+        "GPU_WORKER_CONFIG": str(ROOT / "gpu-worker/config.yaml"),
+        "REMOTE_GPU_WORKER_ENABLED": "0",
+        "REMOTE_GPU_WORKER_URL": "",
+        "REMOTE_GPU_MAX_VRAM_GB": "16",
+        "REMOTE_GPU_FALLBACK_LOCAL": "1",
+        "REMOTE_GPU_INPUT_DIR": "",
+        "REMOTE_GPU_OUTPUT_DIR": "",
         "DASHBOARD_HOST": "127.0.0.1",
         "DASHBOARD_PORT": "39016",
         "HSA_OVERRIDE_GFX_VERSION": "",
@@ -893,6 +903,37 @@ def stop_openhands(config):
     stop("openhands")
 
 
+def start_gpu_worker(config):
+    if is_running(read_pid("gpu-worker")):
+        print("gpu-worker already running")
+        return
+    worker_dir = Path(config.get("GPU_WORKER_DIR", ROOT / "gpu-worker"))
+    python = worker_dir / ".venv/bin/python"
+    if not python.exists():
+        python = ROOT / ".venv/bin/python"
+    if not python.exists():
+        python = Path(sys.executable)
+    env = base_env(config)
+    worker_config = Path(config.get("GPU_WORKER_CONFIG", str(worker_dir / "config.yaml")))
+    if not worker_config.is_absolute():
+        worker_config = ROOT / worker_config
+    env["GPU_WORKER_CONFIG"] = str(worker_config)
+    cmd = [
+        str(python),
+        str(worker_dir / "worker_api.py"),
+        "--host", config.get("GPU_WORKER_HOST", "0.0.0.0"),
+        "--port", config.get("GPU_WORKER_PORT", "39018"),
+    ]
+    start_process("gpu-worker", cmd, worker_dir, env)
+    url = f"http://{config.get('GPU_WORKER_HOST', '0.0.0.0')}:{config.get('GPU_WORKER_PORT', '39018')}/health"
+    print(f"gpu-worker starting: {url}")
+    wait_http(url)
+
+
+def stop_gpu_worker(config):
+    stop("gpu-worker")
+
+
 def pipeline_env(config):
     env = base_env(config)
     env["PLANNER_DIR"] = config.get("PLANNER_DIR", str(ROOT / "planner-pipeline"))
@@ -1044,6 +1085,7 @@ def diagnostics(config):
     print(f"  orchestrator: http://{config.get('ORCHESTRATOR_HOST', '127.0.0.1')}:{config.get('ORCHESTRATOR_PORT', '39007')}")
     print(f"  genesis: http://{config.get('GENESIS_HOST', '0.0.0.0')}:{config.get('GENESIS_PORT', '39008')}")
     print(f"  openhands: http://{config.get('OPENHANDS_HOST', '0.0.0.0')}:{config.get('OPENHANDS_PORT', '39009')}")
+    print(f"  gpu-worker: http://{config.get('GPU_WORKER_HOST', '0.0.0.0')}:{config.get('GPU_WORKER_PORT', '39018')}")
     print(f"  pipeline dashboard: http://{config.get('DASHBOARD_HOST', '127.0.0.1')}:{config.get('DASHBOARD_PORT', '39016')}")
     print()
     for label, command in [
@@ -1092,6 +1134,8 @@ def main(argv=None):
             "genesis-stop",
             "openhands",
             "openhands-stop",
+            "gpu-worker",
+            "gpu-worker-stop",
             "pipeline-dashboard",
             "pipeline-dashboard-stop",
             "pipeline-status",
@@ -1177,6 +1221,10 @@ def main(argv=None):
         start_openhands(config)
     elif args.command == "openhands-stop":
         stop_openhands(config)
+    elif args.command == "gpu-worker":
+        start_gpu_worker(config)
+    elif args.command == "gpu-worker-stop":
+        stop_gpu_worker(config)
     elif args.command == "pipeline-dashboard":
         start_dashboard(config)
     elif args.command == "pipeline-dashboard-stop":
@@ -1212,6 +1260,7 @@ def main(argv=None):
         stop_orchestrator(config)
         stop_genesis(config)
         stop_openhands(config)
+        stop_gpu_worker(config)
         stop_dashboard(config)
         print("all stopped")
     elif args.command == "status":
@@ -1228,6 +1277,7 @@ def main(argv=None):
         print(status_text("orchestrator-worker"))
         print(status_text("genesis-runtime"))
         print(status_text("openhands"))
+        print(status_text("gpu-worker"))
         print(status_text("pipeline-dashboard"))
         print(status_text("health-monitor"))
         print(display_safety_text())

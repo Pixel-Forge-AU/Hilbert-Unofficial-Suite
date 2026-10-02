@@ -761,7 +761,7 @@
         "widget_ue_connectable": {}
       },
       "widgets_values": [
-        "the cat grabs the beer and drinks it, camera s moving out, bubbles in the beerglass, "
+        "the exact subject from the reference image moves naturally with subtle motion, preserve the same identity, face, clothing, colours, proportions, and background, stable composition, high detail"
       ],
       "color": "#232",
       "bgcolor": "#353"
@@ -821,8 +821,8 @@
       "widgets_values": [
         1001261027954396,
         "fixed",
-        4,
-        1,
+        20,
+        6,
         "uni_pc",
         "simple",
         1
@@ -1117,7 +1117,7 @@
       },
       "widgets_values": [
         "Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors",
-        0.30000000000000004,
+        0,
         1
       ],
       "color": "#322",

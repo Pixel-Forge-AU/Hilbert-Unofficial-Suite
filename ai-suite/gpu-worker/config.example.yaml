@@ -1,0 +1,43 @@
+host: 0.0.0.0
+port: 39018
+poll_seconds: 2
+request_timeout_seconds: 30
+
+# Local path on the Ubuntu GPU box.
+comfy_root: /opt/ComfyUI
+python: /opt/ComfyUI/.venv/bin/python
+shared_output_root: /mnt/ai-suite-output
+
+workers:
+  - id: p100-0
+    label: Tesla P100 16GB
+    gpu_id: 0
+    vram_gb: 16
+    host: 127.0.0.1
+    port: 39100
+    weight: 100
+    max_inflight: 1
+    tags: [video, high-vram, image]
+    extra_args: ["--disable-auto-launch"]
+
+  - id: p100-1
+    label: Tesla P100 16GB #2
+    gpu_id: 1
+    vram_gb: 16
+    host: 127.0.0.1
+    port: 39101
+    weight: 100
+    max_inflight: 1
+    tags: [video, image-to-3d, high-vram, image]
+    extra_args: ["--disable-auto-launch"]
+
+  - id: p100-2
+    label: Tesla P100 16GB #3
+    gpu_id: 2
+    vram_gb: 16
+    host: 127.0.0.1
+    port: 39102
+    weight: 100
+    max_inflight: 1
+    tags: [video, image-to-3d, high-vram, image]
+    extra_args: ["--disable-auto-launch"]

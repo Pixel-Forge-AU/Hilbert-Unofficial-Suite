@@ -43,6 +43,21 @@
             color: #4fc3f7;
         }
 
+        .identity-widget {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .identity-badge {
+            font-size: 0.85rem;
+            color: #e0e0e0;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            padding: 0.3rem 0.8rem;
+        }
+
         .search-form {
             display: flex;
             flex-wrap: wrap;
@@ -775,6 +790,7 @@
         }
 
         .media-tile {
+            position: relative;
             min-height: 92px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 7px;
@@ -794,6 +810,19 @@
 
         .media-tile audio {
             width: 92%;
+        }
+
+        .media-tile-source {
+            position: absolute;
+            left: 0.3rem;
+            bottom: 0.3rem;
+            padding: 0.15rem 0.35rem;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.78);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.58rem;
+            line-height: 1.2;
+            pointer-events: none;
         }
 
         .workflow-card {
@@ -2216,6 +2245,9 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">AI Suite</div>
+            <div class="identity-widget" id="identityWidget">
+                <span class="identity-badge" id="identityBadge" hidden></span>
+            </div>
         </div>
     </header>
 
@@ -2412,10 +2444,6 @@
                 <aside class="suite-chat-panel suite-chat-sidebar">
                     <h3>Suite Chat</h3>
                     <p>Use the same Hilbert Chat sessions inside AI Suite, or open the standalone chat when you want a separate window.</p>
-                    <div class="form-group">
-                        <label for="suiteChatUser">User</label>
-                        <select id="suiteChatUser"></select>
-                    </div>
                     <div class="suite-chat-actions">
                         <button class="btn btn-primary" type="button" id="suiteChatNew">New</button>
                         <button class="btn btn-secondary" type="button" id="suiteChatRename">Rename</button>
@@ -3199,6 +3227,11 @@
                             <button class="category-btn" type="button" data-source="input">Inputs</button>
                             <button class="category-btn" type="button" data-source="all">All</button>
                         </div>
+                        <div class="category-filter" data-media-scope="{{ media[0] }}">
+                            <button class="category-btn active" type="button" data-scope="mine">Mine</button>
+                            <button class="category-btn" type="button" data-scope="shared">Shared</button>
+                            <button class="category-btn" type="button" data-scope="all">All</button>
+                        </div>
                         <div class="form-group">
                             <label for="mediaUpload-{{ media[0] }}">Add reusable input</label>
                             <input id="mediaUpload-{{ media[0] }}" type="file" multiple accept="{{ media[2] }}">
@@ -3410,13 +3443,14 @@
     <div class="modal" id="storedInputPickerModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Choose a stored input</h2>
+                <h2>Choose existing media</h2>
                 <button class="close-btn" onclick="closeStoredInputPicker()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <input type="text" id="storedInputPickerSearch" placeholder="Search filenames..." oninput="renderStoredInputPickerGrid()">
                 </div>
+                <p style="margin: 0; color: rgba(255,255,255,0.6);">Generated outputs are shown first, followed by uploaded inputs.</p>
                 <div id="storedInputPickerGrid" class="workbench-gallery"></div>
             </div>
             <div class="modal-footer">
@@ -3477,9 +3511,43 @@
         let storedInputs = [];
         let modelTuningData = { models: [], slots: {}, presets: [] };
         let comfyModelOptions = {};
+        // Identity is automatic-or-guest, never a client-side pick: a verified
+        // trusted proxy identity header or "guest" for anything else.
+        // See identity.py - there is deliberately no manual override.
+        let studioIdentity = { user: 'guest', display_name: 'Guest', source: 'guest' };
+        let studioIdentityReady = null;
+
+        function applyStudioIdentity(identity) {
+            studioIdentity = identity;
+            suiteChatState.user = identity.user;
+            suiteChatState.sessionId = localStorage.getItem('ai-suite:chat-session:' + identity.user) || '';
+            const badge = document.getElementById('identityBadge');
+            if (!badge) return;
+            badge.hidden = false;
+            badge.textContent = identity.display_name || identity.user;
+        }
+
+        async function fetchStudioIdentity() {
+            try {
+                const response = await fetch('/api/identity');
+                const data = await response.json();
+                applyStudioIdentity(data);
+            } catch (err) {
+                applyStudioIdentity({ user: 'guest', display_name: 'Guest', source: 'guest' });
+            }
+            return studioIdentity;
+        }
+
+        function initStudioIdentity() {
+            if (studioIdentityReady) return studioIdentityReady;
+            studioIdentityReady = fetchStudioIdentity();
+            return studioIdentityReady;
+        }
+        initStudioIdentity();
+
         let suiteChatState = {
-            user: localStorage.getItem('ai-suite:chat-user') || 'Derek',
-            sessionId: localStorage.getItem('ai-suite:chat-session') || '',
+            user: 'guest',
+            sessionId: '',
             model: localStorage.getItem('ai-suite:chat-model') || '',
             sessions: [],
             currentSession: null,
@@ -3628,12 +3696,6 @@
                     document.getElementById('studioChatForm')?.requestSubmit();
                 }
             });
-            document.getElementById('suiteChatUser')?.addEventListener('change', async function() {
-                suiteChatState.user = this.value || 'Derek';
-                suiteChatState.sessionId = localStorage.getItem('ai-suite:chat-session:' + suiteChatState.user) || '';
-                localStorage.setItem('ai-suite:chat-user', suiteChatState.user);
-                await loadSuiteChatSessions();
-            });
             document.getElementById('suiteChatModel')?.addEventListener('change', function() {
                 suiteChatState.model = this.value;
                 localStorage.setItem('ai-suite:chat-model', suiteChatState.model);
@@ -3718,11 +3780,11 @@
 
         async function loadSuiteChatSessions() {
             const status = document.getElementById('suiteChatStatus');
+            await initStudioIdentity();
             try {
-                const response = await fetch('/api/chat/sessions?user=' + encodeURIComponent(suiteChatState.user));
+                const response = await fetch('/api/chat/sessions');
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Could not load sessions');
-                renderSuiteChatUsers(data.users || []);
                 suiteChatState.sessions = data.sessions || [];
                 if (!suiteChatState.sessionId && suiteChatState.sessions.length) {
                     suiteChatState.sessionId = suiteChatState.sessions[0].id;
@@ -3738,14 +3800,6 @@
                 if (status) status.textContent = 'Chat load failed: ' + error.message;
                 renderSuiteChatMessages([{ role: 'assistant', content: error.message }], true);
             }
-        }
-
-        function renderSuiteChatUsers(users) {
-            const select = document.getElementById('suiteChatUser');
-            if (!select || !users.length) return;
-            select.innerHTML = users.map(function(user) {
-                return `<option value="${escapeHtml(user)}" ${user === suiteChatState.user ? 'selected' : ''}>${escapeHtml(user)}</option>`;
-            }).join('');
         }
 
         function renderSuiteChatSessions() {
@@ -3775,7 +3829,7 @@
         async function loadSuiteChatSession(sessionId) {
             if (!sessionId) return;
             try {
-                const response = await fetch(`/api/chat/session?user=${encodeURIComponent(suiteChatState.user)}&id=${encodeURIComponent(sessionId)}`);
+                const response = await fetch(`/api/chat/session?id=${encodeURIComponent(sessionId)}`);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Could not load chat');
                 suiteChatState.sessionId = sessionId;
@@ -3833,7 +3887,7 @@
                 const response = await fetch('/api/chat/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: suiteChatState.user, title: 'New Chat' })
+                    body: JSON.stringify({ title: 'New Chat' })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Could not create chat');
@@ -3857,7 +3911,7 @@
                 const response = await fetch('/api/chat/session/rename', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: suiteChatState.user, id: suiteChatState.sessionId, title })
+                    body: JSON.stringify({ id: suiteChatState.sessionId, title })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Rename failed');
@@ -3877,7 +3931,7 @@
                 const response = await fetch('/api/chat/session/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: suiteChatState.user, id: suiteChatState.sessionId })
+                    body: JSON.stringify({ id: suiteChatState.sessionId })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Delete failed');
@@ -3918,7 +3972,6 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        user: suiteChatState.user,
                         session_id: suiteChatState.sessionId,
                         model: suiteChatState.model,
                         content: text
@@ -4285,9 +4338,9 @@
                                 ${paintButton}
                             </div>
                             <div class="stored-input-row">
-                                <small>Or reuse a stored input</small>
+                                <small>Or reuse a generated output or stored input</small>
                                 <div class="stored-input-picker">
-                                    <button type="button" class="stored-input-thumb" data-stored-input-thumb-for="${escapeHtml(input.id)}" onclick="openStoredInputPicker('${escapeHtml(input.id)}')" title="Browse stored inputs">
+                                    <button type="button" class="stored-input-thumb" data-stored-input-thumb-for="${escapeHtml(input.id)}" onclick="openStoredInputPicker('${escapeHtml(input.id)}')" title="Browse generated outputs and stored inputs">
                                         <span class="stored-input-thumb-empty">Browse&hellip;</span>
                                     </button>
                                     <span class="stored-input-thumb-name" data-stored-input-name-for="${escapeHtml(input.id)}">Use workflow default</span>
@@ -4529,16 +4582,21 @@
             return options.join('');
         }
 
-        // --- Thumbnail picker for stored inputs (mirrors the Library media grid so file
-        // pickers don't fall back to bare filename text). -------------------------------
+        // --- Thumbnail picker for generated outputs and stored inputs. Generated files
+        // are staged under ComfyUI input when selected because loader nodes only read
+        // from that directory. ----------------------------------------------------------
         let storedInputPickerFieldId = null;
+        let storedOutputPickerItems = null;
 
-        function openStoredInputPicker(fieldId) {
+        async function openStoredInputPicker(fieldId) {
             storedInputPickerFieldId = fieldId;
+            storedOutputPickerItems = null;
             const search = document.getElementById('storedInputPickerSearch');
             if (search) search.value = '';
             document.getElementById('storedInputPickerModal').classList.add('active');
             renderStoredInputPickerGrid();
+            storedOutputPickerItems = await fetchRecentOutputs(500);
+            if (storedInputPickerFieldId === fieldId) renderStoredInputPickerGrid();
         }
 
         function closeStoredInputPicker() {
@@ -4552,11 +4610,20 @@
             const select = document.querySelector(`[data-stored-input-for="${CSS.escape(storedInputPickerFieldId)}"]`);
             const accept = select?.dataset.accept || '';
             const search = (document.getElementById('storedInputPickerSearch')?.value || '').trim().toLowerCase();
-            const items = filterStoredInputsByAccept(accept).filter(function(item) {
+            if (storedOutputPickerItems === null) {
+                grid.innerHTML = '<div class="preview-empty">Loading generated outputs...</div>';
+                return;
+            }
+            const outputs = storedOutputPickerItems
+                .filter(function(item) { return mediaItemMatchesAccept(item, accept); })
+                .map(function(item) { return Object.assign({ source: 'output' }, item); });
+            const inputs = filterStoredInputsByAccept(accept)
+                .map(function(item) { return Object.assign({ source: 'input' }, item); });
+            const items = outputs.concat(inputs).filter(function(item) {
                 return !search || (item.filename || item.name || '').toLowerCase().includes(search);
             });
             if (!items.length) {
-                grid.innerHTML = '<div class="preview-empty">No stored inputs match.</div>';
+                grid.innerHTML = '<div class="preview-empty">No generated outputs or stored inputs match.</div>';
                 return;
             }
             grid.innerHTML = '';
@@ -4565,12 +4632,48 @@
                 tile.type = 'button';
                 tile.className = 'media-tile';
                 tile.title = item.filename || item.name;
-                tile.innerHTML = libraryPreviewMarkup(item);
-                tile.addEventListener('click', function() {
-                    setStoredInputSelection(storedInputPickerFieldId, item.name);
-                    closeStoredInputPicker();
+                tile.innerHTML = `${libraryPreviewMarkup(item)}<span class="media-tile-source">${item.source === 'output' ? 'Generated' : 'Input'}</span>`;
+                tile.addEventListener('click', async function() {
+                    const fieldId = storedInputPickerFieldId;
+                    if (item.source === 'input') {
+                        setStoredInputSelection(fieldId, item.name);
+                        closeStoredInputPicker();
+                        return;
+                    }
+                    tile.disabled = true;
+                    try {
+                        const relative = item.subfolder ? `${item.subfolder}/${item.filename}` : item.filename;
+                        const response = await fetch('/api/outputs/reuse', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ path: relative })
+                        });
+                        const data = await response.json();
+                        if (!response.ok || !data.input) throw new Error(data.error || 'Could not reuse output');
+                        storedInputs = [data.input].concat(storedInputs.filter(function(existing) {
+                            return existing.name !== data.input.name;
+                        }));
+                        updateStoredInputSelects();
+                        setStoredInputSelection(fieldId, data.input.name);
+                        closeStoredInputPicker();
+                    } catch (error) {
+                        tile.disabled = false;
+                        showToast('Could not select output', error.message, 'error');
+                    }
                 });
                 grid.append(tile);
+            });
+        }
+
+        function mediaItemMatchesAccept(item, accept) {
+            const accepted = String(accept || '').toLowerCase();
+            if (!accepted) return true;
+            if (accepted.includes('image/') && item.media_type === 'image') return true;
+            if (accepted.includes('video/') && item.media_type === 'video') return true;
+            if (accepted.includes('audio/') && item.media_type === 'audio') return true;
+            return accepted.split(',').some(function(part) {
+                const suffix = part.trim().replace(/^\*/, '');
+                return suffix && (item.filename || '').toLowerCase().endsWith(suffix);
             });
         }
 
@@ -5049,7 +5152,7 @@
             renderer.outputColorSpace = THREE.SRGBColorSpace;
 
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x05070d);
+            scene.background = new THREE.Color(0xffffff);
 
             const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
             camera.position.set(2.8, 1.8, 3.2);
@@ -5058,14 +5161,23 @@
             controls.enableDamping = true;
             controls.dampingFactor = 0.08;
 
-            scene.add(new THREE.HemisphereLight(0xffffff, 0x22313a, 2.0));
-            const key = new THREE.DirectionalLight(0xffffff, 2.4);
+            // Flat, even, all-white lighting so the viewer doesn't color-shift or
+            // shadow-shade the model's actual texture (the old fill light was
+            // tinted cyan, and a single strong key light cast hard shadows -
+            // both made textures look worse/different than they actually are).
+            // AmbientLight is genuinely non-directional (lights every face
+            // equally regardless of normal); it's the dominant light here so
+            // the model reads as flatly/ambiently lit. Three r161 defaults to
+            // physically-based light units, so this needs a much higher
+            // intensity than pre-r155 "classic" lighting values would.
+            scene.add(new THREE.AmbientLight(0xffffff, 4.5));
+            const key = new THREE.DirectionalLight(0xffffff, 0.5);
             key.position.set(4, 6, 5);
             scene.add(key);
-            const fill = new THREE.DirectionalLight(0x4fc3f7, 0.9);
-            fill.position.set(-3, 2, -4);
+            const fill = new THREE.DirectionalLight(0xffffff, 0.4);
+            fill.position.set(-4, 3, -5);
             scene.add(fill);
-            const grid = new THREE.GridHelper(4, 16, 0x334455, 0x1b2230);
+            const grid = new THREE.GridHelper(4, 16, 0xd8d8d8, 0xeeeeee);
             grid.position.y = -0.02;
             scene.add(grid);
 
@@ -6642,7 +6754,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         const LIBRARY_PAGE_SIZE = 24;
         let libraryOutputs = [];
         let libraryFilters = MEDIA_TYPES.reduce(function(acc, media) {
-            acc[media.type] = { search: '', source: 'output', page: 1 };
+            acc[media.type] = { search: '', source: 'output', scope: 'mine', page: 1 };
             return acc;
         }, {});
         let librarySelection = {};
@@ -6667,6 +6779,16 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                         libraryFilters[type].source = this.dataset.source;
                         libraryFilters[type].page = 1;
                         document.querySelectorAll(`[data-media-source="${type}"] [data-source]`).forEach(function(sibling) {
+                            sibling.classList.toggle('active', sibling === button);
+                        });
+                        renderMediaGrid(type);
+                    });
+                });
+                document.querySelectorAll(`[data-media-scope="${type}"] [data-scope]`).forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        libraryFilters[type].scope = this.dataset.scope;
+                        libraryFilters[type].page = 1;
+                        document.querySelectorAll(`[data-media-scope="${type}"] [data-scope]`).forEach(function(sibling) {
                             sibling.classList.toggle('active', sibling === button);
                         });
                         renderMediaGrid(type);
@@ -6740,7 +6862,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         }
 
         async function refreshOutputLibrary() {
-            libraryOutputs = await fetchRecentOutputs(500);
+            await initStudioIdentity();
+            libraryOutputs = await fetchRecentOutputs(500, 'all');
             renderAllMediaGrids();
         }
 
@@ -6808,6 +6931,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const search = filters.search.trim().toLowerCase();
             const filtered = all.filter(function(item) {
                 if (filters.source !== 'all' && item.source !== filters.source) return false;
+                if (item.source === 'output' && filters.scope === 'mine' && item.owner !== studioIdentity.user) return false;
+                if (item.source === 'output' && filters.scope === 'shared' && item.owner) return false;
                 if (!search) return true;
                 return (item.filename || item.name || '').toLowerCase().includes(search);
             });
@@ -6879,6 +7004,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const modified = item.modified_at ? new Date(item.modified_at).toLocaleString() : '';
             const pinned = item.source === 'input' && pinnedInputNames.includes(item.name);
             const key = libraryItemKey(item);
+            const canDelete = item.source === 'input' || !item.owner || item.owner === studioIdentity.user;
             return `
                 <article class="library-card media-card${selected ? ' selected' : ''}" data-media-key="${escapeHtml(key)}">
                     <div class="library-card-preview">${libraryPreviewMarkup(item)}</div>
@@ -6889,7 +7015,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                             <a href="${escapeHtml(item.url)}" target="_blank">Open</a>
                             ${item.source === 'input' ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
                             <button type="button" data-copy-value="${escapeHtml(item.source === 'input' ? item.name : item.url)}">${item.source === 'input' ? 'Copy Name' : 'Copy Link'}</button>
-                            <button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(key)}">Delete</button>
+                            ${canDelete ? `<button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(key)}">Delete</button>` : ''}
                         </div>
                     </div>
                 </article>
@@ -6933,12 +7059,13 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const escapedName = escapeHtml(item.filename || item.name || 'file');
             const modified = item.modified_at ? new Date(item.modified_at).toLocaleString() : '';
             const pinned = item.source === 'input' && pinnedInputNames.includes(item.name);
+            const canDeleteSelected = item.source === 'input' || !item.owner || item.owner === studioIdentity.user;
             meta.innerHTML = `<span>${escapedName}</span><span>${escapeHtml(item.source)}${modified ? ` &middot; ${escapeHtml(modified)}` : ''}</span>`;
             actions.innerHTML = `
                 <a href="${escapedUrl}" target="_blank">Open</a>
                 ${item.source === 'input' ? `<button type="button" data-pin-input="${escapeHtml(item.name)}">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
                 <button type="button" data-copy-value="${escapeHtml(item.source === 'input' ? item.name : item.url)}">${item.source === 'input' ? 'Copy Name' : 'Copy Link'}</button>
-                <button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(libraryItemKey(item))}">Delete</button>
+                ${canDeleteSelected ? `<button type="button" class="danger-action" data-delete-type="${escapeHtml(type)}" data-delete-key="${escapeHtml(libraryItemKey(item))}">Delete</button>` : ''}
             `;
             bindLibraryCopyButtons(actions);
 
@@ -7741,7 +7868,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                     return;
                 }
 
-                let html = '<div class="queue-note">Move controls are active while jobs are waiting in the launcher queue. Jobs already submitted to ComfyUI show the controls disabled because ComfyUI owns their execution order.</div>';
+                let html = '<div class="queue-note">Studio keeps one local ComfyUI lane and fills the three remote P100 slots for eligible video/3D jobs. Work assigned to the split-array lane reserves all three P100s; overflow stays queued and reorderable until its lane is free.</div>';
 
                 data.queued.forEach(function(job, index) {
                     const isFirst = index === 0;
@@ -7767,12 +7894,17 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                 });
 
                 data.running.forEach(function(job) {
+                    const remoteWorker = job.result && job.result.remote_worker_id;
+                    const executionLane = remoteWorker === 'multi-gpu'
+                        ? 'Remote split array: 3× P100'
+                        : (remoteWorker ? `Remote GPU: ${escapeHtml(remoteWorker)}` : 'Local ComfyUI');
                     html += `
                         <div class="job-item">
                             <div class="job-info">
                                 <span class="status-badge status-stable" style="background: #4fc3f7; color: #1a1a2e;">RUNNING</span>
                                 <div class="job-title">
                                     <div>${escapeHtml(job.workflow_id)}</div>
+                                    <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${executionLane}</div>
                                     <div class="job-progress">
                                         <div class="job-progress-bar" style="width: ${job.progress}%"></div>
                                     </div>
@@ -7884,9 +8016,9 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
-        async function fetchRecentOutputs(limit = 12) {
+        async function fetchRecentOutputs(limit = 12, scope = 'mine') {
             try {
-                const response = await fetch(`/api/outputs?limit=${limit}`);
+                const response = await fetch(`/api/outputs?limit=${limit}&scope=${scope}`);
                 const data = await response.json();
                 if (!response.ok) {
                     return [];
@@ -8195,9 +8327,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const picker = document.getElementById('mvClipPicker');
             picker.innerHTML = '<div class="preview-empty">Loading...</div>';
             try {
-                const response = await fetch('/api/outputs?limit=200');
-                const data = await response.json();
-                mvExistingVideos = (data.outputs || []).filter(function(o) { return o.media_type === 'video'; });
+                const outputs = await fetchRecentOutputs(200);
+                mvExistingVideos = outputs.filter(function(o) { return o.media_type === 'video'; });
                 renderMvClipPicker();
             } catch (error) {
                 picker.innerHTML = `<div class="preview-empty">Could not load clips: ${escapeHtml(error.message)}</div>`;
@@ -8837,9 +8968,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const grid = document.getElementById('sbImagePickerGrid');
             grid.innerHTML = '<div class="preview-empty">Loading...</div>';
             try {
-                const response = await fetch('/api/outputs?limit=200');
-                const data = await response.json();
-                const images = (data.outputs || []).filter(function(o) { return o.media_type === 'image'; });
+                const outputs = await fetchRecentOutputs(200);
+                const images = outputs.filter(function(o) { return o.media_type === 'image'; });
                 if (!images.length) {
                     grid.innerHTML = '<div class="preview-empty">No existing images found.</div>';
                     return;
@@ -9441,9 +9571,8 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const grid = document.getElementById('cinImagePickerGrid');
             grid.innerHTML = '<div class="preview-empty">Loading...</div>';
             try {
-                const response = await fetch('/api/outputs?limit=200');
-                const data = await response.json();
-                const images = (data.outputs || []).filter(function(o) { return o.media_type === 'image'; });
+                const outputs = await fetchRecentOutputs(200);
+                const images = outputs.filter(function(o) { return o.media_type === 'image'; });
                 if (!images.length) {
                     grid.innerHTML = '<div class="preview-empty">No existing images found.</div>';
                     return;

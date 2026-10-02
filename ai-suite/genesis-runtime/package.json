@@ -10,14 +10,17 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test lib/*.test.js"
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.19.2",
     "imapflow": "^1.2.12",
     "keytar": "^7.9.0",
     "mailparser": "^3.9.3",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^9.1.1",
     "three": "^0.185.1"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }

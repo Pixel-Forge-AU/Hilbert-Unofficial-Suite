@@ -4754,7 +4754,7 @@
         }
       },
       "widgets_values": [
-        "remacri_original.pth"
+        "RealESRGAN_x4plus.safetensors"
       ]
     },
     {
@@ -5308,7 +5308,7 @@
         }
       },
       "widgets_values": [
-        "remacri_original.pth"
+        "RealESRGAN_x4plus.safetensors"
       ]
     },
     {
@@ -5700,7 +5700,7 @@
         }
       },
       "widgets_values": [
-        "remacri_original.pth"
+        "RealESRGAN_x4plus.safetensors"
       ]
     },
     {
@@ -6149,7 +6149,7 @@
         }
       },
       "widgets_values": [
-        "remacri_original.pth"
+        "RealESRGAN_x4plus.safetensors"
       ]
     },
     {

@@ -1,12 +1,12 @@
-id: video.lip-sync
-name: Lip Sync Animation
+id: video.talking-head
+name: Talking Head Animation
 version: 2.1.0
-category: video-gen
+category: lip-sync
 media_type: video
 description: >
-  Experimental single-speaker lip-sync generation using ComfyUI's native
-  WanInfiniteTalkToVideo node. Upload an image and speech audio to generate a
-  Wan2.1 InfiniteTalk clip with synchronized mouth motion and embedded audio.
+  Experimental audio-driven single-speaker talking-head animation using ComfyUI's native
+  WanInfiniteTalkToVideo node. Upload a portrait/reference image and a speech
+  audio file to generate a lip-synced portrait video with the audio embedded.
   The graph validates locally, but full Wan 14B runtime can be very slow on this
   machine and should be treated as experimental until a completed MP4 is observed.
 status: experimental
@@ -17,7 +17,7 @@ entrypoints:
 
 inputs:
   - id: image
-    label: Source image
+    label: Portrait image
     type: file
     required: true
     default: example.png
@@ -25,7 +25,7 @@ inputs:
     node_type: LoadImage
     input: image
     accept: image/png,image/jpeg,image/webp,image/bmp
-    description: Source face or character image to lip-sync
+    description: Source portrait or character image to animate
 
   - id: audio
     label: Speech audio
@@ -36,16 +36,17 @@ inputs:
     node_type: LoadAudio
     input: audio
     accept: audio/wav,audio/mpeg,audio/mp3,audio/flac,audio/ogg
-    description: Speech track used for lip synchronization
+    description: Voice track used to drive mouth and head motion
 
   - id: prompt
     label: Motion prompt
     type: textarea
     required: false
-    default: The person speaks naturally in sync with the supplied audio, with stable identity, clear mouth movement, and minimal background drift.
+    default: A natural close portrait video of the subject speaking with clear lip movement, subtle head motion, stable identity, and steady camera framing.
     node_id: "5"
     node_type: CLIPTextEncode
     input: text
+    description: Camera and motion direction
 
   - id: width
     label: Width
@@ -198,7 +199,7 @@ inputs:
     label: Output folder/prefix
     type: text
     required: false
-    default: video/infinitetalk-lip-sync
+    default: video/infinitetalk-talking-head
     node_id: "21"
     node_type: SaveVideo
     input: filename_prefix
@@ -206,7 +207,7 @@ inputs:
 outputs:
   - id: video
     type: video
-    description: Wan2.1 InfiniteTalk lip-synced video with embedded audio
+    description: Audio-driven lip-synced portrait animation
 
 models:
   required:
@@ -242,6 +243,7 @@ hardware:
 tags:
   - infinitetalk
   - lip-sync
+  - talking-head
   - audio-to-video
   - wan2.1
   - video
@@ -249,4 +251,4 @@ tags:
   - talking photo
   - talking avatar
   - photo to speaking video
-  - sync mouth to audio
+  - digital human

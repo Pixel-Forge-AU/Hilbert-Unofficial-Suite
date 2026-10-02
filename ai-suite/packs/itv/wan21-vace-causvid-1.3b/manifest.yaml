@@ -1,14 +1,16 @@
 id: video.wan21-vace-causvid-1.3b
 name: Wan 2.1 VACE 1.3B + CausVid (Reference-to-Video)
 version: 1.0.0
-category: video-gen
+category: itv
 subcategory: wan21
 description: >
   Imported from a user-authored ComfyUI export (wan21ImageToVideo_v30.zip /
   wan-vace-causvid-tomgoodnoise/wan-vace-1.3b-causvid-tomgoodnoise.json), preserved as-is: the official
   ComfyUI "Wan Vace Reference to Video" template workflow (1.3B variant), which turns a single reference
-  image plus a text prompt into a short video via WanVaceToVideo, accelerated with Kijai's extracted
-  CausVid LoRA (2-4 step distillation instead of the default 20 steps/cfg 6.0), followed by RIFE frame
+  image plus a text prompt into a short video via WanVaceToVideo. The default uses the undistilled
+  quality settings (20 steps, CFG 6, CausVid strength 0) so the 1.3B model gives the reference image as
+  much attention as it can. Kijai's extracted CausVid LoRA remains available as an opt-in speed control:
+  use roughly 12 steps / 0.3 strength for a faster preview. Output is followed by RIFE frame
   interpolation from 16fps to 32fps for smoother motion (per the workflow's own note, since 16fps
   visibly stutters). Per readme.txt in the source zip, this technique and workflow originate from Tom
   Goodnoise (tomgoodnoise.de). The UNETLoader points at wan2.1_vace_1.3B_fp16.safetensors and the
@@ -35,7 +37,7 @@ inputs:
     label: Prompt
     type: textarea
     required: false
-    default: the cat grabs the beer and drinks it, camera s moving out, bubbles in the beerglass,
+    default: the exact subject from the reference image moves naturally with subtle motion, preserve the same identity, face, clothing, colours, proportions, and background, stable composition, high detail
     node_id: '105'
     node_type: CLIPTextEncode
     input: text
@@ -50,7 +52,7 @@ inputs:
   - id: 164.image
     label: Reference image
     type: file
-    required: false
+    required: true
     default: ''
     node_id: '164'
     node_type: LoadAndResizeImage
@@ -98,7 +100,7 @@ inputs:
     label: Steps
     type: int
     required: false
-    default: 4
+    default: 20
     minimum: 1
     maximum: 50
     node_id: '108'
@@ -108,22 +110,32 @@ inputs:
     label: CFG
     type: float
     required: false
-    default: 1
+    default: 6
     minimum: 0
     maximum: 20
     node_id: '108'
     node_type: KSampler
     input: cfg
   - id: 115.strength_model
-    label: CausVid LoRA strength
+    label: CausVid speed LoRA strength (0 = best quality)
     type: float
     required: false
-    default: 0.3
+    default: 0
     minimum: 0
     maximum: 1
     node_id: '115'
     node_type: LoraLoader
     input: strength_model
+  - id: 109.strength
+    label: Reference/control strength
+    type: float
+    required: false
+    default: 1
+    minimum: 0
+    maximum: 3
+    node_id: '109'
+    node_type: WanVaceToVideo
+    input: strength
 outputs:
   - id: video
     type: video

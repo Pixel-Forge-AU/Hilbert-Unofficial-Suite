@@ -1,7 +1,7 @@
 id: studio.hunyuan-video-15-720p-text-to-video
 name: Hunyuan video 15 720p text to video
 version: 2.0.0
-category: video-gen
+category: ttv
 description: Migrated video workflow from hunyuan-video-15-720p-text-to-video.json
 status: experimental
 media_type: video

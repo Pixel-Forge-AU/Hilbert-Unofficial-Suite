@@ -41,7 +41,7 @@ Features:
 
 **Public Registry**
 
-12 categories containing **89 workflows**:
+17 categories containing **92 workflows**:
 
 | Category | Purpose |
 |---|---|
@@ -51,14 +51,19 @@ Features:
 | horror-gore | Horror and dark-content workflows |
 | image-analysis | Image understanding and extraction |
 | image-editing | Image modification workflows |
+| image-gen | Image generation workflows |
+| image-stylized | Stylized image workflows |
+| itv | Image-to-video workflows |
+| lip-sync | Lip-sync and talking-head workflows |
 | llm-orchestration | LLM-assisted workflows |
 | three-d | 3D generation workflows |
+| ttv | Text-to-video workflows |
 | video-edit | Video manipulation |
 | video-gen | Video generation |
 | video-stitch | Video assembly |
 | weird-experimental | Experimental workflows |
 
-**Private Registry Categories**
+**Held-back Local Categories**
 
 Excluded from public discovery:
 
@@ -67,6 +72,8 @@ Excluded from public discovery:
   - User supplied checkpoints
   - LoRAs
   - Custom models
+- `broken`
+- personal favorites
 
 ---
 

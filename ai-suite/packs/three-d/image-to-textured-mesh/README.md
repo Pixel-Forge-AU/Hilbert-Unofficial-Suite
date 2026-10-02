@@ -43,16 +43,30 @@ needed in that case.
    unused branch doesn't even execute.
 3. `Hy3DGenerateMesh` generates the raw shape from that processed image -
    *not* the raw upload - so background clutter and baked-in shadows don't
-   get read as geometry.
+   get read as geometry. It also receives the rembg segmentation mask
+   directly (its optional `mask` input) as an explicit foreground/background
+   hint - a plain blackened-background RGB image alone wasn't enough signal;
+   without the mask, shape generation was hallucinating a flat backdrop
+   plane behind the subject instead of leaving that space empty. The mask
+   is always computed and passed, independent of the `remove_background`
+   toggle (which only controls whether the *visible* background pixels get
+   blackened for the stages after this one).
 4. `Hy3DPostprocessMesh` removes floating fragments and degenerate faces and
    reduces the mesh to a target face count.
 5. `Hy3DMeshUVWrap` unwraps UVs on the now-clean mesh.
 6. The mesh is rendered from six camera angles for normal/position maps.
 7. The same processed image conditions a multi-view diffusion model that
-   paints six matching views.
-8. Those views are baked onto the UV texture, then gap-filled in two passes
-   (mesh-topology-aware inpaint, then a regular image inpaint for anything
-   left over).
+   paints six matching views (at `view_size`, default 1024x1024).
+7a. Those six views are upscaled 4x (`RealESRGAN_x4plus`, already installed
+    in `models/upscale_models/`) before baking - at the default `view_size`
+    this lands exactly on `texture_size`'s 4096, so the atlas gets real
+    upscaled detail instead of the bake step's own plain interpolation
+    stretching a 1024 source up to 4096. This is unconditional (no toggle);
+    it adds a modest amount of time on top of an already 12-15 minute paint
+    stage.
+8. Those (now upscaled) views are baked onto the UV texture, then gap-filled
+   in two passes (mesh-topology-aware inpaint, then a regular image inpaint
+   for anything left over).
 9. The textured mesh is exported as a GLB.
 
 ## Inputs
@@ -62,6 +76,7 @@ needed in that case.
 | image | file | example.png | Drives both the mesh's shape and its texture |
 | remove_background | boolean | true | Segments the subject out (rembg, isnet-general-use, CPU) before shape/texture generation |
 | remove_shadows | boolean | true | Delights the image (strips existing lighting/shadows) before shape/texture generation |
+| delight_cfg_image | number | 1.5 | Image guidance scale for delighting - must stay above 1.0, see below |
 | box_v | number | 1.01 | Bounding-box padding for shape decoding; raise if protruding parts get clipped |
 | shape_steps | integer | 75 | Diffusion steps for shape generation |
 | shape_guidance_scale | number | 5.5 | Guidance scale for shape generation |
@@ -73,9 +88,40 @@ needed in that case.
 | texture_size | integer | 4096 | Resolution of the baked output texture |
 | delight_steps | integer | 50 | Steps for stripping lighting from the reference image |
 | paint_steps | integer | 50 | Diffusion steps for the multi-view paint model |
-| view_size | integer | 1024 | Resolution per view during texture painting |
+| view_size | integer | 1024 | Resolution per view during texture painting (gets 4x'd by RealESRGAN before baking - see below) |
 | paint_seed | integer | 1024 | Paint model seed |
 | filename_prefix | text | 3d/image-to-textured-mesh | Output folder/prefix |
+
+## The delighting bug (fixed) and `delight_cfg_image`
+
+Debug taps on the delit image (temporarily added, since removed) showed
+delighting badly posterizing the reference image tested here - flattened
+skin tones into solid color blocks, lost facial features and clothing
+detail entirely - which was then feeding both shape generation and texture
+painting, explaining both the shape and texture quality complaints at once.
+
+The actual cause, found in `ComfyUI-Hunyuan3DWrapper/nodes.py`'s
+`Hy3DDelightImage.process`:
+
+```python
+guidance_scale=1.0 if cfg_image == 1.0 else 1.01,  # enable cfg for image, value doesn't matter as it do anything for text anyway
+```
+
+Diffusers' `StableDiffusionInstructPix2PixPipeline` only enables
+classifier-free guidance at all when `guidance_scale > 1.0` or
+`image_guidance_scale > 1.0`. This pack's `cfg_image` had been left at the
+node's own default of exactly `1.0`, which the line above maps straight to
+`guidance_scale=1.0` too - so both scales sit at the disabling threshold,
+CFG never activates, and the delight pass runs completely ungrounded from
+the source image instead of being pulled back toward it. Kijai's own
+comment shows he built the workaround deliberately; the value just needed
+to actually be off of `1.0` to trigger it.
+
+Fixed by setting `cfg_image` to `1.5` and exposing it as `delight_cfg_image`
+so it's tunable. It must stay above `1.0`, or this bug recurs. This is a
+real, source-verified bug fix, not a tuned guess - but it hasn't been
+confirmed against a real run yet, so treat the first result as a check, not
+a given.
 
 ## Runtime notes
 

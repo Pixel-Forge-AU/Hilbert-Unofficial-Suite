@@ -2,6 +2,7 @@ import argparse
 import html
 import json
 import re
+import shutil
 import threading
 import time
 import uuid
@@ -9,11 +10,15 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from html.parser import HTMLParser
 from pathlib import Path
 
+import yaml
+
+import llm_endpoints
 from ai_manager import ROOT, load_config, start_llama
+from duckduckgo_search import duckduckgo_http_search
 from comfy_studio import (
+    COMFY_INPUT,
     COMFY_OUTPUT,
     build_workflow_prompt_from_path,
     comfy_error_message,
@@ -21,19 +26,45 @@ from comfy_studio import (
     progress as comfy_progress,
     queue_prompt,
 )
+from identity import GUEST, resolve_identity, slug as safe_identity_slug
 
 
-USERS = ("Derek", "Hippy")
 SYSTEM_PROMPT = (
-    "You are Hilbert, a concise and helpful local assistant. You are running from a private LAN server. "
+    "You are Echo, the assistant behind Ask Echo, a concise and helpful local assistant. "
+    "You are running from a private LAN server. If asked your name, you are Echo. "
     "When web search results are provided, use them as current context and cite the included URLs. "
     "When a local image generation result is provided, summarize what was queued or produced."
 )
 SAFE_NAME = re.compile(r"[^a-zA-Z0-9_.-]+")
 SEARCH_RESULT_LIMIT = 6
 IMAGE_WORKFLOW_ID = "core.text-to-image"
-IMAGE_WORKFLOW_PATH = ROOT / "packs/core-generation/text-to-image/workflow.json"
+# Last-known-good location, used only if the manifest scan below can't find the
+# pack by id (e.g. packs/ unreadable) - packs get moved between categories during
+# reorgs (this one used to be packs/core-generation/text-to-image/), so resolving
+# by manifest id rather than a hardcoded folder path is what keeps this from
+# breaking again the next time a pack moves.
+IMAGE_WORKFLOW_PATH = ROOT / "packs/image-gen/text-to-image/workflow.json"
 IMAGE_WAIT_SECONDS = 900
+_image_workflow_path_cache = None
+
+
+def resolve_image_workflow_path():
+    global _image_workflow_path_cache
+    if _image_workflow_path_cache and _image_workflow_path_cache.exists():
+        return _image_workflow_path_cache
+    packs_dir = ROOT / "packs"
+    if packs_dir.exists():
+        for manifest_path in packs_dir.glob("*/*/manifest.yaml"):
+            try:
+                manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if isinstance(manifest, dict) and manifest.get("id") == IMAGE_WORKFLOW_ID:
+                candidate = manifest_path.parent / "workflow.json"
+                if candidate.exists():
+                    _image_workflow_path_cache = candidate
+                    return candidate
+    return IMAGE_WORKFLOW_PATH
 
 
 HTML = r"""<!doctype html>
@@ -41,7 +72,7 @@ HTML = r"""<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hilbert Chat</title>
+  <title>Ask Echo</title>
   <style>
     :root {
       color-scheme: dark;
@@ -59,6 +90,7 @@ HTML = r"""<!doctype html>
     html, body { height: 100%; }
     body {
       margin: 0;
+      overflow: hidden;
       font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
@@ -66,12 +98,13 @@ HTML = r"""<!doctype html>
     .app {
       display: grid;
       grid-template-columns: 270px 1fr;
-      min-height: 100%;
+      height: 100%;
     }
     aside {
       display: grid;
       grid-template-rows: auto auto 1fr;
-      min-height: 100vh;
+      height: 100%;
+      min-height: 0;
       background: var(--panel);
       border-right: 1px solid var(--border);
     }
@@ -121,6 +154,7 @@ HTML = r"""<!doctype html>
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .sessions {
       overflow-y: auto;
+      min-height: 0;
       padding: 10px;
     }
     .session {
@@ -148,20 +182,40 @@ HTML = r"""<!doctype html>
     }
     .session-meta { color: var(--muted); font-size: 12px; font-weight: 500; }
     .chat {
-      display: grid;
-      grid-template-rows: 1fr auto;
+      /* A single positioning context, not a grid row per element - the
+         composer floats over main (absolutely positioned, see form below)
+         instead of owning its own fixed-height row, so it reads as
+         detached/elevated above the conversation rather than docked as
+         another part of the scrollable layout. */
+      position: relative;
       min-width: 0;
-      min-height: 100vh;
+      height: 100%;
+      min-height: 0;
     }
     main {
+      position: absolute;
+      inset: 0;
       overflow-y: auto;
-      padding: 18px;
+      /* Extra bottom padding clears the floating composer so the last
+         message never sits underneath it. */
+      padding: 18px 18px 104px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     .messages {
       width: min(980px, 100%);
       margin: 0 auto;
+      /* Pushes the message list to the bottom of `main` when it's shorter
+         than the viewport (a fresh/short conversation hugs the composer
+         instead of floating at the top of empty space), the same effect as
+         `justify-content: flex-end` on `main` itself but without that
+         approach's Safari bug, where a flex container with
+         justify-content: flex-end silently blocks scrolling up to reveal
+         content that has overflowed above the visible area. */
+      margin-top: auto;
       display: grid;
-      gap: 12px;
+      gap: 14px;
     }
     .message {
       max-width: 86%;
@@ -203,6 +257,33 @@ HTML = r"""<!doctype html>
       margin: 0 0 12px 0;
       color: var(--muted);
     }
+    .message img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 6px;
+    }
+    .generated-image {
+      margin: 8px 0 12px;
+    }
+    .generated-image-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .generated-image-actions a {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      text-decoration: none;
+    }
+    .generated-image-actions a:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
     .user {
       justify-self: end;
       background: #173629;
@@ -226,15 +307,20 @@ HTML = r"""<!doctype html>
       color: #ffd6dc;
     }
     form {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 16px;
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 10px;
       width: min(980px, calc(100% - 36px));
-      margin: 0 auto 16px;
+      margin: 0 auto;
       padding: 12px;
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
     .empty {
       color: var(--muted);
@@ -242,10 +328,15 @@ HTML = r"""<!doctype html>
       padding: 48px 16px;
     }
     @media (max-width: 820px) {
-      .app { grid-template-columns: 1fr; }
-      aside { min-height: auto; }
-      .sessions { max-height: 190px; }
-      .chat { min-height: 60vh; }
+      /* Below this width aside stacks above .chat in a single column instead
+         of sitting beside it, so the fixed-height/internal-scroll layout
+         above (built for a persistent side rail) is dropped in favor of
+         letting the whole page scroll normally, same as before. */
+      body { overflow: visible; }
+      .app { grid-template-columns: 1fr; height: auto; }
+      aside { height: auto; min-height: auto; }
+      .sessions { min-height: 0; max-height: 190px; }
+      .chat { height: auto; min-height: 60vh; }
       form { grid-template-columns: 1fr; }
       .message { max-width: 96%; }
     }
@@ -256,7 +347,7 @@ HTML = r"""<!doctype html>
   <div class="app">
     <aside>
       <div class="brand">
-        <h1>Hilbert Chat</h1>
+        <h1>Ask Echo</h1>
         <div class="status" id="status">Connecting...</div>
       </div>
        <div class="controls">
@@ -266,13 +357,6 @@ HTML = r"""<!doctype html>
              <option value="qwen3-coder-next">Qwen3 Coder Next</option>
              <option value="qwen3.6-35b-a3b-heretic">Qwen3.6 35B A3B Heretic</option>
              <option value="qwen-small">Qwen3 Coder Next (Small)</option>
-           </select>
-         </label>
-         <label>
-           User
-           <select id="user">
-             <option>Derek</option>
-             <option>Hippy</option>
            </select>
          </label>
          <input id="sessionName" placeholder="New session name">
@@ -289,13 +373,12 @@ HTML = r"""<!doctype html>
         <div class="messages" id="messages"></div>
       </main>
       <form id="form">
-        <textarea id="prompt" placeholder="Ask Hilbert..." autocomplete="off" autofocus></textarea>
+        <textarea id="prompt" placeholder="Ask Echo..." autocomplete="off" autofocus></textarea>
         <button id="send" type="submit">Send</button>
       </form>
     </section>
   </div>
   <script>
-    const userEl = document.getElementById("user");
     const modelEl = document.getElementById("model");
     const sessionsEl = document.getElementById("sessions");
     const messagesEl = document.getElementById("messages");
@@ -309,12 +392,10 @@ HTML = r"""<!doctype html>
     const renameEl = document.getElementById("renameSession");
     const deleteEl = document.getElementById("deleteSession");
 
-    let currentUser = localStorage.getItem("hilbert-user") || "Derek";
-    let currentSession = localStorage.getItem("hilbert-session-" + currentUser) || "";
+    let currentSession = localStorage.getItem("hilbert-session") || "";
     let sessions = [];
-    let currentModel = localStorage.getItem("hilbert-model") || "qwen3-coder-next";
+    let currentModel = localStorage.getItem("hilbert-model") || "";
 
-    userEl.value = currentUser;
     modelEl.value = currentModel;
 
     // Fetch available models from the server
@@ -329,6 +410,15 @@ HTML = r"""<!doctype html>
             option.textContent = model;
             modelEl.appendChild(option);
           }
+          // data.models is priority-ordered (a configured network inference box
+          // first, then local fallbacks) - keep the remembered pick only if it's
+          // still actually available, otherwise default to the top of that list
+          // rather than silently keep asking for a model that may not be online.
+          if (!data.models.includes(currentModel)) {
+            currentModel = data.models[0];
+            localStorage.setItem("hilbert-model", currentModel);
+          }
+          modelEl.value = currentModel;
         }
       } catch (error) {
         console.log("Could not load models from server:", error);
@@ -378,6 +468,19 @@ HTML = r"""<!doctype html>
         console.error("Markdown parse error:", e);
         return text;
       }
+    }
+
+    function openInStudio(event) {
+      event.preventDefault();
+      var url;
+      if (window.hearthService && window.hearthService.prefix) {
+        // Proxied through a trusted identity service - Studio's
+        // own proxied page is Chat's sibling under the same prefix scheme.
+        url = window.hearthService.prefix.replace(/\/chat\/?$/, "/studio/") + "#library";
+      } else {
+        url = window.location.protocol + "//" + window.location.hostname + ":39000/#library";
+      }
+      window.open(url, "_blank");
     }
 
     function addMessage(role, text) {
@@ -443,23 +546,21 @@ HTML = r"""<!doctype html>
     }
 
     async function loadSessions() {
-      currentUser = userEl.value;
-      localStorage.setItem("hilbert-user", currentUser);
-      const data = await api("/api/sessions?user=" + encodeURIComponent(currentUser));
+      const data = await api("/api/sessions");
       sessions = data.sessions;
       if (!currentSession || !sessions.some((session) => session.id === currentSession)) {
         currentSession = sessions[0]?.id || "";
       }
-      localStorage.setItem("hilbert-session-" + currentUser, currentSession);
+      localStorage.setItem("hilbert-session", currentSession);
       renderSessions();
       if (currentSession) await loadSession(currentSession);
       else renderMessages([]);
     }
 
     async function loadSession(id) {
-      const data = await api(`/api/session?user=${encodeURIComponent(currentUser)}&id=${encodeURIComponent(id)}`);
+      const data = await api(`/api/session?id=${encodeURIComponent(id)}`);
       currentSession = data.session.id;
-      localStorage.setItem("hilbert-session-" + currentUser, currentSession);
+      localStorage.setItem("hilbert-session", currentSession);
       nameEl.value = data.session.title;
       renderSessions();
       renderMessages(data.session.messages);
@@ -475,7 +576,7 @@ HTML = r"""<!doctype html>
       const title = nameEl.value.trim() || "New Chat";
       const data = await api("/api/session", {
         method: "POST",
-        body: JSON.stringify({ user: currentUser, title })
+        body: JSON.stringify({ title })
       });
       currentSession = data.session.id;
       await loadSessions();
@@ -488,7 +589,7 @@ HTML = r"""<!doctype html>
       if (!title) return;
       await api("/api/session/rename", {
         method: "POST",
-        body: JSON.stringify({ user: currentUser, id: currentSession, title })
+        body: JSON.stringify({ id: currentSession, title })
       });
       await loadSessions();
     }
@@ -497,7 +598,7 @@ HTML = r"""<!doctype html>
       if (!currentSession) return;
       await api("/api/session/delete", {
         method: "POST",
-        body: JSON.stringify({ user: currentUser, id: currentSession })
+        body: JSON.stringify({ id: currentSession })
       });
       currentSession = "";
       await loadSessions();
@@ -517,7 +618,7 @@ HTML = r"""<!doctype html>
       try {
         const data = await api("/api/chat", {
           method: "POST",
-          body: JSON.stringify({ user: currentUser, session_id: currentSession, model: currentModel, content: text })
+          body: JSON.stringify({ session_id: currentSession, model: currentModel, content: text })
         });
         placeholder.innerHTML = parseMarkdown(data.assistant.content || "");
         await loadSessions();
@@ -544,11 +645,6 @@ HTML = r"""<!doctype html>
       promptEl.style.height = Math.min(promptEl.scrollHeight, 190) + "px";
     });
 
-    userEl.addEventListener("change", async () => {
-      currentUser = userEl.value;
-      currentSession = localStorage.getItem("hilbert-session-" + currentUser) || "";
-      await loadSessions();
-    });
     newEl.addEventListener("click", createSession);
     renameEl.addEventListener("click", renameSession);
     deleteEl.addEventListener("click", deleteSession);
@@ -578,16 +674,15 @@ class ChatStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.lock = threading.Lock()
-        for user in USERS:
-            self.user_dir(user).mkdir(parents=True, exist_ok=True)
+        self.user_dir(GUEST)
 
     def user_dir(self, user):
-        return self.root / self.safe_user(user)
+        path = self.root / self.safe_user(user)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     def safe_user(self, user):
-        if user not in USERS:
-            raise ValueError("unknown user")
-        return user
+        return safe_identity_slug(user)
 
     def session_path(self, user, session_id):
         if not re.fullmatch(r"[a-zA-Z0-9_-]+", session_id or ""):
@@ -680,82 +775,6 @@ def clean_title(title):
     return title[:80] if title else "New Chat"
 
 
-class DuckDuckGoLiteParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.results = []
-        self.current = None
-        self.in_link = False
-        self.in_snippet = False
-        self.link_text = []
-        self.snippet_text = []
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if tag == "a" and attrs.get("href"):
-            href = attrs["href"]
-            css = attrs.get("class", "")
-            if "result-link" in css or "/l/?" in href or "uddg=" in href or href.startswith("http"):
-                if self.current and self.current.get("title"):
-                    self.add_current()
-                self.current = {"url": normalize_duckduckgo_url(href), "title": "", "snippet": ""}
-                self.in_link = True
-                self.link_text = []
-        elif tag in ("td", "span") and self.current and not self.current.get("snippet"):
-            css = attrs.get("class", "")
-            if "result-snippet" in css or "result-snippet" in attrs.get("id", ""):
-                self.in_snippet = True
-                self.snippet_text = []
-
-    def handle_endtag(self, tag):
-        if tag == "a" and self.in_link:
-            title = clean_space(" ".join(self.link_text))
-            if self.current and title:
-                self.current["title"] = title
-            self.in_link = False
-        elif tag in ("td", "span") and self.in_snippet:
-            if self.current:
-                self.current["snippet"] = clean_space(" ".join(self.snippet_text))
-            self.in_snippet = False
-
-    def handle_data(self, data):
-        if self.in_link:
-            self.link_text.append(data)
-        elif self.in_snippet:
-            self.snippet_text.append(data)
-
-    def close(self):
-        super().close()
-        if self.current:
-            self.add_current()
-
-    def add_current(self):
-        item = self.current
-        self.current = None
-        if not item or not item.get("title") or not item.get("url"):
-            return
-        if item["url"].startswith(("javascript:", "#")):
-            return
-        if any(existing["url"] == item["url"] for existing in self.results):
-            return
-        self.results.append(item)
-
-
-def clean_space(text):
-    return re.sub(r"\s+", " ", html.unescape(text or "")).strip()
-
-
-def normalize_duckduckgo_url(url):
-    url = html.unescape(url)
-    parsed = urllib.parse.urlparse(url)
-    query = urllib.parse.parse_qs(parsed.query)
-    if "uddg" in query:
-        return query["uddg"][0]
-    if url.startswith("//"):
-        return "https:" + url
-    return url
-
-
 def looks_like_search_request(text):
     lowered = text.lower()
     return bool(
@@ -776,18 +795,18 @@ def extract_search_query(text):
 
 
 def web_search(query, limit=SEARCH_RESULT_LIMIT):
+    # playwright_search() already has its own internal fallback chain (a real
+    # browser hitting DuckDuckGo, then Bing RSS, then a plain DuckDuckGo HTTP
+    # fetch) and only returns None when that whole call failed outright (e.g.
+    # unreachable). But "reachable, returned 200, found nothing" is a real
+    # outcome too - treating that as final (the old `is not None` check) meant
+    # this function's own separate DuckDuckGo fallback below never got a
+    # chance to try when Playwright's search legitimately came back empty.
     local_results = playwright_search(query, limit)
-    if local_results is not None:
+    if local_results:
         return local_results
 
-    url = "https://lite.duckduckgo.com/lite/?" + urllib.parse.urlencode({"q": query})
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 HilbertChat/1.1"})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        raw = response.read().decode("utf-8", "replace")
-    parser = DuckDuckGoLiteParser()
-    parser.feed(raw)
-    parser.close()
-    return parser.results[:limit]
+    return duckduckgo_http_search(query, limit, user_agent="Mozilla/5.0 HilbertChat/1.1")["results"]
 
 
 def playwright_search(query, limit):
@@ -816,23 +835,74 @@ def format_search_context(query, results):
     return "\n\n".join(lines)
 
 
+def build_search_instructions(query, results):
+    """Confirmed by direct testing against the live model (Qwen3-VL on the
+    configured inference box): a softer "you have search results below, use
+    them if relevant" framing let it fall back to its trained "I don't have
+    real-time access" refusal even with real results sitting right in the
+    context. An assertive framing ("you already searched, don't claim
+    otherwise") fixed that - but then, without an explicit instruction not
+    to, it started confidently fabricating a specific plausible-sounding
+    headline that wasn't actually in the (often just category-page-level)
+    search results. Both fixes are needed together. This is the one place
+    that wording is written - see build_system_message()."""
+    context = format_search_context(query, results)
+    return (
+        "You already ran a live web search yourself and got the results below. "
+        "Do not say you cannot search the web or lack real-time access - you just did. "
+        "Only state facts that are actually present in these results (titles, snippets, "
+        "URLs) - if the results are just links to news sections/homepages rather than a "
+        "specific headline or fact the user asked for, say exactly that and list the "
+        "relevant links, instead of inventing a plausible-sounding answer that isn't "
+        "actually in the data.\n\n"
+        f"{context}"
+    )
+
+
+def build_system_message(search_query=None, search_results=None):
+    """The one system message for a chat turn - never two. Confirmed by
+    direct testing: appending a *second* system-role message (the search
+    instructions) after the identity/persona one let the model slip back
+    into its "I can't search" refusal even with the assertive wording above;
+    merging everything into a single system message fixed it. So a
+    search turn's caller builds this instead of the identity prompt plus a
+    separately-appended tool message."""
+    content = SYSTEM_PROMPT
+    if search_query is not None:
+        content += "\n\n" + build_search_instructions(search_query, search_results)
+    return {"role": "system", "content": content}
+
+
 def looks_like_image_request(text):
     lowered = text.lower()
     has_action = re.search(r"\b(generate|create|make|draw|render|paint)\b", lowered)
     has_media = re.search(r"\b(image|picture|photo|art|artwork|illustration|wallpaper)\b", lowered)
-    mentions_comfy = "comfy" in lowered or "local image" in lowered
+    # Anchored to the start, mirroring extract_image_prompt's own comfy-prefix strip
+    # below - "comfy"/"comfyui" only means "use local image gen" as a *leading*
+    # instruction ("comfy, draw a cat", "use comfyui to make..."). A bare substring
+    # check here matched "comfy" inside "ComfyUI" mentioned anywhere in a sentence,
+    # so any ordinary question about ComfyUI itself ("is comfyui running?") was
+    # silently hijacked into an image generation request instead of being answered.
+    mentions_comfy = bool(re.match(r"^(?:please\s+)?(?:use\s+)?(?:local\s+)?comfy(?:ui)?\b", lowered)) or lowered.startswith("local image")
     return bool((has_action and has_media) or mentions_comfy)
 
 
 def extract_image_prompt(text):
     cleaned = text.strip()
     cleaned = re.sub(r"^(?:please\s+)?(?:use\s+)?(?:local\s+)?(?:comfyui|comfy)\s+(?:to\s+)?", "", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(
-        r"^(?:please\s+)?(?:generate|create|make|draw|render|paint)(?:\s+me)?(?:\s+an?|\s+the)?\s+(?:image|picture|photo|artwork|art|illustration|wallpaper)?\s*(?:of|showing|with|for|:)?\s*",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    ).strip()
+    # "can/could/would you [please] ..." has to be stripped before the plain-action-verb
+    # pattern below, since that one is anchored at the very start of the string - without
+    # this, a request phrased as a question (very much the natural way to ask) never
+    # matches at all, and the *entire* sentence - "can you generate me an image of a
+    # flower" framing and all - gets sent to the model as the literal prompt instead of
+    # just "a flower".
+    action_phrase = r"(?:generate|create|make|draw|render|paint)(?:\s+me)?(?:\s+an?|\s+the)?\s+(?:image|picture|photo|artwork|art|illustration|wallpaper)?\s*(?:of|showing|with|for|:)?\s*"
+    patterns = [
+        rf"^(?:please\s+)?{action_phrase}",
+        rf"^(?:can you|could you|would you)\s+(?:please\s+)?{action_phrase}",
+    ]
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
     return cleaned or text.strip()
 
 
@@ -844,14 +914,31 @@ def media_url(filename, subfolder=""):
     return "/".join(urllib.parse.quote(part) for part in parts)
 
 
-def absolute_chat_url(handler, path):
-    host = handler.headers.get("Host")
-    if host:
-        return f"http://{host}{path}"
-    return path
+def copy_output_to_stored_inputs(filename, subfolder=""):
+    """Copy a chat-generated output image into ComfyUI/input/studio_uploads,
+    the same directory Studio's own "Save Files" upload writes to - so a
+    generated image is immediately usable as a workflow input (img2img,
+    etc.) without a manual download-then-reupload round trip. Best-effort:
+    a failure here shouldn't stop the chat reply from reporting success."""
+    try:
+        source = (COMFY_OUTPUT / subfolder / filename) if subfolder else (COMFY_OUTPUT / filename)
+        if not source.is_file():
+            return None
+        target_dir = COMFY_INPUT / "studio_uploads"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / filename
+        stem, suffix = target.stem, target.suffix
+        counter = 1
+        while target.exists():
+            target = target_dir / f"{stem}-{counter}{suffix}"
+            counter += 1
+        shutil.copy2(source, target)
+        return f"studio_uploads/{target.name}"
+    except Exception:
+        return None
 
 
-def generate_image_with_comfy(handler, text, model=None):
+def generate_image_with_comfy(text, model=None, user=GUEST):
     prompt_text = extract_image_prompt(text)
     config = load_config()
     ok, message = ensure_comfy(config)
@@ -859,7 +946,8 @@ def generate_image_with_comfy(handler, text, model=None):
         raise RuntimeError(message)
 
     values = image_control_values(prompt_text)
-    prompt, seed, catalog_item = build_workflow_prompt_from_path(IMAGE_WORKFLOW_PATH, values, workflow_id=IMAGE_WORKFLOW_ID, config=config)
+    workflow_path = resolve_image_workflow_path()
+    prompt, seed, catalog_item = build_workflow_prompt_from_path(workflow_path, values, workflow_id=IMAGE_WORKFLOW_ID, config=config, user=user)
     prompt_id = queue_prompt(config, prompt, catalog_item["media_type"])
 
     deadline = time.time() + IMAGE_WAIT_SECONDS
@@ -873,8 +961,11 @@ def generate_image_with_comfy(handler, text, model=None):
     restart_message = ""
     if latest.get("completed") or latest.get("outputs"):
         restart_message = restart_llama_for_model(config, model)
+        for item in latest.get("outputs", []):
+            if item.get("type") == "image" and item.get("filename"):
+                copy_output_to_stored_inputs(item["filename"], item.get("subfolder", ""))
 
-    return format_image_response(handler, prompt_text, prompt_id, seed, catalog_item, latest, message, restart_message)
+    return format_image_response(prompt_text, prompt_id, seed, catalog_item, latest, message, restart_message)
 
 
 def restart_llama_for_model(config, model):
@@ -903,7 +994,7 @@ def image_control_values(prompt_text):
     }
 
 
-def format_image_response(handler, prompt_text, prompt_id, seed, catalog_item, status, start_message, restart_message=""):
+def format_image_response(prompt_text, prompt_id, seed, catalog_item, status, start_message, restart_message=""):
     lines = [
         "Queued a local ComfyUI image generation job.",
         "",
@@ -922,9 +1013,23 @@ def format_image_response(handler, prompt_text, prompt_id, seed, catalog_item, s
     if outputs:
         lines.extend(["", "Output:"])
         for item in outputs[:4]:
-            url = media_url(item["filename"], item.get("subfolder", ""))
-            lines.append(f"![{item['filename']}]({url})")
-            lines.append(f"[Open image]({absolute_chat_url(handler, url)})")
+            filename = item["filename"]
+            url = media_url(filename, item.get("subfolder", ""))
+            escaped_name = html.escape(filename)
+            escaped_url = html.escape(url)
+            lines.append(
+                '<div class="generated-image">'
+                f'<a href="{escaped_url}" target="_blank"><img src="{escaped_url}" alt="{escaped_name}"></a>'
+                '<div class="generated-image-actions">'
+                f'<a href="{escaped_url}" download="{escaped_name}">Download</a>'
+                '<a href="#" onclick="openInStudio(event)">Use in Studio</a>'
+                "</div></div>"
+            )
+        lines.append("")
+        lines.append(
+            "Generated images are automatically added to Studio's stored inputs, "
+            "ready to reuse in any workflow."
+        )
         return "\n".join(lines)
 
     lines.extend(
@@ -958,16 +1063,15 @@ class HilbertHandler(BaseHTTPRequestHandler):
             self.send_json({"ok": self.check_model()})
             return
         if parsed.path == "/api/sessions":
-            query = urllib.parse.parse_qs(parsed.query)
-            user = query.get("user", ["Derek"])[0]
-            self.send_json({"users": USERS, "sessions": self.server.store.list_sessions(user)})
+            user = resolve_identity(self)['user']
+            self.send_json({"users": [], "sessions": self.server.store.list_sessions(user)})
             return
         if parsed.path == "/api/models":
             self.send_json({"models": self.get_available_models()})
             return
         if parsed.path == "/api/session":
+            user = resolve_identity(self)['user']
             query = urllib.parse.parse_qs(parsed.query)
-            user = query.get("user", ["Derek"])[0]
             session_id = query.get("id", [""])[0]
             self.send_json({"session": self.server.store.get_session(user, session_id)})
             return
@@ -976,27 +1080,34 @@ class HilbertHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             payload = self.read_json()
+            user = resolve_identity(self)['user']
             if self.path == "/api/session":
-                session = self.server.store.create_session(payload.get("user", "Derek"), payload.get("title", "New Chat"))
+                session = self.server.store.create_session(user, payload.get("title", "New Chat"))
                 self.send_json({"session": session})
                 return
             if self.path == "/api/session/rename":
-                session = self.server.store.rename_session(payload.get("user", "Derek"), payload.get("id", ""), payload.get("title", "New Chat"))
+                session = self.server.store.rename_session(user, payload.get("id", ""), payload.get("title", "New Chat"))
                 self.send_json({"session": session})
                 return
             if self.path == "/api/session/delete":
-                self.server.store.delete_session(payload.get("user", "Derek"), payload.get("id", ""))
+                self.server.store.delete_session(user, payload.get("id", ""))
                 self.send_json({"ok": True})
                 return
             if self.path == "/api/chat":
-                user = payload.get("user", "Derek")
                 session_id = payload.get("session_id", "")
-                model = payload.get("model", self.server.model)
+                # No default here on purpose: falling back to self.server.model (the
+                # --model this process happened to be launched with) would make an
+                # explicit request for that exact model, which wins the priority-
+                # ordered endpoint selection below even when a higher-priority
+                # endpoint (the configured LLM_ENDPOINTS box) is also online - the
+                # same "stale default fights the real priority list" bug already
+                # fixed for the frontend's own model picker.
+                model = payload.get("model")
                 content = (payload.get("content") or "").strip()
                 if not content:
                     raise ValueError("content is required")
                 session = self.server.store.get_session(user, session_id)
-                assistant_text = self.respond(session["messages"], content, model)
+                assistant_text = self.respond(session["messages"], content, model, user=user)
                 updated = self.server.store.append_exchange(user, session_id, content, assistant_text)
                 self.send_json({"assistant": {"role": "assistant", "content": assistant_text}, "session": updated})
                 return
@@ -1049,75 +1160,35 @@ class HilbertHandler(BaseHTTPRequestHandler):
         self.send_headers(200, content_type, len(data))
         self.wfile.write(data)
 
-    def llama_url(self, path):
-        return f"http://{self.server.llama_host}:{self.server.llama_port}{path}"
-
     def get_available_models(self):
-        """Fetch available models from a local OpenAI-compatible server."""
-        for path in ("/models", "/v1/models"):
-            try:
-                with urllib.request.urlopen(self.llama_url(path), timeout=5) as response:
-                    data = json.loads(response.read())
-                if isinstance(data, dict) and "data" in data:
-                    return [m.get("id", m.get("name", "")) for m in data["data"] if isinstance(m, dict)]
-                if isinstance(data, list):
-                    return [m.get("id", m.get("name", "")) for m in data if isinstance(m, dict)]
-            except Exception:
-                continue
-        return []
+        """Fetch available models across every configured LLM endpoint - the
+        LLM_ENDPOINTS network box (if configured) first, then local
+        fallbacks - the same priority order Studio's own chat uses, instead
+        of only ever asking the single local host:port this process was
+        started with."""
+        return llm_endpoints.available_models(load_config())
 
     def check_model(self):
-        for path in ("/health", "/api/version", "/v1/models"):
-            try:
-                with urllib.request.urlopen(self.llama_url(path), timeout=2) as response:
-                    return response.status == 200
-            except Exception:
-                continue
-        return False
+        return llm_endpoints.select_chat_endpoint(load_config()) is not None
 
-    def respond(self, history_messages, content, model=None):
+    def respond(self, history_messages, content, model=None, user=GUEST):
         if looks_like_image_request(content):
-            return generate_image_with_comfy(self, content, model)
+            return generate_image_with_comfy(content, model, user=user)
+
+        non_system = [m for m in history_messages if m.get("role") != "system"]
 
         if looks_like_search_request(content):
             query = extract_search_query(content)
             results = web_search(query)
-            search_context = format_search_context(query, results)
-            tool_message = {
-                "role": "system",
-                "content": (
-                    "You have web search results for the user's request below. "
-                    "Answer using the results where relevant and include source URLs.\n\n"
-                    f"{search_context}"
-                ),
-            }
-            messages = history_messages + [tool_message, {"role": "user", "content": content}]
+            system_message = build_system_message(search_query=query, search_results=results)
+            messages = [system_message] + non_system + [{"role": "user", "content": content}]
             return self.chat(messages, model)
 
-        messages = history_messages + [{"role": "user", "content": content}]
+        messages = [build_system_message()] + non_system + [{"role": "user", "content": content}]
         return self.chat(messages, model)
 
     def chat(self, messages, model=None):
-        body = json.dumps({
-            "model": model or self.server.model,
-            "messages": messages,
-            "temperature": 0.6,
-            "top_p": 0.9,
-            "max_tokens": 2048,
-        }).encode("utf-8")
-        request = urllib.request.Request(
-            self.llama_url("/v1/chat/completions"),
-            data=body,
-            headers={"Content-Type": "application/json", "Authorization": "Bearer sk-local"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=600) as response:
-                payload = json.loads(response.read())
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")
-            raise RuntimeError(f"local LLM returned HTTP {exc.code}: {detail}") from exc
-        return payload["choices"][0]["message"]["content"]
+        return llm_endpoints.chat_completion(load_config(), messages, model)
 
 
 def main():
@@ -1135,8 +1206,8 @@ def main():
     server.llama_port = args.llama_port
     server.model = args.model
     server.store = ChatStore(args.data_dir)
-    print(f"Hilbert Chat listening on http://{args.host}:{args.port}", flush=True)
-    print(f"Using local LLM at http://{args.llama_host}:{args.llama_port}", flush=True)
+    print(f"Ask Echo listening on http://{args.host}:{args.port}", flush=True)
+    print("Chat model: whichever configured endpoint is online, LLM_ENDPOINTS first (see llm_endpoints.py)", flush=True)
     print(f"Saving sessions under {args.data_dir}", flush=True)
     server.serve_forever()
 

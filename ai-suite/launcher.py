@@ -43,6 +43,8 @@ from werkzeug.utils import secure_filename
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tools import pack_mover
 from tools.registry_generator import generate_registry
+from identity import GUEST, resolve_identity, slug as safe_identity_slug
+import llm_endpoints
 
 # Try to import optional dependencies
 try:
@@ -66,9 +68,8 @@ except ImportError:
 try:
     from hilbert_chat import (
         ChatStore,
-        USERS as CHAT_USERS,
+        build_system_message,
         extract_search_query,
-        format_search_context,
         generate_image_with_comfy,
         looks_like_image_request,
         looks_like_search_request,
@@ -80,7 +81,7 @@ except Exception as exc:
     CHAT_AVAILABLE = False
     CHAT_IMPORT_ERROR = str(exc)
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 __author__ = "AI Suite Team"
 
 
@@ -533,14 +534,19 @@ class DependencyManager:
         required_models = models.get('required', [])
         optional_models = models.get('optional', [])
 
+        missing_required = set()
         for model in required_models:
             model_name = model.get('name', '')
             model_type = model.get('type') or model.get('directory') or 'checkpoint'
             if not model_name:
                 continue
 
+            dependency = (model_name, model_type)
+            if dependency in missing_required:
+                continue
             if not self.model_manager.check_model_availability(model_name, model_type):
                 errors.append(f"Required model not found: {model_name} ({model_type})")
+                missing_required.add(dependency)
 
         for model in optional_models:
             model_name = model.get('name', '')
@@ -635,7 +641,8 @@ class JobQueue:
         self,
         workflow_id: str,
         inputs: Dict[str, Any],
-        job_id: Optional[str] = None
+        job_id: Optional[str] = None,
+        user: str = GUEST
     ) -> str:
         """Add a job to the queue."""
         with self.lock:
@@ -649,6 +656,7 @@ class JobQueue:
                 'job_id': job_id,
                 'workflow_id': workflow_id,
                 'inputs': inputs,
+                'user': user,
                 'status': 'queued',
                 'created_at': datetime.now().isoformat(),
                 'started_at': None,
@@ -1407,18 +1415,196 @@ class WorkflowManager:
             'values': self._flatten_preset_values(data),
         }
 
+    def _runtime_config(self) -> Dict[str, str]:
+        try:
+            from ai_manager import load_config
+            return load_config()
+        except Exception:
+            return {}
+
+    def _remote_gpu_worker_url(self) -> str:
+        runtime = self._runtime_config()
+        configured = (
+            runtime.get('REMOTE_GPU_WORKER_URL')
+            or os.environ.get('REMOTE_GPU_WORKER_URL')
+            or self.config_manager.get_setting('remote_gpu_worker_url', '')
+        )
+        if configured:
+            return str(configured).rstrip('/')
+        host = runtime.get('GPU_WORKER_HOST') or os.environ.get('GPU_WORKER_HOST') or ''
+        port = runtime.get('GPU_WORKER_PORT') or os.environ.get('GPU_WORKER_PORT') or '39018'
+        if not host:
+            return ''
+        connect_host = '127.0.0.1' if host == '0.0.0.0' else host
+        return f"http://{connect_host}:{port}".rstrip('/')
+
+    def _remote_gpu_enabled(self) -> bool:
+        runtime = self._runtime_config()
+        value = (
+            runtime.get('REMOTE_GPU_WORKER_ENABLED')
+            or os.environ.get('REMOTE_GPU_WORKER_ENABLED')
+            or self.config_manager.get_setting('enable_remote_gpu_worker', False)
+        )
+        return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    def _remote_required_vram_gb(self, manifest: Dict[str, Any]) -> float:
+        """Return the pack's hard VRAM floor, not its ideal/recommended value."""
+        hardware = manifest.get('hardware') or {}
+        runtime = manifest.get('runtime') or {}
+        value = runtime.get('required_vram_gb', hardware.get('minimum_vram_gb', 0))
+        try:
+            return max(0.0, float(value or 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _remote_gpu_max_vram_gb(self) -> float:
+        runtime = self._runtime_config()
+        value = runtime.get('REMOTE_GPU_MAX_VRAM_GB') or os.environ.get('REMOTE_GPU_MAX_VRAM_GB') or 16
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            return 16.0
+
+    def _remote_gpu_fallback_local(self) -> bool:
+        runtime = self._runtime_config()
+        value = runtime.get('REMOTE_GPU_FALLBACK_LOCAL') or os.environ.get('REMOTE_GPU_FALLBACK_LOCAL') or '1'
+        return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    def _sync_remote_prompt_inputs(self, prompt: Dict[str, Any], worker_url: str) -> List[str]:
+        """Stage referenced ComfyUI inputs via a mount or the worker HTTP API."""
+        runtime = self._runtime_config()
+        remote_value = runtime.get('REMOTE_GPU_INPUT_DIR') or os.environ.get('REMOTE_GPU_INPUT_DIR') or ''
+        local_root = Path(runtime.get('COMFYUI_DIR') or os.environ.get('COMFYUI_DIR') or ROOT / 'repos/ComfyUI') / 'input'
+        remote_root = Path(remote_value) if remote_value else None
+        if not local_root.exists():
+            return []
+        local_resolved = local_root.resolve()
+        copied: List[str] = []
+        values = (
+            value
+            for node in prompt.values() if isinstance(node, dict)
+            for value in (node.get('inputs') or {}).values()
+            if isinstance(value, str) and value
+        )
+        for value in set(values):
+            rel = Path(value.replace('\\', '/'))
+            if rel.is_absolute() or '..' in rel.parts:
+                continue
+            try:
+                source = (local_root / rel).resolve()
+                is_input_file = source.is_file()
+            except OSError:
+                # Prompt/negative-prompt strings are values too. Very long text
+                # can exceed the filesystem's component limit while probing it
+                # as a possible filename; it is not an asset to upload.
+                continue
+            if local_resolved not in source.parents or not is_input_file:
+                continue
+            if remote_root and remote_root.exists():
+                target = remote_root / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists() or source.stat().st_size != target.stat().st_size or source.stat().st_mtime_ns > target.stat().st_mtime_ns:
+                    shutil.copy2(source, target)
+            else:
+                with source.open('rb') as handle:
+                    response = requests.put(
+                        f"{worker_url}/v1/assets/input/{urllib.parse.quote(rel.as_posix(), safe='/')}",
+                        data=handle,
+                        headers={'Content-Type': 'application/octet-stream'},
+                        timeout=300,
+                    )
+                response.raise_for_status()
+            copied.append(rel.as_posix())
+        return copied
+
+    def _remote_workflow_type(self, manifest: Dict[str, Any]) -> str:
+        tags = {str(tag).lower() for tag in (manifest.get('tags') or [])}
+        category = str(manifest.get('category') or '').lower()
+        media_type = str(manifest.get('media_type') or '').lower()
+        workflow_id = str(manifest.get('id') or '').lower()
+        if 'image-to-3d' in tags or category in ('three-d', '3d') or workflow_id.startswith('three-d.'):
+            return 'image-to-3d'
+        if media_type == 'video' or 'video' in tags or category.startswith('video'):
+            return 'video'
+        if 'upscale' in tags:
+            return 'upscale'
+        return media_type or 'image'
+
+    def _should_use_remote_gpu_worker(self, manifest: Dict[str, Any]) -> bool:
+        runtime = manifest.get('runtime') or {}
+        if runtime.get('gpu_worker') is True:
+            return True
+        if runtime.get('gpu_worker') is False:
+            return False
+        if not self._remote_gpu_enabled():
+            return False
+        required_vram = self._remote_required_vram_gb(manifest)
+        return (
+            self._remote_workflow_type(manifest) in ('video', 'image-to-3d')
+            and required_vram > 0
+            and required_vram <= self._remote_gpu_max_vram_gb()
+        )
+
+    def _preview_remote_route(
+        self,
+        workflow_data: Dict[str, Any],
+        inputs: Dict[str, Any],
+        worker_url: str,
+    ) -> Dict[str, Any]:
+        """Ask the dispatcher which lane would receive a prompt, without submitting it."""
+        manifest = workflow_data.get('manifest') or {}
+        effective_inputs = self._prepare_workflow_inputs(manifest, inputs)
+        prompt = self._build_comfy_prompt(workflow_data, effective_inputs)
+        response = requests.post(
+            f"{worker_url}/v1/route",
+            json={
+                'prompt': prompt,
+                'workflow_type': self._remote_workflow_type(manifest),
+                'required_vram_gb': self._remote_required_vram_gb(manifest),
+                'client_id': COMFY_WS_CLIENT_ID,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+
     def run_workflow(
         self,
         workflow_id: str,
-        inputs: Dict[str, Any]
+        inputs: Dict[str, Any],
+        user: str = GUEST
     ) -> Tuple[bool, Dict[str, Any]]:
         """Run a workflow."""
         workflow_data = self.workflows.get(workflow_id)
         if not workflow_data:
             return False, {'error': 'Workflow not found'}
 
+        inputs = dict(inputs or {})
         manifest = workflow_data.get('manifest', {})
+        missing_required = []
+        for control in manifest.get('inputs', []) or []:
+            if not control.get('required'):
+                continue
+            value = inputs.get(control.get('id'), control.get('default'))
+            if value is None or (isinstance(value, str) and not value.strip()):
+                missing_required.append(control.get('label') or control.get('id') or 'input')
+        if missing_required:
+            return False, {
+                'error': f"Missing required input: {', '.join(missing_required)}",
+                'workflow_id': workflow_id,
+            }
+
         effective_inputs = self._prepare_workflow_inputs(manifest, inputs)
+        if not str(effective_inputs.get('filename_prefix') or '').strip():
+            # Single point of truth for where this workflow's saved media lands -
+            # _apply_manifest_controls, _widget_inputs_for_node's SaveImage/SaveVideo
+            # branch, and _finalize_workflow_prompt's various per-node-type defaults
+            # all defer to an already-present filename_prefix, so setting it here once
+            # (rather than in each of those places) scopes every workflow type's output
+            # under this user's own Media Library folder.
+            effective_inputs['filename_prefix'] = (
+                f"studio/{safe_identity_slug(user)}/{workflow_id.replace('.', '/')}/{int(time.time())}"
+            )
         if self._is_service_workflow(manifest):
             return self._run_service_workflow(manifest, effective_inputs)
 
@@ -1447,6 +1633,41 @@ class WorkflowManager:
         if REQUESTS_AVAILABLE:
             try:
                 prompt = self._build_comfy_prompt(workflow_data, effective_inputs)
+                remote_error = ''
+                if self._should_use_remote_gpu_worker(manifest):
+                    worker_url = self._remote_gpu_worker_url()
+                    if not worker_url:
+                        remote_error = 'Remote GPU worker is enabled, but no worker URL is configured'
+                    else:
+                        try:
+                            staged_inputs = self._sync_remote_prompt_inputs(prompt, worker_url)
+                            response = requests.post(
+                                f"{worker_url}/v1/jobs",
+                                json={
+                                    'prompt': prompt,
+                                    'workflow_type': self._remote_workflow_type(manifest),
+                                    'required_vram_gb': self._remote_required_vram_gb(manifest),
+                                    'client_id': COMFY_WS_CLIENT_ID,
+                                },
+                                timeout=comfyui_config['timeout'],
+                            )
+                            if response.status_code == 200:
+                                result = response.json()
+                                return True, {
+                                    'message': 'Workflow queued on remote GPU worker',
+                                    'workflow_id': workflow_id,
+                                    'prompt_id': result.get('prompt_id'),
+                                    'remote_job_id': result.get('id'),
+                                    'remote_worker_id': result.get('worker_id'),
+                                    'remote_worker_url': worker_url,
+                                    'remote_staged_inputs': staged_inputs,
+                                    'inputs': effective_inputs,
+                                }
+                            remote_error = f'Remote GPU worker rejected workflow: {response.text}'
+                        except Exception as exc:
+                            remote_error = f'Remote GPU worker unavailable: {exc}'
+                    if remote_error and not self._remote_gpu_fallback_local():
+                        return False, {'error': remote_error}
                 response = requests.post(
                     f"http://{comfyui_config['host']}:{comfyui_config['port']}/prompt",
                     json={'prompt': prompt, 'client_id': COMFY_WS_CLIENT_ID},
@@ -1456,7 +1677,7 @@ class WorkflowManager:
                     return False, {'error': f'ComfyUI rejected workflow: {response.text}'}
                 result = response.json()
                 return True, {
-                    'message': 'Workflow queued in ComfyUI',
+                    'message': 'Workflow queued in local ComfyUI' + (f' ({remote_error})' if remote_error else ''),
                     'workflow_id': workflow_id,
                     'prompt_id': result.get('prompt_id'),
                     'inputs': effective_inputs,
@@ -1569,54 +1790,7 @@ class WorkflowManager:
 
     def _llm_endpoint_candidates(self, runtime_config: Dict[str, Any], requested_model: str) -> List[Dict[str, str]]:
         """Build ordered OpenAI-compatible LLM endpoint candidates."""
-        candidates: List[Dict[str, str]] = []
-
-        def chat_url(base: str) -> str:
-            base = base.strip().rstrip('/')
-            if base.endswith('/chat/completions'):
-                return base
-            if base.endswith('/v1'):
-                return f'{base}/chat/completions'
-            return f'{base}/v1/chat/completions'
-
-        def connect_host(host: Any) -> str:
-            host = str(host or '127.0.0.1')
-            return '127.0.0.1' if host in ('0.0.0.0', '::') else host
-
-        for index, entry in enumerate(str(runtime_config.get('LLM_ENDPOINTS') or '').split(','), start=1):
-            entry = entry.strip()
-            if not entry:
-                continue
-            if '|' in entry:
-                base, model = entry.split('|', 1)
-            else:
-                base, model = entry, requested_model
-            candidates.append({
-                'name': f'network-{index}',
-                'url': chat_url(base),
-                'model': (model or requested_model or runtime_config.get('LLAMA_ALIAS') or 'local-llama').strip(),
-            })
-
-        sidecar_model = requested_model or runtime_config.get('QWEN_SIDECAR_ALIAS') or 'qwen-sidecar'
-        candidates.append({
-            'name': 'qwen-sidecar',
-            'url': chat_url(f"http://{connect_host(runtime_config.get('QWEN_SIDECAR_HOST', '127.0.0.1'))}:{runtime_config.get('QWEN_SIDECAR_PORT', '39002')}"),
-            'model': str(sidecar_model),
-        })
-        main_model = requested_model or runtime_config.get('LLAMA_ALIAS') or 'local-llama'
-        candidates.append({
-            'name': 'llama',
-            'url': chat_url(f"http://{connect_host(runtime_config.get('LLAMA_HOST', '127.0.0.1'))}:{runtime_config.get('LLAMA_PORT', '39001')}"),
-            'model': str(main_model),
-        })
-        ollama_model = requested_model or runtime_config.get('OLLAMA_MODEL') or ''
-        if ollama_model:
-            candidates.append({
-                'name': 'ollama',
-                'url': chat_url(f"http://{connect_host(runtime_config.get('OLLAMA_HOST', '127.0.0.1'))}:{runtime_config.get('OLLAMA_PORT', '11434')}"),
-                'model': str(ollama_model),
-            })
-        return candidates
+        return llm_endpoints.endpoint_candidates(runtime_config, requested_model)
 
     def _llm_workflow_prompt(self, workflow_id: str, inputs: Dict[str, Any]) -> str:
         """Build a service prompt for each LLM orchestration workflow."""
@@ -2255,6 +2429,7 @@ workflow_manager: Optional[WorkflowManager] = None
 progress_monitor: Optional[ComfyProgressMonitor] = None
 comfy_health_monitor: Optional[ComfyHealthMonitor] = None
 chat_store: Optional[Any] = None
+queue_release_lock = threading.Lock()
 
 
 SERVICE_COMMANDS = {
@@ -2332,12 +2507,7 @@ def run_service_command(command: str, timeout: int = 120) -> Tuple[int, str]:
 
 def endpoint_models_url(chat_url: str) -> str:
     """Return the companion /models URL for an OpenAI-compatible chat URL."""
-    url = chat_url.rstrip('/')
-    if url.endswith('/chat/completions'):
-        return url[: -len('/chat/completions')] + '/models'
-    if url.endswith('/v1'):
-        return f'{url}/models'
-    return f'{url}/v1/models'
+    return llm_endpoints.endpoint_models_url(chat_url)
 
 
 def check_llm_endpoint(endpoint: Dict[str, str]) -> Dict[str, Any]:
@@ -2447,6 +2617,16 @@ def index() -> str:
         version=__version__,
         request_host=request.host.split(':')[0]
     )
+
+
+@app.route('/api/identity')
+def api_identity() -> jsonify:
+    """Who Studio thinks is making this request - a verified reverse-proxy
+    identity header, or guest for anything else. There is
+    no manual override: it's automatic-or-guest, never a client-asserted pick.
+    Drives the frontend's identity badge and is the source of truth every
+    user-scoped route below relies on."""
+    return jsonify(resolve_identity(request))
 
 
 @app.route('/vendor/<path:subpath>')
@@ -2836,8 +3016,9 @@ def api_run_workflow(workflow_id: str) -> jsonify:
     inputs = data.get('inputs', {})
     hold_for_slot = bool(data.get('hold_for_slot'))
 
+    user = resolve_identity(request)['user']
     try:
-        job_id = job_queue.add_job(workflow_id=workflow_id, inputs=inputs)
+        job_id = job_queue.add_job(workflow_id=workflow_id, inputs=inputs, user=user)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
@@ -2863,15 +3044,15 @@ def api_run_workflow(workflow_id: str) -> jsonify:
 def _dispatch_job(job_id: str, workflow_id: str, inputs: Dict[str, Any]) -> None:
     """Hand a job to ComfyUI (or run it synchronously for non-ComfyUI
     workflows) and record the outcome on the job queue."""
+    user = (job_queue.get_job(job_id) or {}).get('user', GUEST)
     job_queue.start_job(job_id)
-    success, result = workflow_manager.run_workflow(workflow_id=workflow_id, inputs=inputs)
+    success, result = workflow_manager.run_workflow(workflow_id=workflow_id, inputs=inputs, user=user)
 
-    if success and result.get('prompt_id'):
-        # ComfyUI has only ACCEPTED the prompt into its queue here, not
-        # finished rendering it. Leave the job "running" (set by start_job
-        # above) with the prompt_id attached; _reconcile_running_jobs()
-        # flips it to "completed" once ComfyUI actually finishes, the next
-        # time /api/jobs or /api/jobs/<id> is polled.
+    if success and (result.get('prompt_id') or result.get('remote_job_id')):
+        # ComfyUI/the remote dispatcher has only accepted the job, not
+        # finished it. An exclusive multi-GPU job initially has a remote job
+        # ticket but no ComfyUI prompt id while the array changes mode.
+        # _reconcile_running_jobs() follows either identifier to completion.
         job_queue.update_job(job_id, progress=10, result=result)
     elif success:
         # Non-ComfyUI workflows (e.g. LLM orchestration) return their real
@@ -2884,32 +3065,169 @@ def _dispatch_job(job_id: str, workflow_id: str, inputs: Dict[str, Any]) -> None
         )
 
 
-def _release_queued_jobs() -> None:
-    """Dispatch the next locally queued job to ComfyUI once no in-flight job
-    is still below the configured release threshold.
+def _materialize_remote_outputs(history: Dict[str, Any], worker_url: str = '') -> List[str]:
+    """Copy files named in remote ComfyUI history into local Comfy output.
 
-    Without this, queuing several jobs would hand them all to ComfyUI's own
-    queue at once. Instead each waits its turn in the launcher until the
-    running job's sampling progress is nearly done, so a not-yet-submitted
-    job can still be reordered or cancelled from the Studio queue view right
-    up until the moment it's released.
+    Remote workers expose their results volume through the dispatcher. Copying
+    only files explicitly reported by ComfyUI avoids mirroring unrelated users'
+    output and makes the existing Media Library/API paths work unchanged.
+    """
+    runtime = _runtime_config()
+    remote_value = runtime.get('REMOTE_GPU_OUTPUT_DIR') or os.environ.get('REMOTE_GPU_OUTPUT_DIR') or ''
+    remote_root = Path(remote_value) if remote_value else None
+    local_root = Path(runtime.get('COMFYUI_DIR') or os.environ.get('COMFYUI_DIR') or ROOT / 'repos/ComfyUI') / 'output'
+    if not (remote_root and remote_root.exists()) and not worker_url:
+        return []
+    copied: List[str] = []
+    for prompt_data in history.values():
+        for node_output in (prompt_data.get('outputs') or {}).values():
+            if not isinstance(node_output, dict):
+                continue
+            for collection in ('images', 'gifs', 'videos', 'audios', 'audio', '3d'):
+                for item in node_output.get(collection, []) or []:
+                    if not isinstance(item, dict) or item.get('type', 'output') != 'output':
+                        continue
+                    filename = str(item.get('filename') or '')
+                    subfolder = str(item.get('subfolder') or '')
+                    rel = Path(subfolder.replace('\\', '/')) / filename
+                    if not filename or rel.is_absolute() or '..' in rel.parts:
+                        continue
+                    target = local_root / rel
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if remote_root and remote_root.exists():
+                        source = remote_root / rel
+                        if not source.is_file():
+                            continue
+                        if not target.exists() or source.stat().st_size != target.stat().st_size:
+                            shutil.copy2(source, target)
+                    else:
+                        with requests.get(
+                            f"{worker_url}/v1/assets/output/{urllib.parse.quote(rel.as_posix(), safe='/')}",
+                            timeout=300,
+                            stream=True,
+                        ) as response:
+                            if response.status_code == 404:
+                                continue
+                            response.raise_for_status()
+                            with target.open('wb') as handle:
+                                shutil.copyfileobj(response.raw, handle)
+                    copied.append(rel.as_posix())
+    return copied
+
+
+def _release_queued_jobs() -> None:
+    """Run one queue-release pass; concurrent poll requests share this lock."""
+    if not queue_release_lock.acquire(blocking=False):
+        return
+    try:
+        _release_queued_jobs_unlocked()
+    finally:
+        queue_release_lock.release()
+
+
+def _release_queued_jobs_unlocked() -> None:
+    """Release queued jobs into independent local and remote execution lanes.
+
+    Local ComfyUI keeps its original one-at-a-time/release-threshold policy.
+    Remote video/3D jobs consume the live free slots reported by the GPU
+    dispatcher. Prompts assigned to its exclusive multi-GPU lane reserve the
+    whole remote array while remaining separate from Studio's local lane.
     """
     if not job_queue or not workflow_manager:
         return
     threshold = config_manager.get_setting('queue_release_progress', 90) if config_manager else 90
+    local_blocking = any(
+        (job.get('result') or {}).get('prompt_id')
+        and not (job.get('result') or {}).get('remote_job_id')
+        and (job.get('progress') or 0) < threshold
+        for job in job_queue.get_running()
+    )
 
-    while True:
-        blocking = any(
-            (job.get('result') or {}).get('prompt_id') and (job.get('progress') or 0) < threshold
-            for job in job_queue.get_running()
-        )
-        if blocking:
-            return
-        queued = job_queue.get_queue()
-        if not queued:
-            return
-        next_job = queued[0]
-        _dispatch_job(next_job['job_id'], next_job['workflow_id'], next_job['inputs'])
+    # None means the dispatcher could not be queried: preserve the old local
+    # fallback behavior. An empty list means it is online but all remote slots
+    # are occupied, so eligible jobs should stay in Studio's queue.
+    remote_slots: Optional[List[Dict[str, Any]]] = None
+    remote_worker_url = ''
+    split_lane_busy = True
+    if REQUESTS_AVAILABLE and workflow_manager._remote_gpu_enabled():
+        remote_worker_url = workflow_manager._remote_gpu_worker_url()
+        if remote_worker_url:
+            try:
+                response = requests.get(f"{remote_worker_url}/v1/workers", timeout=10)
+                response.raise_for_status()
+                remote_slots = []
+                split_lane_busy = False
+                for worker in response.json():
+                    if worker.get('id') == 'multi-gpu':
+                        split_lane_busy = int(worker.get('inflight', 0)) > 0
+                        continue
+                    if not worker.get('healthy'):
+                        continue
+                    free = max(0, int(worker.get('max_inflight', 1)) - int(worker.get('inflight', 0)))
+                    remote_slots.extend([dict(worker) for _ in range(free)])
+                try:
+                    mode_response = requests.get(f"{remote_worker_url}/v1/mode", timeout=10)
+                    mode_response.raise_for_status()
+                    mode = mode_response.json()
+                    split_lane_busy = split_lane_busy or bool(mode.get('waiting')) or bool(mode.get('running'))
+                except Exception:
+                    split_lane_busy = True
+            except Exception:
+                remote_slots = None
+
+    for queued_job in job_queue.get_queue():
+        workflow_data = workflow_manager.workflows.get(queued_job['workflow_id']) or {}
+        manifest = workflow_data.get('manifest') or {}
+        remote_eligible = workflow_manager._should_use_remote_gpu_worker(manifest)
+
+        if remote_eligible and remote_slots is not None:
+            route: Dict[str, Any] = {}
+            preview_route = getattr(workflow_manager, '_preview_remote_route', None)
+            if callable(preview_route) and remote_worker_url:
+                try:
+                    route = preview_route(workflow_data, queued_job['inputs'], remote_worker_url)
+                except Exception:
+                    route = {}
+            if route.get('worker_id') == 'multi-gpu':
+                if split_lane_busy:
+                    continue
+                _dispatch_job(queued_job['job_id'], queued_job['workflow_id'], queued_job['inputs'])
+                dispatched = job_queue.get_job(queued_job['job_id']) or {}
+                if (dispatched.get('result') or {}).get('remote_job_id'):
+                    split_lane_busy = True
+                    remote_slots.clear()
+                elif (dispatched.get('result') or {}).get('prompt_id'):
+                    local_blocking = True
+                continue
+            required_vram = workflow_manager._remote_required_vram_gb(manifest)
+            workflow_type = workflow_manager._remote_workflow_type(manifest)
+            candidates = [
+                (index, worker)
+                for index, worker in enumerate(remote_slots)
+                if float(worker.get('vram_gb') or 0) >= required_vram
+                and workflow_type in set(worker.get('tags') or [])
+            ]
+            if not candidates:
+                continue
+            slot_index, _worker = min(
+                candidates,
+                key=lambda item: (float(item[1].get('vram_gb') or 10_000), -int(item[1].get('weight') or 0)),
+            )
+            remote_slots.pop(slot_index)
+            _dispatch_job(queued_job['job_id'], queued_job['workflow_id'], queued_job['inputs'])
+            dispatched = job_queue.get_job(queued_job['job_id']) or {}
+            # If remote validation rejected the graph and run_workflow fell
+            # back locally, that job now occupies the single local lane.
+            if (dispatched.get('result') or {}).get('prompt_id') and not (dispatched.get('result') or {}).get('remote_job_id'):
+                local_blocking = True
+            continue
+
+        if local_blocking:
+            continue
+        _dispatch_job(queued_job['job_id'], queued_job['workflow_id'], queued_job['inputs'])
+        dispatched = job_queue.get_job(queued_job['job_id']) or {}
+        if (dispatched.get('result') or {}).get('prompt_id'):
+            local_blocking = True
 
 
 def _reconcile_running_jobs() -> None:
@@ -2935,19 +3253,71 @@ def _reconcile_running_jobs() -> None:
     if comfy_health_monitor and comfy_health_monitor.down_seconds() >= COMFY_STALE_AFTER_SECONDS:
         health = comfy_health_monitor.snapshot()
         for job in job_queue.get_running():
-            if (job.get('result') or {}).get('prompt_id'):
+            job_result = job.get('result') or {}
+            # A remote job does not depend on local ComfyUI health; it is
+            # reconciled against its dispatcher below.
+            if job_result.get('prompt_id') and not job_result.get('remote_job_id'):
                 job_queue.update_job(
                     job['job_id'], status='stalled', progress=job.get('progress') or 0,
                     error=f"ComfyUI stopped responding (unreachable since {health.get('down_since')}). "
                           "The render may have finished on disk even though tracking lost it - check "
                           "the outputs list, or use Retry to resubmit.",
                 )
-        return
+        # Keep going so remote jobs are still polled even while the local
+        # ComfyUI endpoint is down. Locally stalled jobs no longer appear in
+        # get_running() below.
 
     config = load_config()
     progress_by_state = {'waiting': 10, 'queued': 15, 'running': 60, 'history': 80}
     for job in job_queue.get_running():
         result = job.get('result') or {}
+        remote_job_id = result.get('remote_job_id')
+        remote_worker_url = (result.get('remote_worker_url') or '').rstrip('/')
+        if remote_job_id and remote_worker_url and REQUESTS_AVAILABLE:
+            try:
+                response = requests.get(f"{remote_worker_url}/v1/jobs/{remote_job_id}", timeout=10)
+                response.raise_for_status()
+                remote = response.json()
+            except Exception:
+                continue
+            prompt_id = remote.get('prompt_id') or result.get('prompt_id')
+            if prompt_id and prompt_id != result.get('prompt_id'):
+                result = dict(result)
+                result['prompt_id'] = prompt_id
+                job_queue.update_job(job['job_id'], result=result)
+            remote_state = remote.get('state')
+            if remote_state == 'failed':
+                job_queue.update_job(
+                    job['job_id'], status='failed', progress=job.get('progress') or 0,
+                    error=remote.get('error') or 'Remote GPU worker reported a failed job.',
+                )
+                continue
+            if remote_state != 'completed':
+                progress_value = {
+                    'queued': 15,
+                    'running': 60,
+                    'unknown': job.get('progress') or 10,
+                }.get(remote_state, job.get('progress') or 10)
+                job_queue.update_job(job['job_id'], progress=progress_value)
+                continue
+            history_key = prompt_id or remote_job_id
+            try:
+                from comfy_studio import flatten_outputs, write_prompt_sidecars
+                history = remote.get('comfy_status') or {}
+                copied_files = _materialize_remote_outputs({history_key: history}, remote_worker_url)
+                outputs = [_rewrite_media_url(dict(o)) for o in flatten_outputs({history_key: history})]
+                if prompt_id:
+                    write_prompt_sidecars(prompt_id, outputs)
+            except Exception:
+                outputs = []
+                copied_files = []
+            new_result = dict(result)
+            new_result['outputs'] = outputs
+            new_result['remote_copied_files'] = copied_files
+            if not outputs:
+                new_result['message'] = 'Remote job finished, but no matching output file was found.'
+            job_queue.update_job(job['job_id'], status='completed', progress=100, result=new_result)
+            continue
         prompt_id = result.get('prompt_id')
         if not prompt_id:
             continue
@@ -3100,7 +3470,7 @@ def api_retry_job(job_id: str) -> jsonify:
         return jsonify({'error': f"Only failed, stalled, or cancelled jobs can be retried. This job is {job.get('status')}."}), 409
 
     try:
-        new_job_id = job_queue.add_job(workflow_id=job['workflow_id'], inputs=job.get('inputs') or {})
+        new_job_id = job_queue.add_job(workflow_id=job['workflow_id'], inputs=job.get('inputs') or {}, user=job.get('user', GUEST))
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
@@ -3112,6 +3482,15 @@ def api_retry_job(job_id: str) -> jsonify:
         'status': new_job.get('status', 'queued'),
         'workflow_id': job['workflow_id'],
     })
+
+
+def _output_owner(relative_posix_path: str) -> Optional[str]:
+    """The user segment of a studio/<user>/... output path, or None for
+    files outside that convention (pre-migration/foreign files)."""
+    parts = relative_posix_path.split('/')
+    if len(parts) >= 2 and parts[0] == 'studio':
+        return parts[1]
+    return None
 
 
 @app.route('/api/outputs/<path:subpath>', methods=['GET', 'DELETE'])
@@ -3126,6 +3505,9 @@ def api_output_file(subpath: str):
     if output_dir not in target.parents and target != output_dir:
         return jsonify({'error': 'Invalid output path'}), 400
     if request.method == 'DELETE':
+        owner = _output_owner(subpath.replace(os.sep, '/'))
+        if owner is not None and owner != resolve_identity(request)['user']:
+            return jsonify({'error': "You can only delete items from your own library"}), 403
         # Idempotent: a gallery entry whose underlying file is already gone
         # (moved, cleaned up outside Studio, or never landed where expected)
         # should still be removable - the goal state is "file not present",
@@ -3169,6 +3551,8 @@ def api_outputs_index() -> jsonify:
         limit = max(1, min(int(request.args.get('limit', 24)), 500))
     except ValueError:
         limit = 24
+    scope = request.args.get('scope', 'mine')
+    resolved_user = resolve_identity(request)['user']
 
     comfyui_dir = os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI'
     output_dir = (Path(comfyui_dir) / 'output').resolve()
@@ -3209,11 +3593,17 @@ def api_outputs_index() -> jsonify:
         if not media_type:
             continue
         relative = path.relative_to(output_dir).as_posix()
+        owner = _output_owner(relative)
+        if scope == 'mine' and owner != resolved_user:
+            continue
+        if scope == 'shared' and owner is not None:
+            continue
         files.append({
             'filename': path.name,
             'subfolder': path.parent.relative_to(output_dir).as_posix() if path.parent != output_dir else '',
             'type': 'output',
             'media_type': media_type,
+            'owner': owner,
             # Quote each path segment - an unescaped literal "%" in a filename
             # (e.g. from the pre-fix %date: token bug) is otherwise indistinguishable
             # from real percent-encoding once this round-trips through a browser
@@ -3226,6 +3616,57 @@ def api_outputs_index() -> jsonify:
 
     files.sort(key=lambda item: item['modified_at'], reverse=True)
     return jsonify({'outputs': files[:limit]})
+
+
+@app.route('/api/outputs/reuse', methods=['POST'])
+def api_reuse_output() -> jsonify:
+    """Stage a generated output under ComfyUI input so loader nodes can reuse it."""
+    if not config_manager:
+        return jsonify({'error': 'Application not initialized'}), 500
+
+    body = request.get_json(silent=True) or {}
+    raw_relative = str(body.get('path') or '').strip()
+    relative = Path(raw_relative)
+    if not raw_relative or relative.is_absolute() or '..' in relative.parts:
+        return jsonify({'error': 'Invalid output path'}), 400
+
+    comfyui_dir = Path(os.environ.get('COMFYUI_DIR') or '/home/hilbert/ai-suite/repos/ComfyUI')
+    output_dir = (comfyui_dir / 'output').resolve()
+    input_dir = (comfyui_dir / 'input').resolve()
+    source = (output_dir / relative).resolve()
+    if output_dir not in source.parents or not source.is_file():
+        return jsonify({'error': 'Output not found'}), 404
+
+    # Preserve the output's relative path to avoid collisions between workflows.
+    # A hard link keeps large videos from consuming space twice; filesystems that
+    # cannot link across the configured directories fall back to a normal copy.
+    staged_relative = Path('studio_outputs') / relative
+    target = (input_dir / staged_relative).resolve()
+    if input_dir not in target.parents:
+        return jsonify({'error': 'Invalid input path'}), 400
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        try:
+            os.link(source, target)
+        except OSError:
+            shutil.copy2(source, target)
+
+    relative_posix = staged_relative.as_posix()
+    media_type = {
+        '.png': 'image', '.jpg': 'image', '.jpeg': 'image', '.webp': 'image', '.gif': 'image', '.bmp': 'image',
+        '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.mkv': 'video',
+        '.wav': 'audio', '.mp3': 'audio', '.flac': 'audio', '.ogg': 'audio', '.m4a': 'audio', '.aac': 'audio',
+        '.glb': 'model', '.gltf': 'model', '.obj': 'model', '.fbx': 'model', '.ply': 'model', '.stl': 'model',
+    }.get(target.suffix.lower(), 'file')
+    return jsonify({'input': {
+        'name': relative_posix,
+        'filename': target.name,
+        'subfolder': target.parent.relative_to(input_dir).as_posix(),
+        'type': 'input',
+        'media_type': media_type,
+        'url': f"/api/input/{urllib.parse.quote(relative_posix, safe='/')}",
+        'modified_at': datetime.fromtimestamp(target.stat().st_mtime).isoformat(),
+    }})
 
 
 @app.route('/api/inputs')
@@ -3857,56 +4298,19 @@ def _chat_llama_url(path: str) -> str:
 
 
 def _chat_endpoint_candidates(model: str = '') -> List[Dict[str, str]]:
-    runtime = _runtime_config()
-    if workflow_manager:
-        return workflow_manager._llm_endpoint_candidates(runtime, model)
-
-    def connect_host(host: Any) -> str:
-        host = str(host or '127.0.0.1')
-        return '127.0.0.1' if host in ('0.0.0.0', '::') else host
-
-    return [
-        {
-            'name': 'llama',
-            'url': f"http://{connect_host(runtime.get('LLAMA_HOST', '127.0.0.1'))}:{runtime.get('LLAMA_PORT', '39001')}/v1/chat/completions",
-            'model': str(model or runtime.get('LLAMA_ALIAS') or 'local-llama'),
-        },
-        {
-            'name': 'ollama',
-            'url': f"http://{connect_host(runtime.get('OLLAMA_HOST', '127.0.0.1'))}:{runtime.get('OLLAMA_PORT', '11434')}/v1/chat/completions",
-            'model': str(model or runtime.get('OLLAMA_MODEL') or 'qwen3:0.6b'),
-        },
-    ]
+    # Always the full LLM_ENDPOINTS-aware candidate list now, not just when
+    # workflow_manager happens to be set - the two used to diverge (a bare
+    # 2-candidate llama/ollama list, no LLM_ENDPOINTS at all, whenever
+    # workflow_manager was falsy), which was never intentional.
+    return llm_endpoints.endpoint_candidates(_runtime_config(), model)
 
 
 def _endpoint_available_models(endpoint: Dict[str, str], timeout: float = 3.0) -> List[str]:
-    try:
-        with urllib.request.urlopen(endpoint_models_url(endpoint['url']), timeout=timeout) as response:
-            data = json.loads(response.read())
-        if isinstance(data, dict) and isinstance(data.get('data'), list):
-            return [str(item.get('id') or item.get('name') or '') for item in data['data'] if isinstance(item, dict)]
-        if isinstance(data, list):
-            return [str(item.get('id') or item.get('name') or '') for item in data if isinstance(item, dict)]
-    except Exception:
-        return []
-    return []
+    return llm_endpoints.available_models_for_endpoint(endpoint, timeout)
 
 
 def _select_chat_endpoint(model: Optional[str] = None) -> Optional[Dict[str, str]]:
-    requested = str(model or '').strip()
-    first_online = None
-    for endpoint in _chat_endpoint_candidates(requested):
-        models = [item for item in _endpoint_available_models(endpoint) if item]
-        if not models:
-            continue
-        candidate = dict(endpoint)
-        if requested and requested in models:
-            candidate['model'] = requested
-            return candidate
-        if first_online is None:
-            candidate['model'] = requested or endpoint.get('model') or models[0]
-            first_online = candidate
-    return first_online
+    return llm_endpoints.select_chat_endpoint(_runtime_config(), model)
 
 
 def _chat_model_online() -> bool:
@@ -3914,66 +4318,24 @@ def _chat_model_online() -> bool:
 
 
 def _chat_available_models() -> List[str]:
-    seen = set()
-    models = []
-    for endpoint in _chat_endpoint_candidates():
-        for model in _endpoint_available_models(endpoint):
-            if model and model not in seen:
-                seen.add(model)
-                models.append(model)
-    return models
+    return llm_endpoints.available_models(_runtime_config())
 
 
 def _chat_completion(messages: List[Dict[str, str]], model: Optional[str] = None) -> str:
-    endpoint = _select_chat_endpoint(model)
-    if not endpoint:
-        raise RuntimeError('No local chat endpoint is online. Start Coding LLM, Sidecar, or Ollama.')
-    body = json.dumps({
-        'model': model or endpoint['model'],
-        'messages': messages,
-        'temperature': 0.6,
-        'top_p': 0.9,
-        'max_tokens': 2048,
-    }).encode('utf-8')
-    llama_request = urllib.request.Request(
-        endpoint['url'],
-        data=body,
-        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer sk-local'},
-        method='POST',
-    )
-    try:
-        with urllib.request.urlopen(llama_request, timeout=600) as response:
-            payload = json.loads(response.read())
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode('utf-8', 'replace')
-        raise RuntimeError(f"{endpoint['name']} returned HTTP {exc.code}: {detail}") from exc
-    return payload['choices'][0]['message']['content']
+    return llm_endpoints.chat_completion(_runtime_config(), messages, model)
 
 
-class _FlaskChatAdapter:
-    """Tiny adapter for Hilbert Chat helpers that expect a request handler."""
-
-    def __init__(self, host: str):
-        self.headers = {'Host': host}
-
-
-def _chat_respond(history_messages: List[Dict[str, str]], content: str, model: Optional[str] = None) -> str:
+def _chat_respond(history_messages: List[Dict[str, str]], content: str, model: Optional[str] = None, user: str = GUEST) -> str:
     if looks_like_image_request(content):
-        return generate_image_with_comfy(_FlaskChatAdapter(request.host), content, model)
+        return generate_image_with_comfy(content, model, user=user)
+
+    non_system = [m for m in history_messages if m.get('role') != 'system']
 
     if looks_like_search_request(content):
         query = extract_search_query(content)
         results = web_search(query)
-        search_context = format_search_context(query, results)
-        tool_message = {
-            'role': 'system',
-            'content': (
-                "You have web search results for the user's request below. "
-                "Answer using the results where relevant and include source URLs.\n\n"
-                f"{search_context}"
-            ),
-        }
-        messages = history_messages + [tool_message, {'role': 'user', 'content': content}]
+        system_message = build_system_message(search_query=query, search_results=results)
+        messages = [system_message] + non_system + [{'role': 'user', 'content': content}]
         return _chat_completion(messages, model)
 
     messages = history_messages + [{'role': 'user', 'content': content}]
@@ -4003,8 +4365,8 @@ def api_chat_sessions() -> jsonify:
     if unavailable:
         return unavailable
     try:
-        user = request.args.get('user', 'Derek')
-        return jsonify({'users': CHAT_USERS, 'sessions': chat_store.list_sessions(user)})
+        user = resolve_identity(request)['user']
+        return jsonify({'sessions': chat_store.list_sessions(user)})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 400
 
@@ -4033,7 +4395,7 @@ def api_chat_session() -> jsonify:
     if unavailable:
         return unavailable
     try:
-        user = request.args.get('user', 'Derek')
+        user = resolve_identity(request)['user']
         session_id = request.args.get('id', '')
         return jsonify({'session': chat_store.get_session(user, session_id)})
     except Exception as exc:
@@ -4047,7 +4409,8 @@ def api_chat_create_session() -> jsonify:
         return unavailable
     try:
         payload = request.get_json(silent=True) or {}
-        session = chat_store.create_session(payload.get('user', 'Derek'), payload.get('title', 'New Chat'))
+        user = resolve_identity(request)['user']
+        session = chat_store.create_session(user, payload.get('title', 'New Chat'))
         return jsonify({'session': session})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 400
@@ -4060,7 +4423,8 @@ def api_chat_rename_session() -> jsonify:
         return unavailable
     try:
         payload = request.get_json(silent=True) or {}
-        session = chat_store.rename_session(payload.get('user', 'Derek'), payload.get('id', ''), payload.get('title', 'New Chat'))
+        user = resolve_identity(request)['user']
+        session = chat_store.rename_session(user, payload.get('id', ''), payload.get('title', 'New Chat'))
         return jsonify({'session': session})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 400
@@ -4073,7 +4437,8 @@ def api_chat_delete_session() -> jsonify:
         return unavailable
     try:
         payload = request.get_json(silent=True) or {}
-        chat_store.delete_session(payload.get('user', 'Derek'), payload.get('id', ''))
+        user = resolve_identity(request)['user']
+        chat_store.delete_session(user, payload.get('id', ''))
         return jsonify({'ok': True})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 400
@@ -4086,14 +4451,14 @@ def api_chat_message() -> jsonify:
         return unavailable
     try:
         payload = request.get_json(silent=True) or {}
-        user = payload.get('user', 'Derek')
+        user = resolve_identity(request)['user']
         session_id = payload.get('session_id', '')
         model = payload.get('model') or _chat_runtime()['model']
         content = str(payload.get('content') or '').strip()
         if not content:
             return jsonify({'error': 'content is required'}), 400
         session = chat_store.get_session(user, session_id)
-        assistant_text = _chat_respond(session.get('messages') or [], content, model)
+        assistant_text = _chat_respond(session.get('messages') or [], content, model, user=user)
         updated = chat_store.append_exchange(user, session_id, content, assistant_text)
         return jsonify({'assistant': {'role': 'assistant', 'content': assistant_text}, 'session': updated})
     except Exception as exc:
