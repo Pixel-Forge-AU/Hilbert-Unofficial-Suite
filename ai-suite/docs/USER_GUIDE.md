@@ -8,6 +8,7 @@
 - [Configuring Models and Settings](#configuring-models-and-settings)
 - [Running Workflows](#running-workflows)
 - [Understanding Workflow Parameters](#understanding-workflow-parameters)
+- [Editing Video in Workspace](#editing-video-in-workspace)
 - [Troubleshooting Common Issues](#troubleshooting-common-issues)
 - [Best Practices](#best-practices)
 
@@ -360,6 +361,120 @@ Each workflow has unique parameters. Check the workflow documentation for:
 - **Example configurations**
 
 ---
+
+## Editing Video in Workspace
+
+The **Workspace** tab (Creative group) is a multitrack editor for cutting your Library videos,
+images, and audio together and exporting an MP4. It needs the Workspace engine running; if the
+tab says the engine is offline, press **Start engine** (or run `./ai-switch concat`).
+
+### Projects
+
+- **New** creates a project (choose landscape, vertical, square, or 4K, and the frame rate).
+  Projects are private to your identity.
+- The project list remembers the last project you opened in this browser.
+- **Save** (Ctrl+S) writes the project. The toolbar shows *Unsaved changes* until you do. If
+  you switch projects with unsaved changes, you are asked to save or discard them.
+- **Duplicate** copies the saved project (and anything uploaded into it) into a new project of
+  yours, named "... copy". Use it to start a new edit from an earlier one.
+- **Save as template** keeps this edit's layout, titles, effects, keyframes, and timing for reuse.
+  Tick which media become **slots** (replaced each time); everything else is copied into the template.
+  **From template…** shows your templates; pick one, choose Library media for each slot, and a
+  new project is made. Templates are private to you, and deleting one leaves projects made from it intact.
+- **Delete** removes the project and anything uploaded into it. Library items and finished
+  exports are kept.
+
+### Adding media
+
+- **Library** opens a list of your own and shared Library videos, images, and audio; click an
+  item to add it to the project's media bin.
+- **Upload** adds a file from your computer to the project only (it does not appear in Library).
+- Drag a bin item onto a track, or double-click it to place it at the playhead.
+
+### Editing
+
+| Do this | How |
+|---|---|
+| Move a clip | Drag it (also up/down to another track). Clips snap to the playhead and to other clips' edges. |
+| Trim | Drag a clip's left or right edge |
+| Split | Put the playhead inside a clip and press **S** (or **Split**). With a clip selected, only that clip is split |
+| Delete a clip | Select it, press **Delete** |
+| Undo / redo | Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) |
+| Opacity, volume, fades, mute | Select a clip and use the inspector on the right |
+| Tracks | **Add track**; each track has show/hide, mute, and remove (×). Higher tracks draw over lower ones |
+
+Clips on one track cannot overlap. A move that would overlap does nothing and says so.
+
+### Titles, position, transitions, and effects
+
+- **Add title** places a 4-second title at the playhead on a track above the picture. Select it
+  to edit the words, size, colour, weight, alignment, italic, shadow, and an optional background.
+- **Position** (any picture or title): scale, horizontal, vertical (positive moves down), and
+  rotation; **Reset** puts it back. Use it with a higher track for picture-in-picture.
+- **Transition in**: pick one of Concat's transitions (dissolves, wipes, iris, push, and more) and
+  its length. It plays in the seconds *before* the clip starts, revealing it over what is
+  underneath, and is drawn as a striped band on the timeline. The clip's source needs that much
+  footage before its in-point (a clip split from a longer one has it).
+- **Picture effects**: add effects (blur, glow, vignette, chroma key, ...) and looks (mono,
+  film, golden hour, ...) from the **Add…** menu. Each has an on/off box, its own sliders, and ×
+  to remove it. Order matters; new ones go last.
+- **Audio effects** (video and audio clips): echo, reverb rooms, voice enhance, denoise, and
+  others, with the same controls.
+
+- **Picture** (video and image clips): crop each edge, blend mode (multiply, screen, add,
+  lighten, darken), and horizontal/vertical flip.
+
+All of these show in the paused exact frame and in the export, not in the approximate playback.
+
+### Keyframes
+
+Scale, horizontal, vertical, rotation, opacity, and volume can change over a clip:
+
+1. Select the clip and put the playhead where the change should start; press the ◇ beside the
+   property to set a keyframe there (it turns ◆).
+2. Move the playhead and either press ◇ again or simply move the slider: once a property has
+   keyframes, moving its slider sets a keyframe at the playhead.
+3. With the playhead on a keyframe, choose how it is approached (linear, ease in, ease out, ease
+   in and out). **Previous key / Next key** jump between keyframes; **Clear** removes all of a
+   property's keyframes; pressing ◆ removes the one at the playhead.
+
+Picture effects' sliders (a vignette's strength, a blur's amount, and so on) have the same ◇
+controls, so an effect can fade in, grow, or change over the clip.
+
+Keyframes show as small diamonds on the selected clip. The sliders show the value at the
+playhead, and **Reset** in Position only resets properties that have no keyframes.
+Undo history covers the current session; after the engine restarts, a reopened project starts
+with no undo history.
+
+### Captions
+
+**Captions…** (on the timeline bar, or in the inspector of a clip with sound) transcribes speech
+into captions:
+
+- Choose the clip, the accuracy (*Base* is faster, *Small* is more accurate), the language (or
+  detect it), placement (bottom, middle, top), size, and whether to put a box behind the words.
+- Speech recognition runs on this machine; nothing is uploaded. Progress shows in the toolbar
+  with a Cancel button.
+- Each line becomes a title on a track above the picture, breaking at sentences, pauses, and
+  about 42 characters. All of them are added as one step, so a single **Undo** removes them.
+  Select any caption to fix its words or style.
+
+### Preview
+
+- **Paused**, the monitor shows the *exact frame* the export will produce at the playhead
+  (badge: **Exact frame**).
+- **Playing** (Space) plays the source media under the playhead so you can judge timing. It is
+  labelled **Approximate preview**: it shows only the topmost clip, without layering, opacity,
+  or fades. Pause to see the exact frame, and check the exported file for final review.
+- Use ←/→ to step one frame, Shift+←/→ for one second, Home to jump to the start; click or drag
+  in the ruler to scrub.
+
+### Exporting
+
+**Export MP4** renders the timeline at its own size (or a smaller one) as H.264/AAC. Progress
+shows in the toolbar, and **Cancel** stops it. One export runs at a time across all users. When
+it finishes, the file is in Library under **Video** (Mine), named after the project. An export
+keeps running if you refresh the page.
 
 ## Troubleshooting Common Issues
 

@@ -8,7 +8,16 @@ import webbrowser
 from pathlib import Path
 from tkinter import font, ttk
 
-from ai_manager import ROOT, load_config
+from ai_manager import ROOT, load_config, read_env_file
+
+# Commands the agent suite owns outright (ai-switch doesn't know them). LLM commands
+# (llama*, qwen-sidecar*, ollama*) work through either CLI; ai-switch forwards them.
+AGENT_COMMANDS = {
+    "planner", "planner-stop", "planner-setup",
+    "orchestrator", "orchestrator-stop", "orchestrator-setup",
+    "genesis", "genesis-stop", "openhands", "openhands-stop",
+    "pipeline-dashboard", "pipeline-dashboard-stop", "console", "console-stop",
+}
 
 
 class Switcher(tk.Tk):
@@ -17,7 +26,11 @@ class Switcher(tk.Tk):
         self.title("AI Suite Switcher")
         self.geometry("820x640")
         self.minsize(720, 540)
-        self.config_data = load_config()
+        # One control panel for both suites: the agent suite's settings (pipeline and
+        # console ports) are layered under this suite's.
+        config = load_config()
+        self.agent_dir = Path(config["AGENT_SUITE_DIR"])
+        self.config_data = {**read_env_file(self.agent_dir / "config.env"), **config}
         self.output = tk.StringVar(value="Ready.")
         self.display_safety = tk.StringVar(value="Display Safety: checking")
         self.display_safety_detail = tk.StringVar(value="")
@@ -40,7 +53,7 @@ class Switcher(tk.Tk):
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(0, weight=1)
         ttk.Label(header, text="AI Suite Switcher", style="Title.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(header, text="Run one GPU-heavy stack at a time from /home/hilbert/ai-suite.").grid(row=1, column=0, sticky="w")
+        ttk.Label(header, text="Creative suite (ai-switch) and agent suite (agent-switch) - one GPU-heavy stack at a time.").grid(row=1, column=0, sticky="w")
         ttk.Label(header, textvariable=self.display_safety, style="Status.TLabel").grid(row=0, column=1, sticky="e")
 
         services = ttk.LabelFrame(self, text="Services", padding=10, style="Section.TLabelframe")
@@ -105,13 +118,14 @@ class Switcher(tk.Tk):
 
         performance = ttk.LabelFrame(self, text="Performance", padding=10, style="Section.TLabelframe")
         performance.grid(row=5, column=0, sticky="ew", padx=16, pady=(0, 8))
-        for idx in range(5):
+        for idx in range(6):
             performance.columnconfigure(idx, weight=1)
         ttk.Button(performance, text="Open Tuning", command=self.open_performance, style="Accent.TButton").grid(row=0, column=0, sticky="ew", padx=4)
         ttk.Button(performance, text="Tuning Status", command=self.performance_status).grid(row=0, column=1, sticky="ew", padx=4)
         ttk.Button(performance, text="Optimize Active", command=self.optimize_active_models).grid(row=0, column=2, sticky="ew", padx=4)
         ttk.Button(performance, text="Restart LLM", command=lambda: self.run("llama-restart")).grid(row=0, column=3, sticky="ew", padx=4)
-        ttk.Button(performance, text="Open Config", command=self.open_config).grid(row=0, column=4, sticky="ew", padx=4)
+        ttk.Button(performance, text="Open Runtime", command=self.open_runtime).grid(row=0, column=4, sticky="ew", padx=4)
+        ttk.Button(performance, text="Open Config", command=self.open_config).grid(row=0, column=5, sticky="ew", padx=4)
 
         log_frame = ttk.Frame(self, padding=16)
         log_frame.grid(row=6, column=0, sticky="nsew")
@@ -122,34 +136,41 @@ class Switcher(tk.Tk):
         self.log.grid(row=0, column=0, sticky="nsew")
         self.log.insert("1.0", self.output.get())
 
-    def run(self, command, update_safety=True):
-        self.log.delete("1.0", "end")
-        self.log.insert("end", f"Running: {command}\n")
-        self.update_idletasks()
-        result = subprocess.run(
-            [str(ROOT / "ai-switch"), command],
-            cwd=str(ROOT),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        self.log.insert("end", result.stdout)
-        if update_safety:
-            self.refresh_display_safety(write_log=False)
-        return result.stdout
+    def switch_for(self, command):
+        if command in AGENT_COMMANDS:
+            return self.agent_dir / "agent-switch"
+        return ROOT / "ai-switch"
 
-    def refresh_status(self):
-        self.run("status")
-
-    def command_output(self, command):
+    def command_output(self, command, switch=None):
+        switch = switch or self.switch_for(command)
+        if not switch.exists():
+            return f"{switch} not found"
         result = subprocess.run(
-            [str(ROOT / "ai-switch"), command],
-            cwd=str(ROOT),
+            [str(switch), command],
+            cwd=str(switch.parent),
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
         return result.stdout.strip()
+
+    def run(self, command, update_safety=True):
+        self.log.delete("1.0", "end")
+        self.log.insert("end", f"Running: {command}\n")
+        self.update_idletasks()
+        if command in ("status", "stop"):
+            # Both suites: the creative services, then LLMs + pipeline.
+            output = self.command_output(command, ROOT / "ai-switch")
+            output += "\n\n[agent suite]\n" + self.command_output(command, self.agent_dir / "agent-switch")
+        else:
+            output = self.command_output(command)
+        self.log.insert("end", output + "\n")
+        if update_safety:
+            self.refresh_display_safety(write_log=False)
+        return output
+
+    def refresh_status(self):
+        self.run("status")
 
     def refresh_display_safety(self, write_log=False):
         status = self.command_output("display-safe-status")
@@ -196,24 +217,28 @@ class Switcher(tk.Tk):
         host = self._browser_host(self.config_data.get("STUDIO_HOST", "127.0.0.1"))
         webbrowser.open(f"http://{host}:{self.config_data.get('STUDIO_PORT', '39000')}")
 
-    def studio_base_url(self):
-        host = self._browser_host(self.config_data.get("STUDIO_HOST", "127.0.0.1"))
-        return f"http://{host}:{self.config_data.get('STUDIO_PORT', '39000')}"
+    def console_base_url(self):
+        host = self._browser_host(self.config_data.get("CONSOLE_HOST", "127.0.0.1"))
+        return f"http://{host}:{self.config_data.get('CONSOLE_PORT', '39019')}"
 
-    def ensure_studio(self):
+    def ensure_console(self):
         try:
-            with urllib.request.urlopen(f"{self.studio_base_url()}/api/health", timeout=1.5):
+            with urllib.request.urlopen(f"{self.console_base_url()}/api/health", timeout=1.5):
                 return
         except Exception:
-            self.run("studio", update_safety=False)
+            self.run("console", update_safety=False)
+
+    def open_runtime(self):
+        self.ensure_console()
+        webbrowser.open(f"{self.console_base_url()}/#runtime")
 
     def open_performance(self):
-        self.ensure_studio()
-        webbrowser.open(f"{self.studio_base_url()}/#performance")
+        self.ensure_console()
+        webbrowser.open(f"{self.console_base_url()}/#performance")
 
     def performance_api(self, path, method="GET"):
-        self.ensure_studio()
-        url = f"{self.studio_base_url()}{path}"
+        self.ensure_console()
+        url = f"{self.console_base_url()}{path}"
         data = b"{}" if method == "POST" else None
         request = urllib.request.Request(
             url,
@@ -247,7 +272,10 @@ class Switcher(tk.Tk):
         self.log.insert("end", self.performance_api("/api/performance/models/optimize-active", method="POST") + "\n")
 
     def open_config(self):
-        subprocess.Popen(["xdg-open", str(ROOT / "config.env")])
+        # LLM, pipeline and console settings live in the agent suite's config.env.
+        for path in (ROOT / "config.env", self.agent_dir / "config.env"):
+            if path.exists():
+                subprocess.Popen(["xdg-open", str(path)])
 
     def open_playwright(self):
         host = self._browser_host(self.config_data.get("PLAYWRIGHT_HOST", "127.0.0.1"))

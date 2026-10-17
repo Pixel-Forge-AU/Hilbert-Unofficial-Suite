@@ -1,0 +1,13 @@
+# tti Pack Manifest
+
+id: tti
+name: tti
+version: "1.0.0"
+
+description: >
+  Text to Image
+
+workflows:
+  - core.hidream-i1-dev-gguf
+
+default_enabled: true

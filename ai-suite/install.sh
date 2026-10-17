@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# AI Suite installer.
+# AI Suite (creative) installer.
 #
-# This package ships the orchestration code, workflows, presets, and the bespoke
-# AI build-pipeline services (a few MB of source). The heavyweight runtimes it
-# drives - ComfyUI, llama.cpp, the real OpenHands agent-server, plus GGUF/checkpoint
-# model weights (hundreds of GB combined) - are NOT bundled. This script fetches and
-# builds all of those; model weights are your own download (see step 7 below and
-# tools/).
+# This package ships Studio, Hilbert Chat, the workflow packs, presets and tooling.
+# The heavyweight runtime it drives - ComfyUI plus its checkpoint weights - is NOT
+# bundled; this script fetches and builds it. Local LLM serving (llama.cpp, Ollama)
+# and the AI build pipeline live in the sibling agent suite: run
+# ../agent-suite/install.sh for those.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
@@ -19,9 +18,6 @@ echo "-- Checking prerequisites --"
 missing=()
 command -v python3 >/dev/null 2>&1 || missing+=("python3")
 command -v git >/dev/null 2>&1 || missing+=("git")
-command -v cmake >/dev/null 2>&1 || missing+=("cmake")
-command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 \
-    || missing+=("a C/C++ compiler (build-essential)")
 if command -v python3 >/dev/null 2>&1 && ! python3 -c "import ensurepip" >/dev/null 2>&1; then
     missing+=("python3-venv (python3's ensurepip module is missing - this is what silently")
     missing+=("  leaves a .venv with no bin/pip after 'python3 -m venv', with no error)")
@@ -31,14 +27,8 @@ if [ "${#missing[@]}" -gt 0 ]; then
     printf '  - %s\n' "${missing[@]}"
     echo
     echo "On Debian/Ubuntu (and derivatives like Pop!_OS):"
-    echo "  sudo apt install python3 python3-venv python3-pip git cmake build-essential"
+    echo "  sudo apt install python3 python3-venv python3-pip git"
     exit 1
-fi
-if ! command -v glslc >/dev/null 2>&1; then
-    echo "NOTE: glslc (Vulkan shader compiler) not found - needed to build llama.cpp's Vulkan"
-    echo "backend (step [2/8] below will fail with its own clear error if this is actually"
-    echo "missing there). On Debian/Ubuntu:"
-    echo "  sudo apt install glslang-tools spirv-tools spirv-headers libvulkan-dev"
 fi
 echo
 
@@ -63,7 +53,7 @@ create_venv() {
     fi
 }
 
-echo "-- [1/8] Python virtualenv + suite dependencies --"
+echo "-- [1/4] Python virtualenv + suite dependencies --"
 create_venv .venv
 ./.venv/bin/pip install --upgrade pip >/dev/null
 ./.venv/bin/pip install -r requirements.txt
@@ -76,20 +66,7 @@ create_venv .venv-playwright
 ./.venv-playwright/bin/playwright install chromium
 
 echo
-echo "-- [2/8] llama.cpp (Vulkan build) --"
-mkdir -p repos
-if [ ! -d repos/llama.cpp ]; then
-    git clone https://github.com/ggml-org/llama.cpp.git repos/llama.cpp
-fi
-if [ ! -x repos/llama.cpp/build-vulkan/bin/llama-server ]; then
-    cmake -S repos/llama.cpp -B repos/llama.cpp/build-vulkan -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release
-    cmake --build repos/llama.cpp/build-vulkan --config Release -j"$(nproc)"
-else
-    echo "already built, skipping"
-fi
-
-echo
-echo "-- [3/8] ComfyUI --"
+echo "-- [2/4] ComfyUI --"
 if [ ! -d repos/ComfyUI ]; then
     git clone https://github.com/Comfy-Org/ComfyUI.git repos/ComfyUI
 fi
@@ -117,77 +94,13 @@ echo "which packages each workflow needs, and install what you plan to use"
 echo "from within ComfyUI via the bundled ComfyUI-Manager."
 
 echo
-echo "-- [4/8] AI build pipeline (planner-pipeline + implementation-orchestrator) --"
-if ! command -v node >/dev/null 2>&1; then
-    echo "SKIPPED: Node.js 22+ not found. Install it, then re-run this script to set up"
-    echo "the AI build pipeline (planner-pipeline/implementation-orchestrator/genesis-runtime)."
-elif ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-    echo "SKIPPED: Docker + Docker Compose not found (needed for each service's own"
-    echo "Postgres/Redis). Install Docker, then re-run this script."
-else
-    for svc in planner-pipeline implementation-orchestrator; do
-        echo "  -- $svc --"
-        ( cd "$svc" && npx --yes pnpm@9.15.9 install --frozen-lockfile )
-    done
-    ( cd implementation-orchestrator && npx --yes pnpm@9.15.9 build )
-
-    [ -f planner-pipeline/.env ] || cp planner-pipeline/.env.example planner-pipeline/.env
-    if [ ! -f implementation-orchestrator/.env ]; then
-        sed "s|__INSTALL_DIR__|$ROOT|g" implementation-orchestrator/.env.example \
-            > implementation-orchestrator/.env
-    fi
-
-    ./ai-switch planner-setup
-    ./ai-switch orchestrator-setup
-fi
+echo "-- [3/4] Model weights --"
+echo "Run: ./.venv/bin/python tools/download_models.py for the ComfyUI"
+echo "checkpoint/LoRA/controlnet set. LLM (GGUF) weights belong to the agent"
+echo "suite - see ../agent-suite/install.sh."
 
 echo
-echo "-- [5/8] Genesis Runtime (plugin-host runtime, ships with zero plugins) --"
-if command -v node >/dev/null 2>&1; then
-    ( cd genesis-runtime && npm install )
-else
-    echo "SKIPPED: Node.js 22+ not found."
-fi
-
-echo
-echo "-- [6/8] OpenHands agent-server --"
-if ! command -v uv >/dev/null 2>&1; then
-    echo "uv not found - installing (https://astral.sh/uv)..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.local/bin:$PATH"
-fi
-if [ ! -d open-hands ]; then
-    git clone https://github.com/All-Hands-AI/OpenHands.git open-hands
-fi
-( cd open-hands && rm -rf .venv && uv sync )
-SESSION_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
-if grep -q '^OPENHANDS_SESSION_API_KEY=' config.env; then
-    sed -i "s|^OPENHANDS_SESSION_API_KEY=.*|OPENHANDS_SESSION_API_KEY=$SESSION_KEY|" config.env
-else
-    echo "OPENHANDS_SESSION_API_KEY=$SESSION_KEY" >> config.env
-fi
-if [ -f implementation-orchestrator/.env ]; then
-    sed -i "s|^OPENHANDS_SESSION_API_KEY=.*|OPENHANDS_SESSION_API_KEY=$SESSION_KEY|" implementation-orchestrator/.env
-fi
-echo "Generated a fresh OPENHANDS_SESSION_API_KEY shared between config.env and"
-echo "implementation-orchestrator/.env."
-
-echo
-echo "-- [7/8] Model weights --"
-mkdir -p models
-echo "Not downloaded automatically - these are large (tens to ~50GB each):"
-echo "  models/qwen3-coder-next/...             (coding LLM, used by 'chat')"
-echo "  models/qwythos-9b/...                   (sidecar LLM, also used by the AI"
-echo "                                            build pipeline and OpenHands)"
-echo "  models/qwen3.6-35b-a3b-heretic/...       (optional; llama.cpp will"
-echo "                                            auto-fetch this one from"
-echo "                                            HF on first launch if absent)"
-echo "Place your own GGUF files at those paths (see config.env for exact"
-echo "filenames expected), then run: ./.venv/bin/python tools/download_models.py"
-echo "for the smaller ComfyUI checkpoint/LoRA/controlnet set."
-
-echo
-echo "-- [8/8] Desktop launcher --"
+echo "-- [4/4] Desktop launcher --"
 mkdir -p ~/.local/share/applications
 sed "s|__INSTALL_DIR__|$ROOT|g" "AI Suite Switcher.desktop.template" \
     > ~/.local/share/applications/ai-suite-switcher.desktop
@@ -197,6 +110,5 @@ echo
 echo "== Done =="
 echo "Launch with: ./ai-switch status   or   ./launch-switcher   (GUI)"
 echo "Studio web UI once services are up: http://127.0.0.1:39000"
-echo "AI build pipeline: ./ai-switch planner / orchestrator / openhands / genesis"
-echo "(each has a matching '-stop' command; planner/orchestrator also have"
-echo "'-setup', already run above)."
+echo "Hilbert Chat needs an LLM: install ../agent-suite (./install.sh there), then"
+echo "./ai-switch hilbert starts the LLM via agent-switch plus the chat UI."

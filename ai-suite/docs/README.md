@@ -383,6 +383,7 @@ ai-suite/
 ### Technical Documentation
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design
 - **[API_REFERENCE.md](API_REFERENCE.md)** - API endpoints and usage
+- **[WORKSPACE_VIDEO_EDITOR_PLAN.md](WORKSPACE_VIDEO_EDITOR_PLAN.md)** - Proposed Concat-backed Workspace tab implementation
 
 ### Developer Documentation
 - **[WORKFLOW_DEVELOPER_GUIDE.md](WORKFLOW_DEVELOPER_GUIDE.md)** - Creating workflows and packs

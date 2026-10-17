@@ -54,7 +54,7 @@ The API supports multiple authentication methods:
 
 2. Include in requests:
    ```bash
-   curl -H "X-API-Key: $API_KEY" \
+   curl -H "X-API-Key: your-api-key-here" \
         http://localhost:8000/api/workflows
    ```
 

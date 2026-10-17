@@ -1310,16 +1310,18 @@ def ffmpeg_binary():
 
 def stitch_videos(outputs, workflow_id="sequence"):
     video_paths = []
-    for output in outputs:
+    output_root = COMFY_OUTPUT.resolve()
+    for index, output in enumerate(outputs, start=1):
         if output.get("type") != "video":
             continue
         path = output_file_path(output)
-        if path and path.exists():
-            video_paths.append(path)
+        if not path or not path.is_file():
+            raise ValueError(f"Video segment {index} is missing: {output.get('filename') or 'unknown file'}")
+        video_paths.append(path)
     if len(video_paths) < 2:
         raise ValueError("At least two completed video segments are required.")
 
-    now = time.strftime("%Y%m%d-%H%M%S")
+    now = time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
     sequence_dir = COMFY_OUTPUT / "Studio" / "video-sequences" / now
     sequence_dir.mkdir(parents=True, exist_ok=True)
     manifest = sequence_dir / "sequence.json"
@@ -1328,7 +1330,10 @@ def stitch_videos(outputs, workflow_id="sequence"):
             {
                 "workflow_id": workflow_id,
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "segments": [str(path.relative_to(COMFY_OUTPUT)) for path in video_paths],
+                "segments": [
+                    path.relative_to(output_root).as_posix() if path.is_relative_to(output_root) else path.as_posix()
+                    for path in video_paths
+                ],
             },
             indent=2,
         )

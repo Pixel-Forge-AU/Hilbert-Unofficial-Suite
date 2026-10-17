@@ -19,6 +19,5 @@ workflows:
   - core.upscale-simple
   - core.upscale-high-quality
   - core.multi-model-comparison
-  - core.hidream-i1-dev-gguf
 
 default_enabled: true

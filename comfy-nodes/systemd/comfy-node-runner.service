@@ -1,0 +1,14 @@
+[Unit]
+Description=Comfy Nodes GPU Runner API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/comfy-nodes
+ExecStart=/opt/comfy-nodes/.venv/bin/python -m gpu_node_runner --config /opt/comfy-nodes/config.yaml serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

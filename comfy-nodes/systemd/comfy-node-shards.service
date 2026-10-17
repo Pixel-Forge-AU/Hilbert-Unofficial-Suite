@@ -1,0 +1,14 @@
+[Unit]
+Description=ComfyUI per-GPU shards for Comfy Nodes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/comfy-nodes
+ExecStart=/opt/comfy-nodes/.venv/bin/python -m gpu_node_runner --config /opt/comfy-nodes/config.yaml start-shards
+ExecStop=/opt/comfy-nodes/.venv/bin/python -m gpu_node_runner --config /opt/comfy-nodes/config.yaml stop-shards
+
+[Install]
+WantedBy=multi-user.target
