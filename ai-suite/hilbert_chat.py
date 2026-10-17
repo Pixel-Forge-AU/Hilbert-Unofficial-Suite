@@ -1,5 +1,7 @@
 import argparse
+import base64
 import html
+import io
 import json
 import re
 import shutil
@@ -13,9 +15,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import yaml
+from PIL import Image, ImageOps
 
 import llm_endpoints
-from ai_manager import ROOT, load_config, start_llama
+from ai_manager import ROOT, agent_switch, load_config
 from duckduckgo_search import duckduckgo_http_search
 from comfy_studio import (
     COMFY_INPUT,
@@ -45,6 +48,7 @@ IMAGE_WORKFLOW_ID = "core.text-to-image"
 # breaking again the next time a pack moves.
 IMAGE_WORKFLOW_PATH = ROOT / "packs/image-gen/text-to-image/workflow.json"
 IMAGE_WAIT_SECONDS = 900
+STORYBOARD_PHOTO_LIMIT = 20
 _image_workflow_path_cache = None
 
 
@@ -284,6 +288,10 @@ HTML = r"""<!doctype html>
     .generated-image-actions a:hover {
       background: rgba(255, 255, 255, 0.16);
     }
+    .upload-row { display: flex; align-items: center; gap: 10px; grid-column: 1 / -1; }
+    .upload-row button { flex: 0 0 auto; }
+    .upload-status { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+    .upload-input { display: none; }
     .user {
       justify-self: end;
       background: #173629;
@@ -373,6 +381,11 @@ HTML = r"""<!doctype html>
         <div class="messages" id="messages"></div>
       </main>
       <form id="form">
+        <div class="upload-row">
+          <input class="upload-input" id="uploadFiles" type="file" multiple>
+          <button class="ghost" id="uploadButton" type="button">Upload files</button>
+          <span class="upload-status" id="uploadStatus" role="status" aria-live="polite">Saved to Studio Library</span>
+        </div>
         <textarea id="prompt" placeholder="Ask Echo..." autocomplete="off" autofocus></textarea>
         <button id="send" type="submit">Send</button>
       </form>
@@ -391,6 +404,9 @@ HTML = r"""<!doctype html>
     const newEl = document.getElementById("newSession");
     const renameEl = document.getElementById("renameSession");
     const deleteEl = document.getElementById("deleteSession");
+    const uploadFilesEl = document.getElementById("uploadFiles");
+    const uploadButtonEl = document.getElementById("uploadButton");
+    const uploadStatusEl = document.getElementById("uploadStatus");
 
     let currentSession = localStorage.getItem("hilbert-session") || "";
     let sessions = [];
@@ -470,17 +486,33 @@ HTML = r"""<!doctype html>
       }
     }
 
-    function openInStudio(event) {
-      event.preventDefault();
+    function studioUrl(hash) {
       var url;
       if (window.hearthService && window.hearthService.prefix) {
-        // Proxied through a trusted identity service - Studio's
+        // Proxied through a trusted reverse proxy - Studio's
         // own proxied page is Chat's sibling under the same prefix scheme.
-        url = window.hearthService.prefix.replace(/\/chat\/?$/, "/studio/") + "#library";
+        url = window.hearthService.prefix.replace(/\/chat\/?$/, "/studio/") + hash;
       } else {
-        url = window.location.protocol + "//" + window.location.hostname + ":39000/#library";
+        url = window.location.protocol + "//" + window.location.hostname + ":39000/" + hash;
       }
+      return url;
+    }
+
+    function openInStudio(event) {
+      event.preventDefault();
+      const url = studioUrl("#library");
       window.open(url, "_blank");
+    }
+
+    function attachStoryboardLinks(item) {
+      item.querySelectorAll('a[href^="storyboard:"]').forEach((link) => {
+        const id = link.getAttribute("href").slice("storyboard:".length);
+        if (/^[a-zA-Z0-9_-]+$/.test(id)) {
+          link.href = studioUrl(`#storyboard:${id}`);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
+      });
     }
 
     function addMessage(role, text) {
@@ -490,6 +522,7 @@ HTML = r"""<!doctype html>
       // For assistant messages, parse Markdown directly (trusted content from AI)
       const content = role === "user" ? escapeHtml(text) : text;
       item.innerHTML = parseMarkdown(content);
+      attachStoryboardLinks(item);
       messagesEl.appendChild(item);
       scrollEl.scrollTop = scrollEl.scrollHeight;
       return item;
@@ -621,6 +654,7 @@ HTML = r"""<!doctype html>
           body: JSON.stringify({ session_id: currentSession, model: currentModel, content: text })
         });
         placeholder.innerHTML = parseMarkdown(data.assistant.content || "");
+        attachStoryboardLinks(placeholder);
         await loadSessions();
         setStatus("Model online");
       } catch (error) {
@@ -648,6 +682,33 @@ HTML = r"""<!doctype html>
     newEl.addEventListener("click", createSession);
     renameEl.addEventListener("click", renameSession);
     deleteEl.addEventListener("click", deleteSession);
+    uploadButtonEl.addEventListener("click", () => uploadFilesEl.click());
+    uploadFilesEl.addEventListener("change", async () => {
+      const files = Array.from(uploadFilesEl.files || []);
+      if (!files.length) return;
+      uploadButtonEl.disabled = true;
+      let saved = 0;
+      try {
+        if (!currentSession) await createSession();
+        for (const file of files) {
+          uploadStatusEl.textContent = `Uploading ${saved + 1} of ${files.length}: ${file.name}`;
+          const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&session_id=${encodeURIComponent(currentSession)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: file
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || `Could not upload ${file.name}`);
+          saved++;
+        }
+        uploadStatusEl.textContent = `${saved} file${saved === 1 ? "" : "s"} saved to Studio Library`;
+      } catch (error) {
+        uploadStatusEl.textContent = `${saved} saved; upload failed: ${error.message}`;
+      } finally {
+        uploadFilesEl.value = "";
+        uploadButtonEl.disabled = false;
+      }
+    });
 
     // Load models on page load
     loadModels();
@@ -744,6 +805,13 @@ class ChatStore:
             session["updated_at"] = time.time()
             self.write_session(user, session)
             return session
+
+    def add_upload(self, user, session_id, name, filename):
+        with self.lock:
+            session = self.get_session_unlocked(user, session_id)
+            session.setdefault("uploads", []).append({"name": name, "filename": filename})
+            session["updated_at"] = time.time()
+            self.write_session(user, session)
 
     def get_session_unlocked(self, user, session_id):
         path = self.session_path(user, session_id)
@@ -938,6 +1006,105 @@ def copy_output_to_stored_inputs(filename, subfolder=""):
         return None
 
 
+def looks_like_storyboard_request(text):
+    return bool(
+        re.search(r"\bstory\s*board\b|\bstoryboard\b", text, re.IGNORECASE)
+        and (re.search(r"\b(make|create|write|draft|build|generate|turn|want|need|put|prefill|pre-fill)\b", text, re.IGNORECASE)
+             or re.search(r"\bstoryboard\s+(?:these|the|my)\b", text, re.IGNORECASE))
+    )
+
+
+def storyboard_photo_reference(upload):
+    """Resolve only files previously recorded as Echo uploads."""
+    name = str(upload.get("name") or "")
+    relative = Path(name)
+    if len(relative.parts) != 2 or relative.parts[0] != "studio_uploads":
+        return None
+    path = (COMFY_INPUT / relative).resolve()
+    root = (COMFY_INPUT / "studio_uploads").resolve()
+    if root not in path.parents or not path.is_file():
+        return None
+    try:
+        with Image.open(path) as image:
+            if image.format not in {"PNG", "JPEG", "WEBP", "GIF", "BMP"}:
+                return None
+    except Exception:
+        return None
+    return {"type": "image", "filename": path.name, "subfolder": "studio_uploads",
+            "url": f"/api/input/{urllib.parse.quote(name, safe='/')}", "path": path}
+
+
+def storyboard_image_data(path):
+    with Image.open(path) as source:
+        image = ImageOps.exif_transpose(source)
+        image.thumbnail((1024, 1024))
+        rgb = image.convert("RGB")
+        buffer = io.BytesIO()
+        rgb.save(buffer, format="JPEG", quality=82)
+    return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def parse_storyboard_draft(text, photo_count):
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.IGNORECASE)
+    try:
+        draft = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Vision model did not return a usable storyboard draft") from exc
+    if not isinstance(draft, dict) or not isinstance(draft.get("shots"), list):
+        raise ValueError("Vision model returned an incomplete storyboard draft")
+    shots = draft["shots"]
+    if len(shots) != photo_count or not all(isinstance(shot, dict) for shot in shots):
+        raise ValueError("Vision model returned the wrong number of storyboard shots")
+    return {
+        "title": str(draft.get("title") or "Photo Storyboard")[:120],
+        "story": str(draft.get("story") or "").strip(),
+        "shots": [{"description": str(shot.get("description") or "").strip(),
+                   "steering": str(shot.get("steering") or "").strip()} for shot in shots],
+    }
+
+
+def create_storyboard_from_photos(session, request_text):
+    photos = [ref for upload in session.get("uploads", [])
+              if (ref := storyboard_photo_reference(upload))]
+    if not photos:
+        return "Upload photos in this Echo conversation first, then ask me for a storyboard."
+    if len(photos) > STORYBOARD_PHOTO_LIMIT:
+        return f"This conversation has {len(photos)} photos. I can storyboard up to {STORYBOARD_PHOTO_LIMIT} at once; start a new conversation with the set you want to use."
+
+    content = [{"type": "text", "text": (
+        "Create a coherent, original story from these photos in their uploaded order. "
+        f"User request: {request_text}\n"
+        f"There are {len(photos)} numbered photos. Return ONLY JSON with title, story "
+        "(2-4 paragraphs), and shots (one per photo, in the same order). "
+        "Each shot needs a description grounded in the visible photo and optional "
+        "steering notes for camera, motion, lighting, or mood. Do not invent details "
+        "about what a photo depicts when uncertain."
+    )}]
+    for index, photo in enumerate(photos, start=1):
+        content.append({"type": "text", "text": f"Photo {index}: {photo['filename']}"})
+        content.append({"type": "image_url", "image_url": {"url": storyboard_image_data(photo["path"])}})
+    response = llm_endpoints.vision_chat_completion(load_config(), [
+        {"role": "system", "content": "You write visual stories and structured storyboards. Return valid JSON only."},
+        {"role": "user", "content": content},
+    ])
+    draft = parse_storyboard_draft(response, len(photos))
+    shots = []
+    for photo, shot in zip(photos, draft["shots"]):
+        image = {key: photo[key] for key in ("type", "filename", "subfolder", "url")}
+        shots.append({**shot, "image": image})
+    config = load_config()
+    studio_host = str(config.get("STUDIO_HOST") or "127.0.0.1")
+    if studio_host in ("0.0.0.0", "::"):
+        studio_host = "127.0.0.1"
+    url = f"http://{studio_host}:{config.get('STUDIO_PORT', 39000)}/api/storyboards"
+    body = json.dumps({"title": draft["title"], "story": draft["story"], "shots": shots}).encode("utf-8")
+    request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(request, timeout=30) as result:
+        board = json.loads(result.read())
+    return (f"I created **{draft['title']}** with {len(shots)} photo shots.\n\n"
+            f"{draft['story']}\n\n[Open storyboard in Studio](storyboard:{board['id']})")
+
+
 def generate_image_with_comfy(text, model=None, user=GUEST):
     prompt_text = extract_image_prompt(text)
     config = load_config()
@@ -970,19 +1137,20 @@ def generate_image_with_comfy(text, model=None, user=GUEST):
 
 def restart_llama_for_model(config, model):
     try:
-        start_llama(config, profile_for_model(model))
+        if not agent_switch(config, llama_command_for_model(model), quiet=True):
+            raise RuntimeError("agent-switch failed - see agent-suite/logs/llama.log")
         return "Restarted the chat model after generation."
     except Exception as exc:
         return f"Image generation finished, but I could not restart the chat model automatically: {exc}"
 
 
-def profile_for_model(model):
+def llama_command_for_model(model):
     model = (model or "").lower()
     if "heretic" in model:
-        return "heretic"
+        return "llama-heretic"
     if "small" in model:
-        return "qwen-small"
-    return "qwen"
+        return "llama-small"
+    return "llama"
 
 
 def image_control_values(prompt_text):
@@ -1079,6 +1247,9 @@ class HilbertHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if urllib.parse.urlparse(self.path).path == "/api/upload":
+                self.upload_file()
+                return
             payload = self.read_json()
             user = resolve_identity(self)['user']
             if self.path == "/api/session":
@@ -1107,13 +1278,62 @@ class HilbertHandler(BaseHTTPRequestHandler):
                 if not content:
                     raise ValueError("content is required")
                 session = self.server.store.get_session(user, session_id)
-                assistant_text = self.respond(session["messages"], content, model, user=user)
+                assistant_text = self.respond(session["messages"], content, model, user=user, session=session)
                 updated = self.server.store.append_exchange(user, session_id, content, assistant_text)
                 self.send_json({"assistant": {"role": "assistant", "content": assistant_text}, "session": updated})
                 return
             self.send_error(404)
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=502)
+
+    def upload_file(self):
+        """Stream an Echo attachment into Studio's reusable input library."""
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session_id = query.get("session_id", [""])[0]
+        user = resolve_identity(self)['user']
+        try:
+            self.server.store.get_session(user, session_id)
+        except ValueError:
+            self.send_json({"error": "Select an Echo conversation before uploading"}, status=400)
+            return
+        original = query.get("filename", [""])[0]
+        filename = SAFE_NAME.sub("-", original.replace("\\", "/").split("/")[-1]).strip(".-")
+        if not filename:
+            self.send_json({"error": "A filename is required"}, status=400)
+            return
+        try:
+            remaining = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            remaining = -1
+        if remaining < 0 or remaining > 1024 * 1024 * 1024:
+            self.send_json({"error": "File size must be at most 1 GB"}, status=413)
+            return
+        upload_dir = COMFY_INPUT / "studio_uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        stem, suffix = Path(filename).stem, Path(filename).suffix
+        counter = 0
+        while True:
+            saved_name = filename if counter == 0 else f"{stem}-{counter}{suffix}"
+            target = upload_dir / saved_name
+            try:
+                with target.open("xb") as output:
+                    try:
+                        while remaining:
+                            chunk = self.rfile.read(min(1024 * 1024, remaining))
+                            if not chunk:
+                                raise ConnectionError("Upload ended before the file was complete")
+                            output.write(chunk)
+                            remaining -= len(chunk)
+                    except Exception:
+                        target.unlink(missing_ok=True)
+                        raise
+                break
+            except FileExistsError:
+                counter += 1
+        relative = f"studio_uploads/{saved_name}"
+        self.server.store.add_upload(user, session_id, relative, saved_name)
+        self.send_json({"name": relative, "filename": saved_name,
+                        "url": f"/api/input/{urllib.parse.quote(relative, safe='/')}"})
 
     def read_json(self):
         length = int(self.headers.get("Content-Length", "0"))
@@ -1171,7 +1391,9 @@ class HilbertHandler(BaseHTTPRequestHandler):
     def check_model(self):
         return llm_endpoints.select_chat_endpoint(load_config()) is not None
 
-    def respond(self, history_messages, content, model=None, user=GUEST):
+    def respond(self, history_messages, content, model=None, user=GUEST, session=None):
+        if looks_like_storyboard_request(content):
+            return create_storyboard_from_photos(session or {}, content)
         if looks_like_image_request(content):
             return generate_image_with_comfy(content, model, user=user)
 

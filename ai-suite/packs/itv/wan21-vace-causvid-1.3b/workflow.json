@@ -1,8 +1,8 @@
 {
   "id": "96995b8f-85c5-47af-b3cf-7b6a24675694",
   "revision": 0,
-  "last_node_id": 190,
-  "last_link_id": 337,
+  "last_node_id": 194,
+  "last_link_id": 342,
   "nodes": [
     {
       "id": 110,
@@ -364,7 +364,8 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            296
+            296,
+            338
           ]
         },
         {
@@ -523,13 +524,13 @@
           "name": "control_video",
           "shape": 7,
           "type": "IMAGE",
-          "link": null
+          "link": 338
         },
         {
           "name": "control_masks",
           "shape": 7,
           "type": "MASK",
-          "link": null
+          "link": 342
         },
         {
           "name": "reference_image",
@@ -1122,6 +1123,154 @@
       ],
       "color": "#322",
       "bgcolor": "#533"
+    },
+    {
+      "id": 191,
+      "type": "SolidMask",
+      "pos": [
+        -165.46253967285156,
+        660.0
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            339
+          ]
+        }
+      ],
+      "title": "First frames: keep (mask 0)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "SolidMask"
+      },
+      "widgets_values": [
+        0.0,
+        848,
+        480
+      ]
+    },
+    {
+      "id": 192,
+      "type": "MaskToImage",
+      "pos": [
+        -165.46253967285156,
+        790.0
+      ],
+      "size": [
+        270,
+        60
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 339
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            340
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 193,
+      "type": "RepeatImageBatch",
+      "pos": [
+        -165.46253967285156,
+        870.0
+      ],
+      "size": [
+        270,
+        86
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 340
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            341
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "RepeatImageBatch"
+      },
+      "widgets_values": [
+        4
+      ],
+      "title": "Keep frames (4)"
+    },
+    {
+      "id": 194,
+      "type": "ImageToMask",
+      "pos": [
+        -165.46253967285156,
+        970.0
+      ],
+      "size": [
+        270,
+        86
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 341
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            342
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "ImageToMask"
+      },
+      "widgets_values": [
+        "red"
+      ]
     }
   ],
   "links": [
@@ -1308,6 +1457,46 @@
       109,
       6,
       "INT"
+    ],
+    [
+      338,
+      164,
+      0,
+      109,
+      3,
+      "IMAGE"
+    ],
+    [
+      339,
+      191,
+      0,
+      192,
+      0,
+      "MASK"
+    ],
+    [
+      340,
+      192,
+      0,
+      193,
+      0,
+      "IMAGE"
+    ],
+    [
+      341,
+      193,
+      0,
+      194,
+      0,
+      "IMAGE"
+    ],
+    [
+      342,
+      194,
+      0,
+      109,
+      4,
+      "MASK"
     ]
   ],
   "groups": [

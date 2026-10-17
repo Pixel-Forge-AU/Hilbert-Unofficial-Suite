@@ -7,32 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [3.2.0] - 2026-10-02
+## [Unreleased]
 
-### New Features
+### 💥 Breaking Changes
 
-- Added an optional remote GPU dispatcher with hardware-aware workflow routing,
-  independent local/remote queue lanes, input staging, output retrieval, and
-  multi-GPU reservation support.
-- Added signed reverse-proxy identity handling with a safe guest fallback and
-  per-user Studio data separation.
-- Added configurable OpenAI-compatible LLM endpoint fallback and shared web-search
-  support for Studio and Hilbert Chat.
-- Added and reorganized image-to-video, text-to-video, lip-sync, LTX Director, and
-  Hunyuan3D workflow packs.
+- **Runtime & automation split into `../agent-suite`.** This suite is now the creative half
+  (ComfyUI, Studio, Hilbert Chat, workflow packs). Moved to the new sibling agent suite,
+  managed by its own `agent-switch`:
+  - local LLM serving (llama.cpp profiles, qwen-sidecar, Ollama) and its `LLAMA_*` /
+    `QWEN_SIDECAR_*` / `OLLAMA_*` config;
+  - `genesis-runtime`, `planner-pipeline`, `implementation-orchestrator`, `open-hands`,
+    `pipeline-dashboard-server.mjs` and `pipeline-status.mjs`.
+- `ai-switch planner|orchestrator|genesis|openhands|pipeline-dashboard[-stop|-setup]` and
+  `pipeline-status` are gone - use `agent-switch` for those. `ai-switch llama*`,
+  `qwen-sidecar*` and `ollama*` still work (forwarded to `agent-switch`).
+- `ai-switch stop` now stops only the creative services; LLMs keep running
+  (`agent-switch stop` stops those).
+- Studio's Pipeline and Genesis tabs moved, unchanged, to the agent suite's console
+  (`:39019`, Automation group).
+- Studio's Performance tab and the Runtime tab's System and Runtime Services panels moved
+  to the agent suite's console (`agent-switch console`, `:39019`), along with
+  `/api/system/stats` and the performance backend. Studio's Runtime tab is now **Queue**
+  (latest output + job progress, with the ComfyUI health badge), and the nav links to the
+  console. `/api/performance/*` stays as a proxy to the console so the Chat tab's task picker
+  and task switching keep working.
 
-### Changed
+### 🔧 Changed
 
-- Regenerated the public registry from 17 public categories containing 92 workflows.
-- Updated planner, orchestrator, and Genesis Runtime dependencies.
-- Kept remote GPU execution disabled by default in the public configuration.
+- The AI Suite Switcher desktop app stays the control panel for both suites. It routes
+  pipeline, Genesis, OpenHands, dashboard and console commands to `agent-switch`. Its Status
+  and Stop All cover both suites. Its Performance row opens the agent suite's console.
 
-### Fixed
+### ✨ New Features
 
-- Improved Studio output reuse, remote job reconciliation, and workflow default handling.
-- Corrected service launchers and model endpoint selection across local runtime modes.
+- `ai-switch comfy-stop`, used by `agent-switch llama` to free the GPU.
 
----
+### 🐛 Bug Fixes
+
+- Pipeline dashboard: planner/orchestrator Start/Stop delegated to the service manager.
+  It used to run `pnpm run dev:api` and fail silently because pnpm isn't installed
+  globally.
+- `orchestrator-setup` generates the Prisma client before building (the build imports it).
 
 ## [3.0.0] - 2026-07-24
 

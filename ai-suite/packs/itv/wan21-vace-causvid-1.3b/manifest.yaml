@@ -1,5 +1,5 @@
 id: video.wan21-vace-causvid-1.3b
-name: Wan 2.1 VACE 1.3B + CausVid (Reference-to-Video)
+name: Wan 2.1 VACE 1.3B + CausVid (Image-to-Video)
 version: 1.0.0
 category: itv
 subcategory: wan21
@@ -7,7 +7,13 @@ description: >
   Imported from a user-authored ComfyUI export (wan21ImageToVideo_v30.zip /
   wan-vace-causvid-tomgoodnoise/wan-vace-1.3b-causvid-tomgoodnoise.json), preserved as-is: the official
   ComfyUI "Wan Vace Reference to Video" template workflow (1.3B variant), which turns a single reference
-  image plus a text prompt into a short video via WanVaceToVideo. The default uses the undistilled
+  image plus a text prompt into a short video via WanVaceToVideo. The template only fed the image as
+  VACE's reference_image - a soft subject hint, with every frame left for the model to invent - so
+  the 1.3B model often produced footage unrelated to the image. The image is now also frame 1 of the
+  VACE control video (WanVaceToVideo pads the rest with grey) with a "keep" mask over the first 4
+  frames (SolidMask 0 -> MaskToImage -> RepeatImageBatch 4 -> ImageToMask; the node downsamples the
+  mask to latent frames, so a 1-frame mask would be dropped), so the clip starts from the image. The
+  image is center-cropped to Width x Height: for portrait images use 480 x 848. The default uses the undistilled
   quality settings (20 steps, CFG 6, CausVid strength 0) so the 1.3B model gives the reference image as
   much attention as it can. Kijai's extracted CausVid LoRA remains available as an opt-in speed control:
   use roughly 12 steps / 0.3 strength for a faster preview. Output is followed by RIFE frame

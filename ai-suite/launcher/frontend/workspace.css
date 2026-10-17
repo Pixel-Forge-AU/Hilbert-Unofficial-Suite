@@ -1,0 +1,679 @@
+/* Workspace tab: multitrack editor backed by the Concat engine.
+   Uses Studio's dark glass panels; accents follow the Creative group (violet). */
+
+.ws {
+    --ws-accent: #ce93d8;
+    --ws-accent-ink: #2a0a30;
+    --ws-line: rgba(255, 255, 255, 0.1);
+    --ws-soft: rgba(255, 255, 255, 0.05);
+    --ws-muted: #a7a9be;
+    --ws-video: #7e57c2;
+    --ws-audio: #26a69a;
+    --ws-image: #5c6bc0;
+    --ws-playhead: #ff5252;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.ws-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(229, 115, 115, 0.45);
+    background: rgba(229, 115, 115, 0.12);
+    color: #ffcdd2;
+}
+
+.ws-banner[hidden] { display: none; }
+
+.ws-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ws-line);
+    border-radius: 10px;
+    background: var(--ws-soft);
+}
+
+.ws-toolbar .btn,
+.ws-panel .btn,
+.ws-dialog .btn { flex: 0 0 auto; padding: 0.45rem 0.8rem; }
+
+.ws-toolbar select,
+.ws-toolbar input[type="text"],
+.ws-panel select,
+.ws-panel input,
+.ws-dialog select,
+.ws-dialog input {
+    background: rgba(0, 0, 0, 0.25);
+    color: #eee;
+    border: 1px solid var(--ws-line);
+    border-radius: 6px;
+    padding: 0.4rem 0.55rem;
+    font: inherit;
+    font-size: 0.85rem;
+}
+
+.ws-toolbar-spacer { flex: 1; }
+
+.ws-save-state {
+    font-size: 0.8rem;
+    color: var(--ws-muted);
+    min-width: 7rem;
+}
+
+.ws-save-state.is-dirty { color: #ffb74d; }
+
+.ws-engine {
+    font-size: 0.75rem;
+    color: var(--ws-muted);
+    border: 1px solid var(--ws-line);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+}
+
+.ws-engine.is-up { color: #a5d6a7; border-color: rgba(165, 214, 167, 0.4); }
+
+.ws-body {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(220px, 280px);
+    gap: 0.75rem;
+    min-height: 0;
+}
+
+.ws-panel {
+    border: 1px solid var(--ws-line);
+    border-radius: 10px;
+    background: var(--ws-soft);
+    padding: 0.75rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.ws-panel h4 {
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ws-muted);
+    font-weight: 650;
+}
+
+.ws-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.ws-bin {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    overflow-y: auto;
+    max-height: 420px;
+}
+
+.ws-bin-item {
+    display: grid;
+    grid-template-columns: 0.5rem 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: grab;
+    font-size: 0.82rem;
+}
+
+.ws-bin-item:hover { border-color: var(--ws-line); }
+.ws-bin-item.is-missing { opacity: 0.55; }
+
+.ws-kind-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; }
+.ws-kind-video { background: var(--ws-video); }
+.ws-kind-audio { background: var(--ws-audio); }
+.ws-kind-image { background: var(--ws-image); }
+
+.ws-bin-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ws-bin-meta { color: var(--ws-muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.ws-empty { color: var(--ws-muted); font-size: 0.82rem; line-height: 1.45; }
+
+.ws-monitor {
+    position: relative;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+}
+
+.ws-monitor img,
+.ws-monitor video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.ws-monitor video[hidden],
+.ws-monitor img[hidden] { display: none; }
+
+.ws-monitor-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 650;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    z-index: 2;
+}
+
+.ws-monitor-badge.is-exact { color: #a5d6a7; }
+.ws-monitor-badge.is-approx { color: #ffcc80; }
+.ws-monitor-badge.is-busy { color: var(--ws-muted); }
+
+.ws-transport {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.ws-transport .btn { min-width: 2.4rem; }
+
+.ws-timecode {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    margin-left: auto;
+    color: #e0e0e0;
+}
+
+.ws-inspector dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+}
+
+.ws-inspector dt { color: var(--ws-muted); }
+.ws-inspector dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.ws-inspector label {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr 3rem;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--ws-muted);
+}
+
+.ws-inspector input[type="range"] { width: 100%; accent-color: var(--ws-accent); }
+.ws-inspector output { font-variant-numeric: tabular-nums; color: #e0e0e0; text-align: right; }
+
+.ws-timeline {
+    border: 1px solid var(--ws-line);
+    border-radius: 10px;
+    background: var(--ws-soft);
+    padding: 0.5rem 0.75rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ws-timeline-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--ws-muted);
+}
+
+.ws-timeline-head .btn { flex: 0 0 auto; padding: 0.3rem 0.65rem; }
+.ws-timeline-head input[type="range"] { accent-color: var(--ws-accent); }
+
+.ws-tracks-wrap {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+}
+
+.ws-track-heads { display: flex; flex-direction: column; }
+
+.ws-ruler-spacer { height: 24px; }
+
+.ws-track-head {
+    height: 46px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-right: 0.4rem;
+    border-bottom: 1px solid var(--ws-line);
+    font-size: 0.8rem;
+}
+
+.ws-track-head span { flex: 1; font-weight: 600; }
+
+.ws-icon-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ddd;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.35rem;
+    cursor: pointer;
+}
+
+.ws-icon-btn.is-off { color: #ef9a9a; border-color: rgba(239, 154, 154, 0.4); }
+.ws-icon-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
+.ws-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+}
+
+.ws-canvas { position: relative; min-width: 100%; }
+
+.ws-ruler {
+    position: relative;
+    height: 24px;
+    border-bottom: 1px solid var(--ws-line);
+    cursor: col-resize;
+    user-select: none;
+}
+
+.ws-tick {
+    position: absolute;
+    bottom: 0;
+    height: 8px;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ws-tick.is-major { height: 14px; }
+
+.ws-tick-label {
+    position: absolute;
+    top: 1px;
+    font-size: 0.66rem;
+    color: var(--ws-muted);
+    transform: translateX(3px);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.ws-lane {
+    position: relative;
+    height: 46px;
+    border-bottom: 1px solid var(--ws-line);
+}
+
+.ws-lane.is-drop { background: rgba(206, 147, 216, 0.1); }
+
+.ws-clip {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 5px;
+    padding: 0 0.45rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #fff;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: grab;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    touch-action: none;
+}
+
+.ws-clip.ws-kind-video { background: rgba(126, 87, 194, 0.85); }
+.ws-clip.ws-kind-audio { background: rgba(38, 166, 154, 0.85); }
+.ws-clip.ws-kind-image { background: rgba(92, 107, 192, 0.85); }
+.ws-clip.is-selected { outline: 2px solid #fff; outline-offset: 1px; z-index: 2; }
+.ws-clip.is-dragging { opacity: 0.75; cursor: grabbing; z-index: 3; }
+
+.ws-clip-label { overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+.ws-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 7px;
+    cursor: ew-resize;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.ws-handle-start { left: 0; }
+.ws-handle-end { right: 0; }
+
+.ws-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--ws-playhead);
+    pointer-events: none;
+    z-index: 4;
+}
+
+.ws-export-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--ws-muted);
+}
+
+.ws-export-progress[hidden] { display: none; }
+
+.ws-export-progress progress { width: 10rem; accent-color: var(--ws-accent); }
+
+.ws-dialog {
+    border: 1px solid var(--ws-line);
+    border-radius: 12px;
+    background: #1f2340;
+    color: #eee;
+    padding: 1.1rem 1.2rem;
+    max-width: min(520px, calc(100vw - 32px));
+    width: 100%;
+}
+
+.ws-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+
+.ws-dialog h3 { font-size: 1rem; margin-bottom: 0.6rem; }
+.ws-dialog p { font-size: 0.88rem; color: #cfd0e0; margin-bottom: 0.9rem; line-height: 1.45; }
+
+.ws-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.ws-form-row {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.55rem;
+    font-size: 0.85rem;
+}
+
+.ws-library-list {
+    list-style: none;
+    max-height: 60vh;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.ws-library-list .ws-empty { grid-column: 1 / -1; }
+
+.ws-library-list button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    color: #eee;
+    border-radius: 8px;
+    padding: 0.4rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+}
+
+.ws-library-list button:hover { border-color: var(--ws-accent); }
+.ws-library-list button:disabled { opacity: 0.5; cursor: progress; }
+
+.ws-lib-thumb {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    border-radius: 5px;
+    background: #000;
+    overflow: hidden;
+}
+
+.ws-lib-thumb img,
+.ws-lib-thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+.ws-lib-audio { font-size: 1.8rem; color: var(--ws-audio); }
+
+.ws-lib-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ws-library-list .ws-bin-meta { display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+
+.ws-kbd { font-size: 0.72rem; color: var(--ws-muted); }
+
+@media (max-width: 1100px) {
+    .ws-body { grid-template-columns: minmax(0, 1fr); }
+    .ws-bin { max-height: 200px; }
+}
+
+/* Inspector sections: titles, position, transitions, effect chains */
+.ws { --ws-text: #f9a825; }
+
+/* The inspector fills the row the monitor sets and scrolls inside it, so
+   selecting a clip never pushes the timeline around under the pointer. */
+.ws-inspector { height: 0; min-height: 100%; overflow-y: auto; }
+
+@media (max-width: 1100px) {
+    .ws-inspector { height: auto; min-height: 0; max-height: 60vh; }
+}
+
+.ws-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--ws-line);
+}
+
+.ws-section h5 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ws-muted);
+    font-weight: 650;
+}
+
+.ws-inspector select,
+.ws-inspector textarea {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.25);
+    color: #eee;
+    border: 1px solid var(--ws-line);
+    border-radius: 6px;
+    padding: 0.35rem 0.45rem;
+    font: inherit;
+    font-size: 0.82rem;
+}
+
+.ws-inspector textarea { resize: vertical; }
+
+.ws-inspector input[type="color"] {
+    width: 100%;
+    height: 1.7rem;
+    border: 1px solid var(--ws-line);
+    border-radius: 4px;
+    background: transparent;
+    padding: 0;
+}
+
+.ws-inspector label input[type="checkbox"] { justify-self: start; accent-color: var(--ws-accent); }
+
+.ws-fx {
+    border: 1px solid var(--ws-line);
+    border-radius: 8px;
+    padding: 0.45rem 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.ws-fx.is-off { opacity: 0.55; }
+
+.ws-fx-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+}
+
+.ws-fx-head strong { flex: 1; font-weight: 600; }
+.ws-fx-head input { accent-color: var(--ws-accent); }
+
+.ws-kind-text { background: var(--ws-text); }
+.ws-clip.ws-kind-text { background: rgba(249, 168, 37, 0.85); color: #2b1a02; }
+
+/* Studio's toasts are display-only; while editing, let drags and clicks
+   reach the timeline underneath them. */
+body:has(#tab-workspace.active) .toast-region,
+body:has(#tab-workspace.active) .toast-region * { pointer-events: none; }
+
+/* Where a clip's incoming transition plays: the span just before its start. */
+.ws-transition-mark {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 5px 0 0 5px;
+    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0 5px, rgba(255, 255, 255, 0.08) 5px 10px);
+    border: 1px dashed rgba(255, 255, 255, 0.55);
+    z-index: 1;
+    pointer-events: none;   /* never block trimming the clip underneath */
+}
+
+/* Keyframes */
+.ws-inspector label.ws-key-row { grid-template-columns: 5.5rem 1fr 3rem 1.4rem; }
+
+.ws-key {
+    background: none;
+    border: none;
+    color: var(--ws-muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.ws-key.is-keyed { color: #ffcc80; }
+.ws-key.is-on { color: #ffb74d; }
+.ws-key:disabled { opacity: 0.35; cursor: default; }
+
+.ws-key-detail {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin: -0.2rem 0 0.1rem 6rem;
+}
+
+.ws-key-detail select { width: auto; flex: 1; }
+
+.ws-key-nav { display: flex; justify-content: space-between; gap: 0.4rem; }
+
+.ws-keymark {
+    position: absolute;
+    bottom: 1px;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+    background: #ffb74d;
+    transform: rotate(45deg);
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Templates */
+.ws-slot-pick, .ws-template-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0.4rem 0 0.8rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.ws-slot-pick label { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; }
+
+.ws-template-list li { display: flex; align-items: center; gap: 0.4rem; }
+
+.ws-template {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.45rem;
+    color: #eee;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.ws-template:hover { border-color: var(--ws-line); }
+
+.ws-template img, .ws-template-blank {
+    width: 96px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #000;
+    flex: 0 0 auto;
+}
+
+/* Dialogs live beside .ws, so they need its tokens too. */
+.ws-dialog {
+    --ws-line: rgba(255, 255, 255, 0.1);
+    --ws-muted: #a7a9be;
+    --ws-accent: #ce93d8;
+    --ws-video: #7e57c2;
+    --ws-audio: #26a69a;
+    --ws-image: #5c6bc0;
+}
+
+.ws-dialog.is-wide { max-width: min(920px, calc(100vw - 32px)); }
+
+/* Studio's global `* { margin: 0 }` reset strips the auto margin that
+   centres a modal dialog; put it back. */
+.ws-dialog { margin: auto; }

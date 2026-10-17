@@ -145,3 +145,32 @@ def chat_completion(runtime_config: Dict[str, Any], messages: List[Dict[str, str
         detail = exc.read().decode('utf-8', 'replace')
         raise RuntimeError(f"{endpoint['name']} returned HTTP {exc.code}: {detail}") from exc
     return payload['choices'][0]['message']['content']
+
+
+def vision_chat_completion(runtime_config: Dict[str, Any], messages: List[Dict[str, Any]], timeout: int = 600) -> str:
+    """Use an available vision-capable endpoint for image grounded drafting."""
+    endpoint = None
+    for candidate in endpoint_candidates(runtime_config):
+        models = available_models_for_endpoint(candidate)
+        vision_models = [name for name in models if 'vl' in name.lower() or 'vision' in name.lower()]
+        if vision_models:
+            endpoint = dict(candidate, model=vision_models[0])
+            break
+    if not endpoint:
+        raise RuntimeError('No vision-capable chat model is online for photo storyboards.')
+    body = json.dumps({
+        'model': endpoint['model'], 'messages': messages,
+        'temperature': 0.6, 'max_tokens': 4096,
+    }).encode('utf-8')
+    request = urllib.request.Request(
+        endpoint['url'], data=body,
+        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer sk-local'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode('utf-8', 'replace')
+        raise RuntimeError(f"{endpoint['name']} returned HTTP {exc.code}: {detail}") from exc
+    return payload['choices'][0]['message']['content']

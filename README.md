@@ -1,11 +1,20 @@
 # AI Suite — Feature List
 
-AI Suite is an **offline-first AI workstation platform** combining:
+AI Suite is an **offline-first AI workstation platform**, split into two sibling suites:
+
+**`ai-suite/` — creative** (`ai-switch`)
 
 - **Hilbert Studio** — a ComfyUI workflow orchestration and production platform
+- **Hilbert Chat** — chat with inline image generation and web search
+
+**`agent-suite/` — runtime & automation** (`agent-switch`)
+
+- **Local LLM serving** — llama.cpp model profiles, an always-on sidecar LLM, Ollama
 - **Genesis Runtime** — a plugin-based personal assistant and agent runtime
-- **AI Code Build Pipeline** — autonomous development and deployment tooling
-- **ai-switch** — resource manager that switches between AI workloads (only one GPU-heavy stack runs at a time)
+- **AI Code Build Pipeline** — planner → implementation orchestrator → OpenHands, with a web dashboard
+
+The creative suite uses the agent suite's LLMs over HTTP. ComfyUI and the main LLM take turns on the GPU:
+starting either one stops the other, across suites.
 
 ---
 
@@ -41,7 +50,7 @@ Features:
 
 **Public Registry**
 
-17 categories containing **92 workflows**:
+18 categories containing **92 workflows**:
 
 | Category | Purpose |
 |---|---|
@@ -57,6 +66,7 @@ Features:
 | lip-sync | Lip-sync and talking-head workflows |
 | llm-orchestration | LLM-assisted workflows |
 | three-d | 3D generation workflows |
+| tti | Text-to-image workflows |
 | ttv | Text-to-video workflows |
 | video-edit | Video manipulation |
 | video-gen | Video generation |
@@ -68,13 +78,9 @@ Features:
 Excluded from public discovery:
 
 - `adult`
-- `community-models`
-  - User supplied checkpoints
-  - LoRAs
-  - Custom models
+- `community-models` (user-supplied checkpoints, LoRAs, and custom models)
 - `broken`
 - personal favorites
-
 ---
 
 # 2. Hilbert Studio
@@ -145,13 +151,12 @@ Central service management:
 
 Start, stop, monitor:
 
-- llama.cpp
+- llama.cpp (forwarded to the agent suite)
 - ComfyUI
 - Hilbert Studio
-- Planner
-- Orchestrator
-- OpenHands
-- Dashboard
+
+Planner, Orchestrator, OpenHands, Genesis and the pipeline dashboard are managed from the agent suite
+(`agent-switch`, the AI Suite Switcher desktop app, or the dashboard at `:39016`).
 
 ---
 

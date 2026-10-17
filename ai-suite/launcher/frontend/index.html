@@ -149,6 +149,13 @@
             gap: 0.5rem;
         }
 
+        a.tab-btn {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            font: 650 13.333px system-ui, sans-serif;
+        }
+
         .tab-btn {
             flex: 0 0 auto;
             border: 1px solid rgba(255, 255, 255, 0.16);
@@ -161,7 +168,7 @@
             transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         }
 
-        /* Runtime & Performance: cyan/blue */
+        /* Output (queue) + Runtime & Performance link: cyan/blue */
         .tab-group-runtime .tab-group-label { color: #4fc3f7; }
         .tab-group-runtime .tab-btn:hover:not(.active) { border-color: rgba(79, 195, 247, 0.55); }
         .tab-group-runtime .tab-btn.active {
@@ -170,7 +177,7 @@
             color: #102032;
         }
 
-        /* Automation: pipeline / genesis / chat - amber */
+        /* Assistant: chat - amber */
         .tab-group-automation .tab-group-label { color: #ffb74d; }
         .tab-group-automation .tab-btn:hover:not(.active) { border-color: rgba(255, 183, 77, 0.55); }
         .tab-group-automation .tab-btn.active {
@@ -203,186 +210,6 @@
 
         .tab-panel.active {
             display: block;
-        }
-
-        .performance-layout {
-            display: grid;
-            gap: 1rem;
-            align-items: start;
-        }
-
-        .performance-subtabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .performance-subtab-btn {
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.78);
-            cursor: pointer;
-            font-weight: 650;
-            padding: 0.6rem 0.85rem;
-        }
-
-        .performance-subtab-btn.active {
-            background: #4fc3f7;
-            border-color: #4fc3f7;
-            color: #102032;
-        }
-
-        .performance-subpanel {
-            display: none;
-        }
-
-        .performance-subpanel.active {
-            display: block;
-        }
-
-        .performance-hero {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .performance-guide {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.8rem;
-            margin-top: 1rem;
-            align-items: start;
-        }
-
-        .performance-panel,
-        .performance-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 1rem;
-            min-width: 0;
-        }
-
-        .performance-step {
-            min-height: 100%;
-            border-color: rgba(79, 195, 247, 0.18);
-        }
-
-        .performance-step-number {
-            display: inline-grid;
-            width: 28px;
-            height: 28px;
-            place-items: center;
-            border-radius: 999px;
-            background: #4fc3f7;
-            color: #102032;
-            font-weight: 800;
-            margin-bottom: 0.65rem;
-        }
-
-        .performance-details {
-            margin-top: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.12);
-            overflow: hidden;
-        }
-
-        .performance-details summary {
-            cursor: pointer;
-            padding: 0.85rem 1rem;
-            color: #4fc3f7;
-            font-weight: 800;
-        }
-
-        .performance-details-body {
-            padding: 0 1rem 1rem;
-        }
-
-        .performance-panel h3,
-        .performance-card h4 {
-            color: #4fc3f7;
-            margin-bottom: 0.7rem;
-        }
-
-        .performance-panel p,
-        .performance-card p {
-            color: rgba(255, 255, 255, 0.68);
-            line-height: 1.45;
-        }
-
-        .performance-score {
-            display: inline-flex;
-            align-items: center;
-            min-height: 34px;
-            padding: 0 0.7rem;
-            border-radius: 6px;
-            background: rgba(79, 195, 247, 0.16);
-            color: #9be2ff;
-            font-weight: 800;
-            margin-bottom: 0.9rem;
-        }
-
-        .performance-checklist,
-        .performance-stack {
-            display: grid;
-            gap: 0.7rem;
-        }
-
-        .performance-item {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 0.65rem;
-            padding: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.16);
-        }
-
-        .performance-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 999px;
-            margin-top: 0.25rem;
-            background: #ffb74d;
-            box-shadow: 0 0 0 4px rgba(255, 183, 77, 0.12);
-        }
-
-        .performance-item.ok .performance-dot {
-            background: #69f0ae;
-            box-shadow: 0 0 0 4px rgba(105, 240, 174, 0.12);
-        }
-
-        .performance-item strong {
-            display: block;
-            margin-bottom: 0.25rem;
-        }
-
-        .performance-item small {
-            display: block;
-            color: rgba(255, 255, 255, 0.58);
-            line-height: 1.4;
-        }
-
-        .performance-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-top: 0.85rem;
-        }
-
-        .performance-code {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            margin-top: 0.55rem;
-            padding: 0.75rem;
-            border-radius: 7px;
-            background: #05070d;
-            color: #d6f4ff;
-            font-size: 0.82rem;
-            line-height: 1.45;
         }
 
         .model-tuner-grid {
@@ -429,13 +256,6 @@
             flex-wrap: wrap;
             gap: 0.5rem;
             margin-top: 0.65rem;
-        }
-
-        .performance-output {
-            min-height: 96px;
-            max-height: 260px;
-            overflow: auto;
-            margin-top: 0.85rem;
         }
 
         .studio-layout {
@@ -1059,54 +879,6 @@
             margin-bottom: 1.5rem;
         }
 
-        .resource-readout {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-        }
-
-        .resource-stat {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 0.65rem 0.8rem;
-        }
-
-        .resource-stat-label {
-            color: rgba(255, 255, 255, 0.55);
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.3rem;
-        }
-
-        .resource-stat-value {
-            font-size: 1.05rem;
-            font-weight: 600;
-        }
-
-        .resource-stat-detail {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.72rem;
-            margin-top: 0.15rem;
-        }
-
-        .resource-stat-bar {
-            margin-top: 0.4rem;
-            height: 5px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-        }
-
-        .resource-stat-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            background: #4fc3f7;
-            transition: width 0.4s ease;
-        }
-
         .library-toolbar {
             display: grid;
             grid-template-columns: minmax(240px, 1fr) auto auto;
@@ -1623,21 +1395,6 @@
             padding: 0.875rem;
             color: rgba(255, 255, 255, 0.8);
             font: 0.875rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
-        }
-
-        .embed-panel {
-            margin-top: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .embed-panel iframe {
-            display: block;
-            width: 100%;
-            height: 720px;
-            border: 0;
-            background: #0b0d12;
         }
 
         .job-list {
@@ -2202,15 +1959,6 @@
                 flex-wrap: wrap;
             }
 
-            .performance-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .performance-hero,
-            .performance-guide {
-                grid-template-columns: 1fr;
-            }
-
             .suite-chat-main {
                 min-height: 64vh;
             }
@@ -2240,6 +1988,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/frontend/workspace.css">
 </head>
 <body>
     <header class="header">
@@ -2254,17 +2003,15 @@
     <main class="main">
         <nav class="tab-bar" aria-label="Main sections">
             <div class="tab-group tab-group-runtime">
-                <span class="tab-group-label">Runtime</span>
+                <span class="tab-group-label">Output</span>
                 <div class="tab-group-buttons">
-                    <button class="tab-btn active" type="button" data-tab="runtime">Runtime</button>
-                    <button class="tab-btn" type="button" data-tab="performance">Performance</button>
+                    <button class="tab-btn active" type="button" data-tab="runtime">Queue</button>
+                    <a class="tab-btn" href="http://{{ request_host }}:{{ console_port }}/" target="_blank" rel="noopener" title="Agent Suite console: system stats, services, LLM performance tuning">Runtime &amp; Performance &#8599;</a>
                 </div>
             </div>
             <div class="tab-group tab-group-automation">
-                <span class="tab-group-label">Automation</span>
+                <span class="tab-group-label">Assistant</span>
                 <div class="tab-group-buttons">
-                    <button class="tab-btn" type="button" data-tab="pipeline">Pipeline</button>
-                    <button class="tab-btn" type="button" data-tab="genesis">Genesis</button>
                     <button class="tab-btn" type="button" data-tab="chat">Chat</button>
                 </div>
             </div>
@@ -2275,6 +2022,7 @@
                     <button class="tab-btn" type="button" data-tab="studio">Studio</button>
                     <button class="tab-btn" type="button" data-tab="storyboard">Storyboard</button>
                     <button class="tab-btn" type="button" data-tab="library">Library</button>
+                    <button class="tab-btn" type="button" data-tab="workspace">Workspace</button>
                 </div>
             </div>
             <div class="tab-group tab-group-underdev">
@@ -2288,63 +2036,6 @@
         </nav>
 
         <section class="tab-panel active" id="tab-runtime">
-        <section class="service-panel">
-            <h3>System</h3>
-            <div class="resource-readout" id="resourceReadout">
-                <div class="resource-stat">
-                    <div class="resource-stat-label">CPU</div>
-                    <div class="resource-stat-value" id="resourceCpuValue">--</div>
-                    <div class="resource-stat-detail" id="resourceCpuDetail">&nbsp;</div>
-                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceCpuBar" style="width: 0%;"></div></div>
-                </div>
-                <div class="resource-stat">
-                    <div class="resource-stat-label">RAM</div>
-                    <div class="resource-stat-value" id="resourceRamValue">--</div>
-                    <div class="resource-stat-detail" id="resourceRamDetail">&nbsp;</div>
-                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceRamBar" style="width: 0%;"></div></div>
-                </div>
-                <div class="resource-stat">
-                    <div class="resource-stat-label">GPU</div>
-                    <div class="resource-stat-value" id="resourceGpuValue">--</div>
-                    <div class="resource-stat-detail" id="resourceGpuDetail">&nbsp;</div>
-                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceGpuBar" style="width: 0%;"></div></div>
-                </div>
-                <div class="resource-stat">
-                    <div class="resource-stat-label">GPU Memory</div>
-                    <div class="resource-stat-value" id="resourceGpuMemValue">--</div>
-                    <div class="resource-stat-detail" id="resourceGpuMemDetail">&nbsp;</div>
-                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceGpuMemBar" style="width: 0%;"></div></div>
-                </div>
-                <div class="resource-stat">
-                    <div class="resource-stat-label">NPU</div>
-                    <div class="resource-stat-value" id="resourceNpuValue">--</div>
-                    <div class="resource-stat-detail" id="resourceNpuDetail">&nbsp;</div>
-                    <div class="resource-stat-bar"><div class="resource-stat-bar-fill" id="resourceNpuBar" style="width: 0%;"></div></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="service-panel">
-            <h3>Runtime Services
-                <span id="comfyHealthBadge" class="status-badge status-legacy" style="margin-left: 0.5rem; vertical-align: middle;" title="ComfyUI connectivity, checked every 20s">ComfyUI: checking...</span>
-            </h3>
-            <div class="service-actions">
-                <button class="btn btn-primary" onclick="runServiceCommand('llama')">Coding LLM</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic')">Heretic LLM</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('llama-heretic27')">Heretic LLM (27B)</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('comfy')">ComfyUI</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('studio')">Studio</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('chat')">Chat</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('chat-ollama')">Chat + Ollama</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('ollama')">Ollama</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('playwright')">Browser API</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('display-safe-toggle')">Display Safety</button>
-                <button class="btn btn-secondary" onclick="refreshServiceStatus()">Status</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('stop')">Stop All</button>
-            </div>
-            <pre class="service-output" id="serviceOutput">Loading service status...</pre>
-        </section>
-
         <section class="preview-panel">
             <h3>Latest Output</h3>
             <div class="latest-preview" id="latestPreview">
@@ -2356,86 +2047,12 @@
         </section>
 
         <section class="job-panel" style="margin-top: 1rem;">
-            <h3>Progress & Generations</h3>
+            <h3>Progress & Generations
+                <span id="comfyHealthBadge" class="status-badge status-legacy" style="margin-left: 0.5rem; vertical-align: middle;" title="ComfyUI connectivity, checked every 20s">ComfyUI: checking...</span>
+            </h3>
             <div class="job-list" id="jobList">
                 <p style="color: rgba(255,255,255,0.5)">No jobs yet</p>
             </div>
-        </section>
-        </section>
-
-        <section class="tab-panel" id="tab-pipeline">
-        <section class="service-panel">
-            <h3>AI Build Pipeline</h3>
-            <p style="color: rgba(255,255,255,0.6); margin-top: -0.5rem;">
-                Planner turns a project brief into a validated build manifest; Orchestrator executes an
-                approved manifest as a task graph against a real repository, dispatching to a real
-                OpenHands agent-server as its builder. Run each service's "Setup" once before its first
-                start (installs its database schema) - after that, start/stop Planner, Orchestrator, and
-                OpenHands from the Dashboard below rather than here, to avoid two controls fighting over
-                the same processes.
-            </p>
-            <div class="service-actions">
-                <button class="btn btn-secondary" onclick="runServiceCommand('planner-setup', 'pipelineOutput', 300)">Planner: Setup</button>
-                <a class="btn btn-secondary" href="http://{{ request_host }}:39006/docs" target="_blank" rel="noopener">Planner: Open Docs</a>
-                <button class="btn btn-secondary" onclick="runServiceCommand('orchestrator-setup', 'pipelineOutput', 300)">Orchestrator: Setup</button>
-                <a class="btn btn-secondary" href="http://{{ request_host }}:39007/health" target="_blank" rel="noopener">Orchestrator: Open Health</a>
-                <a class="btn btn-secondary" href="http://{{ request_host }}:39009/docs" target="_blank" rel="noopener">OpenHands: Open Docs</a>
-            </div>
-            <div class="service-actions" style="margin-top: 0.5rem;">
-                <button class="btn btn-primary" onclick="runServiceCommand('pipeline-dashboard', 'pipelineOutput')">Dashboard: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('pipeline-dashboard-stop', 'pipelineOutput')">Dashboard: Stop</button>
-                <button class="btn btn-secondary" onclick="toggleDashboardEmbed()" id="dashboardEmbedToggle">Dashboard: Show Here</button>
-                <a class="btn btn-secondary" href="http://{{ request_host }}:39016/" target="_blank" rel="noopener">Dashboard: Open in Tab</a>
-            </div>
-            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
-                Start the dashboard here, then use its own panel - shown inline below via "Dashboard: Show
-                Here", or in its own tab - to start/stop Planner, Orchestrator, and OpenHands, edit their
-                config, submit plans, and get a real-time OpenHands chat/IDE view. For a terminal-only
-                status view instead, run <code>./ai-switch pipeline-status</code>.
-            </p>
-            <pre class="service-output" id="pipelineOutput">Use Setup once per service before its first Start. Status shows every suite service.</pre>
-            <div class="embed-panel" id="dashboardEmbedPanel" style="display: none;">
-                <iframe id="dashboardEmbedFrame" title="Pipeline Dashboard" loading="lazy"></iframe>
-            </div>
-        </section>
-        </section>
-
-        <section class="tab-panel" id="tab-genesis">
-        <section class="service-panel">
-            <h3>Genesis Runtime</h3>
-            <p style="color: rgba(255,255,255,0.6); margin-top: -0.5rem;">
-                Genesis Runtime is a standalone plugin-host runtime, independent of the Planner/Orchestrator/
-                OpenHands build pipeline. It ships with zero plugins enabled by default - infrastructure only,
-                no built-in agents, chat, or memory. Behavior comes entirely from whatever plugins it's pointed at.
-            </p>
-            <div class="service-actions">
-                <button class="btn btn-primary" onclick="runServiceCommand('genesis', 'genesisOutput')">Genesis: Start</button>
-                <button class="btn btn-secondary" onclick="runServiceCommand('genesis-stop', 'genesisOutput')">Genesis: Stop</button>
-                <a class="btn btn-secondary" href="http://{{ request_host }}:39008/" target="_blank" rel="noopener">Genesis: Open</a>
-                <button class="btn btn-secondary" onclick="refreshServiceStatus('genesisOutput')">Status</button>
-            </div>
-            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
-                <strong>Start</strong> runs <code>ai-switch genesis</code>, which launches
-                <code>genesis-runtime/server.js</code> on the host/port set by <code>GENESIS_HOST</code> /
-                <code>GENESIS_PORT</code> in <code>config.env</code> (default <code>0.0.0.0:39008</code>).
-                <strong>Stop</strong> kills it. <strong>Genesis: Open</strong> loads its minimal status page,
-                listing runtime status and installed plugins. <strong>Status</strong> refreshes the shared
-                status panel for every suite service, not just Genesis.
-            </p>
-            <p style="color: rgba(255,255,255,0.6); margin: 0.5rem 0 0;">
-                With no further config, Start gives you a clean boot with 0 plugins and 0 capabilities - there's
-                nothing to do with it yet. To make it useful: set <code>GENESIS_PLUGIN_DIR</code> in
-                <code>config.env</code> to point at a plugin catalog (11 ship in <code>genesis-runtime/plugins/</code>:
-                secrets, model-provider, home-assistant, memory, retrieval, sandbox, skills-marketplace,
-                voice-avatar, workspace, mail, agent-runtime), and set <code>GENESIS_PROFILE</code> to choose which
-                plugins are enabled - <code>minimal</code>, <code>personal-assistant</code>, <code>developer</code>,
-                <code>full</code>, <code>default</code>, or <code>3dpb-business</code>
-                (see <code>genesis-runtime/profiles/</code>). Plugins outside this repo's own
-                <code>plugins/</code> directory need to be on a hash allowlist unless you set
-                <code>GENESIS_EXTERNAL_PLUGIN_IMPORT_MODE=permissive</code> for a trusted directory. See
-                <code>genesis-runtime/README.md</code> for the full picture.
-            </p>
-            <pre class="service-output" id="genesisOutput">Use Start to launch Genesis Runtime. Status shows every suite service.</pre>
         </section>
         </section>
 
@@ -2450,8 +2067,8 @@
                         <button class="btn btn-secondary" type="button" id="suiteChatDelete">Delete</button>
                     </div>
                     <div class="suite-chat-actions" style="margin-top: 0.75rem;">
-                        <button class="btn btn-secondary" type="button" onclick="runServiceCommand('chat')">Open Standalone</button>
-                        <button class="btn btn-secondary" type="button" onclick="runServiceCommand('chat-ollama')">Use Ollama</button>
+                        <button class="btn btn-secondary" type="button" onclick="runServiceCommand('chat', 'suiteChatStatus')">Open Standalone</button>
+                        <button class="btn btn-secondary" type="button" onclick="runServiceCommand('chat-ollama', 'suiteChatStatus')">Use Ollama</button>
                         <button class="btn btn-secondary" type="button" id="suiteChatRefresh">Refresh</button>
                     </div>
                     <div class="suite-chat-status" id="suiteChatStatus" style="margin-top: 0.75rem;">Loading chat...</div>
@@ -2479,136 +2096,6 @@
                         <textarea id="suiteChatPrompt" placeholder="Message Hilbert from inside AI Suite..."></textarea>
                         <button class="btn btn-primary" type="submit" id="suiteChatSend">Send</button>
                     </form>
-                </section>
-            </div>
-        </section>
-
-        <section class="tab-panel" id="tab-performance">
-            <div class="performance-layout">
-                <section class="performance-panel">
-                    <div class="performance-hero">
-                        <div>
-                            <h3>Performance Tuning</h3>
-                            <p>
-                                Pick a task, tune a runtime slot, or audit the machine without scrolling through every control at once.
-                            </p>
-                        </div>
-                        <div class="performance-score" id="performanceScore">Checking tuning...</div>
-                    </div>
-
-                    <div class="performance-subtabs" aria-label="Performance sections">
-                        <button class="performance-subtab-btn active" type="button" data-performance-tab="overview">Overview</button>
-                        <button class="performance-subtab-btn" type="button" data-performance-tab="tasks">Tasks</button>
-                        <button class="performance-subtab-btn" type="button" data-performance-tab="slots">Runtime Slots</button>
-                        <button class="performance-subtab-btn" type="button" data-performance-tab="models">Installed Models</button>
-                        <button class="performance-subtab-btn" type="button" data-performance-tab="system">System</button>
-                        <button class="performance-subtab-btn" type="button" data-performance-tab="catalogue">Catalogue</button>
-                    </div>
-
-                    <pre class="service-output performance-output" id="performanceOutput">No action run yet.</pre>
-                </section>
-
-                <section class="performance-subpanel active" id="performance-subtab-overview">
-                    <section class="performance-panel">
-                        <div class="performance-guide">
-                            <div class="performance-card performance-step">
-                                <span class="performance-step-number">1</span>
-                                <h4>Check The Machine</h4>
-                                <p>Confirm memory, RADV, boot limits, and service settings. Red items explain what is holding performance back.</p>
-                                <div class="performance-actions">
-                                    <button class="btn btn-primary" type="button" onclick="refreshPerformanceStatus()">Check Now</button>
-                                    <button class="btn btn-secondary" type="button" onclick="activatePerformanceSubtab('system')">Open System</button>
-                                </div>
-                            </div>
-                            <div class="performance-card performance-step">
-                                <span class="performance-step-number">2</span>
-                                <h4>Pick The Job</h4>
-                                <p>Choose what you are doing first. The suite will recommend the installed model and slot for that task.</p>
-                                <div class="performance-actions">
-                                    <button class="btn btn-primary" type="button" onclick="activatePerformanceSubtab('tasks')">Pick By Task</button>
-                                    <button class="btn btn-secondary" type="button" onclick="refreshModelTuning()">Refresh Models</button>
-                                </div>
-                            </div>
-                            <div class="performance-card performance-step">
-                                <span class="performance-step-number">3</span>
-                                <h4>Switch Deliberately</h4>
-                                <p>Use runtime slots when you want exact control over model path, context, GPU layers, and llama-server flags.</p>
-                                <div class="performance-actions">
-                                    <button class="btn btn-primary" type="button" onclick="activatePerformanceSubtab('slots')">Open Slots</button>
-                                    <button class="btn btn-secondary" type="button" onclick="optimizeActiveModels()">Optimize Active</button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </section>
-
-                <section class="performance-subpanel" id="performance-subtab-tasks">
-                    <section class="performance-panel">
-                        <h3>Pick By Task</h3>
-                        <p>Choose what you are doing first. The suite recommends an installed model, target slot, and serving settings for that job.</p>
-                        <div id="taskModelPicker" class="suite-task-grid"></div>
-                    </section>
-                </section>
-
-                <section class="performance-subpanel" id="performance-subtab-slots">
-                    <section class="performance-panel">
-                        <h3>Choose A Runtime Slot</h3>
-                        <p>
-                            Main is your coding/general LLM. Heretic is the separate uncensored profile. Sidecar is a lightweight helper that can stay available when the GPU is busy.
-                        </p>
-                        <div id="modelSlotForms" class="model-tuner-grid"></div>
-                    </section>
-                </section>
-
-                <section class="performance-subpanel" id="performance-subtab-models">
-                    <section class="performance-panel">
-                        <h3>Installed Models</h3>
-                        <p>Use Switch Recommended for the easiest path. It selects the best slot, applies tuning, and restarts that service.</p>
-                        <div class="performance-card">
-                            <div id="localModelInventory" class="performance-stack"></div>
-                        </div>
-                    </section>
-                </section>
-
-                <section class="performance-subpanel" id="performance-subtab-system">
-                    <section class="performance-panel">
-                        <h3>System Status And Reboot Commands</h3>
-                        <p>Hardware, driver, boot, and service checks live here so they do not crowd the model picker.</p>
-                        <div class="performance-guide">
-                            <div class="performance-card">
-                                <h4>System Checklist</h4>
-                                <div class="performance-checklist" id="performanceChecklist"></div>
-                            </div>
-                            <div class="performance-card">
-                                <h4>Active Runtime</h4>
-                                <div id="performanceRuntime">
-                                    <p>Loading current llama.cpp settings...</p>
-                                </div>
-                            </div>
-                            <div class="performance-card">
-                                <h4>Admin / Reboot Commands</h4>
-                                <p>Review before running. These are shown because bootloader and initramfs changes should be deliberate.</p>
-                                <div id="performanceCommands" class="performance-stack"></div>
-                            </div>
-                        </div>
-                    </section>
-                </section>
-
-                <section class="performance-subpanel" id="performance-subtab-catalogue">
-                    <section class="performance-panel">
-                        <h3>Reference Profiles And Tuned Model Catalogue</h3>
-                        <p>Measured and watchlisted Strix Halo routes from the guide. Missing models show a download command instead of pretending they are installed.</p>
-                        <div class="performance-guide">
-                            <div class="performance-card">
-                                <h4>Serving Profiles</h4>
-                                <div id="performanceProfiles" class="performance-stack"></div>
-                            </div>
-                            <div class="performance-card">
-                                <h4>Known Tuned Models</h4>
-                                <div id="knownTunedModels" class="performance-stack"></div>
-                            </div>
-                        </div>
-                    </section>
                 </section>
             </div>
         </section>
@@ -3093,6 +2580,10 @@
                         <label for="sbTitle">Title</label>
                         <input id="sbTitle" type="text" placeholder="Storyboard title">
                     </div>
+                    <div class="form-group">
+                        <label for="sbStory">Story</label>
+                        <textarea id="sbStory" rows="6" placeholder="Write the story behind these shots..."></textarea>
+                    </div>
                     <div id="sbShotList"></div>
                     <div class="inline-form-actions">
                         <button class="btn btn-secondary" type="button" id="sbAddShot">Add Shot</button>
@@ -3201,20 +2692,25 @@
             </section>
         </section>
 
+        <!-- Workspace video editor: rendered by /frontend/workspace.js -->
+        <section class="tab-panel" id="tab-workspace"></section>
+
         <section class="tab-panel" id="tab-library">
             <section class="service-panel">
-                <h3>Media Library</h3>
+                <h3>Library</h3>
                 <div class="tab-bar media-tab-bar" id="mediaTabBar">
                     <button class="tab-btn media-tab-btn active" type="button" data-media-tab="image">Image</button>
                     <button class="tab-btn media-tab-btn" type="button" data-media-tab="video">Video</button>
                     <button class="tab-btn media-tab-btn" type="button" data-media-tab="model">3D</button>
                     <button class="tab-btn media-tab-btn" type="button" data-media-tab="audio">Audio</button>
+                    <button class="tab-btn media-tab-btn" type="button" data-media-tab="file">Files</button>
                 </div>
                 {% for media in [
                     ('image', 'Image', 'image/*'),
                     ('video', 'Video', 'video/*'),
                     ('model', '3D', '.glb,.gltf,.obj,.fbx,.ply,.stl'),
                     ('audio', 'Audio', 'audio/*'),
+                    ('file', 'General', ''),
                 ] %}
                 <div class="media-tab-panel{{ ' active' if loop.first else '' }}" data-media-panel="{{ media[0] }}">
                     <div class="media-toolbar">
@@ -3223,9 +2719,9 @@
                             <input type="search" class="search-input" id="mediaSearch-{{ media[0] }}" data-media-search="{{ media[0] }}" placeholder="Search by filename...">
                         </div>
                         <div class="category-filter" data-media-source="{{ media[0] }}">
-                            <button class="category-btn active" type="button" data-source="output">Outputs</button>
+                            <button class="category-btn" type="button" data-source="output">Outputs</button>
                             <button class="category-btn" type="button" data-source="input">Inputs</button>
-                            <button class="category-btn" type="button" data-source="all">All</button>
+                            <button class="category-btn active" type="button" data-source="all">All</button>
                         </div>
                         <div class="category-filter" data-media-scope="{{ media[0] }}">
                             <button class="category-btn active" type="button" data-scope="mine">Mine</button>
@@ -3493,6 +2989,8 @@
 
     <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="false"></div>
 
+    <script src="/frontend/workspace.js" defer></script>
+
     <script type="importmap">
         {
             "imports": {
@@ -3512,8 +3010,9 @@
         let modelTuningData = { models: [], slots: {}, presets: [] };
         let comfyModelOptions = {};
         // Identity is automatic-or-guest, never a client-side pick: a verified
-        // trusted proxy identity header or "guest" for anything else.
-        // See identity.py - there is deliberately no manual override.
+        // trusted reverse-proxy login (via its signed identity header)
+        // or "guest" for anything else (direct LAN access, no/expired WP
+        // session). See identity.py - there is deliberately no manual override.
         let studioIdentity = { user: 'guest', display_name: 'Guest', source: 'guest' };
         let studioIdentityReady = null;
 
@@ -3594,13 +3093,12 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
             initTabs();
-            initPerformanceSubtabs();
             initSearch();
             initCategoryFilter();
             initLibrary();
             initSuiteChat();
             await refreshStoredInputs();
-            await refreshModelTuning();
+            await loadModelTuningData();
             await refreshComfyModelOptions();
             initWorkbench();
             initJobMonitor();
@@ -3608,8 +3106,6 @@
             initMusicVideo();
             initStoryboard();
             initCinematic();
-            refreshServiceStatus();
-            refreshPerformanceStatus();
             refreshOutputLibrary();
         });
 
@@ -3623,6 +3119,9 @@
             const [mainTab, subTab] = initialTab.split(':');
             if (mainTab && document.getElementById(`tab-${mainTab}`)) {
                 activateTab(mainTab, subTab);
+                if (mainTab === 'storyboard' && /^[a-zA-Z0-9_-]+$/.test(subTab || '')) {
+                    openStoryboard(subTab);
+                }
             }
         }
 
@@ -3635,7 +3134,7 @@
             document.querySelectorAll('.tab-panel').forEach(function(panel) {
                 panel.classList.toggle('active', panel.id === `tab-${tabName}`);
             });
-            const hash = tabName === 'performance' && subTab ? `#${tabName}:${subTab}` : `#${tabName}`;
+            const hash = `#${tabName}`;
             if (window.location.hash !== hash) {
                 window.history.replaceState(null, '', hash);
             }
@@ -3643,37 +3142,11 @@
                 refreshLibrary();
             } else if (tabName === 'chat') {
                 refreshSuiteChat();
-            } else if (tabName === 'performance') {
-                if (subTab) activatePerformanceSubtab(subTab, false);
-                refreshPerformanceStatus();
-                refreshModelTuning();
             } else if (leavingLibrary && activeMediaTabType === 'model') {
                 disposeModelViewer();
             }
-        }
-
-        function initPerformanceSubtabs() {
-            document.querySelectorAll('[data-performance-tab]').forEach(function(button) {
-                button.addEventListener('click', function() {
-                    activatePerformanceSubtab(this.dataset.performanceTab);
-                });
-            });
-        }
-
-        function activatePerformanceSubtab(tabName, updateHash = true) {
-            const target = document.getElementById(`performance-subtab-${tabName}`);
-            if (!target) return;
-            document.querySelectorAll('[data-performance-tab]').forEach(function(button) {
-                button.classList.toggle('active', button.dataset.performanceTab === tabName);
-            });
-            document.querySelectorAll('.performance-subpanel').forEach(function(panel) {
-                panel.classList.toggle('active', panel.id === `performance-subtab-${tabName}`);
-            });
-            if (updateHash && document.getElementById('tab-performance')?.classList.contains('active')) {
-                const hash = `#performance:${tabName}`;
-                if (window.location.hash !== hash) {
-                    window.history.replaceState(null, '', hash);
-                }
+            if (tabName === 'workspace' && typeof window.initWorkspaceTab === 'function') {
+                window.initWorkspaceTab();
             }
         }
 
@@ -5274,21 +4747,9 @@
             modelViewer = null;
         }
 
-        async function refreshServiceStatus(outputId = 'serviceOutput') {
-            const output = document.getElementById(outputId);
-            output.textContent = 'Checking services...';
-            try {
-                const response = await fetch('/api/services');
-                const data = await response.json();
-                output.textContent = data.output || '(no output)';
-            } catch (error) {
-                output.textContent = 'Failed to check services: ' + error.message;
-            }
-        }
-
         async function runServiceCommand(command, outputId = 'serviceOutput', timeout = 180) {
             const output = document.getElementById(outputId);
-            output.textContent = 'Running: ' + command;
+            if (output) output.textContent = 'Running: ' + command;
             try {
                 const response = await fetch('/api/services/' + encodeURIComponent(command), {
                     method: 'POST',
@@ -5296,151 +4757,12 @@
                     body: JSON.stringify({ timeout: timeout })
                 });
                 const data = await response.json();
-                output.textContent = data.output || '(no output)';
-                if (!response.ok) {
-                    output.textContent += '\nCommand failed with code ' + data.returncode;
+                if (output) {
+                    output.textContent = data.output || '(no output)';
+                    if (!response.ok) output.textContent += '\nCommand failed with code ' + data.returncode;
                 }
             } catch (error) {
-                output.textContent = 'Command failed: ' + error.message;
-            }
-        }
-
-        function toggleDashboardEmbed() {
-            const panel = document.getElementById('dashboardEmbedPanel');
-            const frame = document.getElementById('dashboardEmbedFrame');
-            const toggle = document.getElementById('dashboardEmbedToggle');
-            const showing = panel.style.display !== 'none';
-            if (showing) {
-                panel.style.display = 'none';
-                toggle.textContent = 'Dashboard: Show Here';
-                return;
-            }
-            if (!frame.src) {
-                frame.src = 'http://{{ request_host }}:39016/';
-            }
-            panel.style.display = '';
-            toggle.textContent = 'Dashboard: Hide';
-        }
-
-        async function refreshPerformanceStatus() {
-            const score = document.getElementById('performanceScore');
-            const checklist = document.getElementById('performanceChecklist');
-            const runtime = document.getElementById('performanceRuntime');
-            const profiles = document.getElementById('performanceProfiles');
-            const commands = document.getElementById('performanceCommands');
-            if (!score || !checklist || !runtime || !profiles || !commands) return;
-
-            score.textContent = 'Checking tuning...';
-            checklist.innerHTML = '';
-            try {
-                const response = await fetch('/api/performance/strix-halo');
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Performance check failed');
-                const summary = data.summary || {};
-                score.textContent = `${summary.ok || 0}/${summary.total || 0} Strix Halo checks ready${summary.needs_reboot ? ' · reboot pending' : ''}`;
-
-                checklist.innerHTML = (data.items || []).map(function(item) {
-                    return `
-                        <div class="performance-item ${item.ok ? 'ok' : ''}">
-                            <span class="performance-dot" aria-hidden="true"></span>
-                            <div>
-                                <strong>${escapeHtml(item.label || '')}</strong>
-                                <small>${escapeHtml(item.detail || '')}</small>
-                                ${item.ok ? '' : `<small>${escapeHtml(item.recommendation || '')}</small>`}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                const runtimeConfig = data.runtime?.config || {};
-                runtime.innerHTML = `
-                    <div class="performance-code">LLAMA_CTX=${escapeHtml(runtimeConfig.LLAMA_CTX || '')}
-LLAMA_GPU_LAYERS=${escapeHtml(runtimeConfig.LLAMA_GPU_LAYERS || '')}
-LLAMA_EXTRA_ARGS=${escapeHtml(runtimeConfig.LLAMA_EXTRA_ARGS || '(none)')}
-LLAMA_MODEL=${escapeHtml(runtimeConfig.LLAMA_MODEL || '')}</div>
-                    <p style="margin-top: 0.7rem;">${escapeHtml(data.runtime?.llama_version || '')}</p>
-                    ${data.runtime?.running_command ? `<div class="performance-code">${escapeHtml(data.runtime.running_command)}</div>` : ''}
-                `;
-
-                profiles.innerHTML = (data.profiles || []).map(function(profile) {
-                    const settings = profile.settings || {};
-                    return `
-                        <div class="performance-item ok">
-                            <span class="performance-dot" aria-hidden="true"></span>
-                            <div>
-                                <strong>${escapeHtml(profile.name || '')}</strong>
-                                <small>${escapeHtml(profile.description || '')}</small>
-                                <div class="performance-code">LLAMA_CTX=${escapeHtml(settings.LLAMA_CTX || '')}
-LLAMA_GPU_LAYERS=${escapeHtml(settings.LLAMA_GPU_LAYERS || '')}
-LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                const commandStateClass = summary.needs_reboot ? '' : 'ok';
-                commands.innerHTML = (data.commands || []).map(function(command, index) {
-                    return `
-                        <div class="performance-item ${commandStateClass}">
-                            <span class="performance-dot" aria-hidden="true"></span>
-                            <div>
-                                <strong>${escapeHtml(command.title || '')}</strong>
-                                <small>${escapeHtml(command.note || '')}</small>
-                                <div class="performance-code" id="performanceCommand${index}">${escapeHtml(command.command || '')}</div>
-                                <div class="performance-actions">
-                                    <button class="btn btn-secondary" type="button" onclick="copyPerformanceCommand(${index})">Copy</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (error) {
-                score.textContent = 'Performance check failed';
-                checklist.innerHTML = `<div class="preview-empty">${escapeHtml(error.message)}</div>`;
-            }
-        }
-
-        async function runPerformanceAction(action) {
-            const output = document.getElementById('performanceOutput');
-            output.textContent = 'Running: ' + action;
-            try {
-                const response = await fetch('/api/performance/strix-halo/actions/' + encodeURIComponent(action), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                const data = await response.json();
-                output.textContent = data.message || data.output || '(no output)';
-                if (data.output && data.output !== data.message) {
-                    output.textContent += '\n' + data.output;
-                }
-                if (!response.ok) {
-                    output.textContent += '\nAction failed.';
-                }
-                await refreshPerformanceStatus();
-            } catch (error) {
-                output.textContent = 'Action failed: ' + error.message;
-            }
-        }
-
-        async function runPerformanceServiceCommand(command) {
-            const output = document.getElementById('performanceOutput');
-            output.textContent = 'Running: ' + command;
-            try {
-                const response = await fetch('/api/services/' + encodeURIComponent(command), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ timeout: 180 })
-                });
-                const data = await response.json();
-                output.textContent = data.output || '(no output)';
-                if (!response.ok) {
-                    output.textContent += '\nCommand failed with code ' + data.returncode;
-                }
-                await refreshPerformanceStatus();
-                await refreshServiceStatus();
-            } catch (error) {
-                output.textContent = 'Command failed: ' + error.message;
+                if (output) output.textContent = 'Command failed: ' + error.message;
             }
         }
 
@@ -5465,17 +4787,6 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
-        async function copyPerformanceCommand(index) {
-            const node = document.getElementById('performanceCommand' + index);
-            if (!node) return;
-            try {
-                await copyTextToClipboard(node.textContent || '');
-                showToast('Command copied', 'Review it before running in a terminal.', 'success');
-            } catch (error) {
-                showToast('Copy failed', error.message, 'error');
-            }
-        }
-
         async function refreshComfyModelOptions() {
             try {
                 const response = await fetch('/api/comfy/models');
@@ -5486,244 +4797,32 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             }
         }
 
-        async function refreshModelTuning() {
-            const forms = document.getElementById('modelSlotForms');
-            const inventory = document.getElementById('localModelInventory');
-            const known = document.getElementById('knownTunedModels');
-            const taskPicker = document.getElementById('taskModelPicker');
-            if (!forms || !inventory) return;
-            forms.innerHTML = '<div class="preview-empty">Loading model slots...</div>';
-            inventory.innerHTML = '<div class="preview-empty">Scanning local GGUF models...</div>';
-            if (known) known.innerHTML = '<div class="preview-empty">Loading tuned-model catalogue...</div>';
-            if (taskPicker) taskPicker.innerHTML = '<div class="preview-empty">Matching tasks to installed models...</div>';
+        // Model/task data for the Chat tab's task picker and LLM workflow fields. The
+        // Performance UI that edits it lives in the agent suite console; Studio proxies
+        // /api/performance/* there.
+        async function loadModelTuningData() {
             try {
                 const response = await fetch('/api/performance/models');
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Could not load model tuning');
+                if (!response.ok) throw new Error(data.message || data.error || 'Could not load model data');
                 modelTuningData = data;
-                renderTaskModelPicker(data);
-                renderSuiteChatTaskOptions();
-                renderModelSlotForms(data);
-                renderLocalModelInventory(data);
-                renderKnownTunedModels(data);
             } catch (error) {
-                forms.innerHTML = `<div class="preview-empty">${escapeHtml(error.message)}</div>`;
-                inventory.innerHTML = '';
-                if (known) known.innerHTML = '';
-                if (taskPicker) taskPicker.innerHTML = '';
+                // Agent suite console not running: chat task picker shows its placeholder.
             }
-        }
-
-        function renderTaskModelPicker(data) {
-            const target = document.getElementById('taskModelPicker');
-            if (!target) return;
-            const tasks = data.task_profiles || [];
-            if (!tasks.length) {
-                target.innerHTML = '<div class="preview-empty">No task profiles are available yet.</div>';
-                return;
-            }
-            target.innerHTML = tasks.map(function(task) {
-                const best = task.best_model;
-                const active = task.active_model && best && task.active_model.path === best.path;
-                const candidates = task.candidates || [];
-                const options = candidates.length
-                    ? candidates.map(function(model) {
-                        return `<option value="${escapeHtml(model.path)}">${escapeHtml(model.alias)} · ${escapeHtml(model.size)} · score ${model.score}</option>`;
-                    }).join('')
-                    : '<option value="">No installed match</option>';
-                return `
-                    <article class="suite-task-card ${active ? 'active' : ''}" data-task-card="${escapeHtml(task.id)}">
-                        <div>
-                            <h4>${escapeHtml(task.name)}</h4>
-                            <small>${escapeHtml(task.prompt || '')}</small>
-                        </div>
-                        <p>${escapeHtml(task.summary || '')}</p>
-                        <small>Target slot: ${escapeHtml(task.slot || 'main')}${active ? ' · already active' : ''}</small>
-                        <select data-task-model="${escapeHtml(task.id)}">${options}</select>
-                        <div class="performance-actions">
-                            <button class="btn btn-primary" type="button" onclick="switchTaskProfile('${escapeHtml(task.id)}')">Switch For This Task</button>
-                            ${best ? `<button class="btn btn-secondary" type="button" onclick="stageTaskProfile('${escapeHtml(task.id)}')">Stage In Slot</button>` : ''}
-                        </div>
-                    </article>
-                `;
-            }).join('');
-        }
-
-        function renderModelSlotForms(data) {
-            const forms = document.getElementById('modelSlotForms');
-            const models = data.models || [];
-            const presets = data.presets || [];
-            forms.innerHTML = (data.slot_order || Object.keys(data.slots || {})).map(function(slot) {
-                const info = data.slots[slot] || {};
-                const modelOptions = models.map(function(model) {
-                    const selected = model.path === info.model ? 'selected' : '';
-                    return `<option value="${escapeHtml(model.path)}" ${selected}>${escapeHtml(model.alias)} · ${escapeHtml(model.size)} · ${escapeHtml(model.use)}</option>`;
-                }).join('');
-                const presetOptions = ['<option value="">Manual / keep current</option>'].concat(presets.map(function(preset) {
-                    return `<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.name)}</option>`;
-                })).join('');
-                return `
-                    <div class="performance-card">
-                        <h4>${escapeHtml(info.label || slot)}</h4>
-                        <p>${escapeHtml(slotHelpText(slot))}</p>
-                        <form class="model-tuner-form" data-model-slot="${escapeHtml(slot)}">
-                            <label>Model
-                                <select name="model" onchange="applyModelRecommendation('${escapeHtml(slot)}')">
-                                    ${modelOptions || '<option value="">No GGUF models found</option>'}
-                                </select>
-                            </label>
-                            <label>Preset
-                                <select name="preset" onchange="applyModelPreset('${escapeHtml(slot)}')">
-                                    ${presetOptions}
-                                </select>
-                            </label>
-                            <label>Alias
-                                <input name="alias" value="${escapeHtml(info.alias || '')}">
-                            </label>
-                            <label>Context
-                                <input name="ctx" type="number" min="1024" step="1024" value="${escapeHtml(info.ctx || '')}">
-                            </label>
-                            <label>GPU Layers
-                                <input name="gpu_layers" value="${escapeHtml(info.gpu_layers || '')}">
-                            </label>
-                            ${slot === 'sidecar' ? `
-                                <label>Reasoning
-                                    <select name="reasoning">
-                                        ${['off', 'auto', 'on'].map(value => `<option value="${value}" ${value === (info.reasoning || 'off') ? 'selected' : ''}>${value}</option>`).join('')}
-                                    </select>
-                                </label>
-                            ` : ''}
-                            <label>Extra llama-server Args
-                                <textarea name="extra_args">${escapeHtml(info.extra_args || '')}</textarea>
-                            </label>
-                            <div class="performance-actions">
-                                <button class="btn btn-primary" type="button" onclick="switchModelSlot('${escapeHtml(slot)}')">Save & Switch</button>
-                                <button class="btn btn-secondary" type="button" onclick="applyModelRecommendation('${escapeHtml(slot)}')">Fill Recommended Settings</button>
-                                <button class="btn btn-secondary" type="button" onclick="saveModelSlot('${escapeHtml(slot)}')">Save Without Restart</button>
-                            </div>
-                        </form>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function slotHelpText(slot) {
-            if (slot === 'main') return 'Use this for your primary coding/chat model. Save & Switch restarts the main LLM API.';
-            if (slot === 'heretic') return 'Use this for the alternate Heretic profile. It keeps separate model and tuning settings.';
-            if (slot === 'heretic27') return 'Use this for the smaller 27B Heretic profile, independent from the 35B Heretic slot above.';
-            if (slot === 'sidecar') return 'Use this for a small helper model. CPU sidecar settings avoid competing with ComfyUI for the GPU.';
-            return 'Choose a model, apply recommended settings, then Save & Switch.';
-        }
-
-        function renderKnownTunedModels(data) {
-            const known = document.getElementById('knownTunedModels');
-            if (!known) return;
-            const models = data.known_tuned_models || [];
-            if (!models.length) {
-                known.innerHTML = '<div class="preview-empty">No tuned-model catalogue entries available.</div>';
-                return;
-            }
-            known.innerHTML = models.map(function(model, index) {
-                const installedLabel = model.installed ? 'installed' : 'missing';
-                const installedClass = model.installed ? 'ok' : '';
-                const localPath = model.local_model?.path || '';
-                return `
-                    <div class="performance-item ${installedClass}">
-                        <span class="performance-dot" aria-hidden="true"></span>
-                        <div>
-                            <strong>${escapeHtml(model.name)}</strong>
-                            <small>${escapeHtml(installedLabel)} · ${escapeHtml(model.lane || '')} · ${escapeHtml(model.runtime || '')} · ${escapeHtml(model.quant || '')} · ${escapeHtml(model.size || '')}</small>
-                            <small>${escapeHtml(model.result || '')}</small>
-                            <small>${escapeHtml(model.notes || '')}</small>
-                            ${model.url ? `<small><a href="${escapeHtml(model.url)}" target="_blank" style="color: #4fc3f7;">${escapeHtml(model.repo || model.url)}</a></small>` : `<small>${escapeHtml(model.repo || '')}</small>`}
-                            ${localPath ? `<div class="performance-code">${escapeHtml(localPath)}</div>` : ''}
-                            <div class="model-card-actions">
-                                ${model.installed && localPath ? `
-                                    <button class="btn btn-secondary" type="button" onclick="stageKnownTunedModel(${index}, '${escapeHtml(model.slot || 'main')}')">Stage ${escapeHtml(model.slot || 'main')}</button>
-                                    <button class="btn btn-secondary" type="button" onclick="switchKnownTunedModel(${index}, '${escapeHtml(model.slot || 'main')}')">Switch</button>
-                                    <button class="btn btn-primary" type="button" onclick="testKnownTunedModelInChat(${index})">Test In Chat</button>
-                                ` : ''}
-                                ${model.download_command ? `
-                                    <button class="btn btn-secondary" type="button" onclick="copyKnownTunedDownload(${index})">Copy Download</button>
-                                ` : ''}
-                                ${model.extra_args ? `
-                                    <button class="btn btn-secondary" type="button" onclick="copyKnownTunedArgs(${index})">Copy Args</button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderLocalModelInventory(data) {
-            const inventory = document.getElementById('localModelInventory');
-            const models = data.models || [];
-            if (!models.length) {
-                inventory.innerHTML = '<div class="preview-empty">No local GGUF models found under models/.</div>';
-                return;
-            }
-            inventory.innerHTML = models.map(function(model, index) {
-                return `
-                    <div class="performance-item ${model.recommended_slot === 'projector' ? '' : 'ok'}">
-                        <span class="performance-dot" aria-hidden="true"></span>
-                        <div>
-                            <strong>${escapeHtml(model.alias)}</strong>
-                            <small>${escapeHtml(model.size)}${model.split_parts > 1 ? ` · ${model.split_parts} shards` : ''} · ${escapeHtml(model.quant)} · ${escapeHtml(model.family)}</small>
-                            <small>${escapeHtml(model.use)}. ${escapeHtml(model.notes || '')}</small>
-                            <div class="model-role-tags">
-                                ${(model.task_labels || []).map(label => `<span class="model-role-tag">${escapeHtml(label)}</span>`).join('')}
-                            </div>
-                            <div class="performance-code">${escapeHtml(model.path)}</div>
-                            ${model.recommended_slot === 'projector' ? '' : `
-                                <div class="model-card-actions">
-                                    <button class="btn btn-secondary" type="button" onclick="switchModelFromInventory(${index}, '${escapeHtml(model.recommended_slot || 'main')}')">Switch Recommended</button>
-                                    <button class="btn btn-primary" type="button" onclick="testInventoryModelInChat(${index})">Test In Chat</button>
-                                    <button class="btn btn-secondary" type="button" onclick="assignModelFromInventory(${index}, 'main')">Stage Main</button>
-                                    <button class="btn btn-secondary" type="button" onclick="assignModelFromInventory(${index}, 'heretic')">Stage Heretic</button>
-                                    <button class="btn btn-secondary" type="button" onclick="assignModelFromInventory(${index}, 'sidecar')">Stage Sidecar</button>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            renderSuiteChatTaskOptions();
         }
 
         function taskProfile(taskId) {
             return (modelTuningData.task_profiles || []).find(task => task.id === taskId);
         }
 
-        function selectedTaskModel(taskId) {
-            const select = document.querySelector(`[data-task-model="${taskId}"]`);
-            const path = select?.value || '';
-            return (modelTuningData.models || []).find(model => model.path === path)
-                || taskProfile(taskId)?.best_model
-                || null;
-        }
-
-        function stageTaskProfile(taskId) {
-            const task = taskProfile(taskId);
-            const model = selectedTaskModel(taskId);
-            if (!task || !model) {
-                document.getElementById('performanceOutput').textContent = 'No installed model is available for that task yet.';
-                return;
-            }
-            const slot = task.slot || model.recommended_slot || 'main';
-            assignModelPathToSlot(model, slot);
-            document.getElementById('performanceOutput').textContent = `${model.alias} is staged in ${slot} for ${task.name}. Review the filled settings, then click Save & Switch.`;
-        }
-
         async function switchTaskProfile(taskId) {
             const task = taskProfile(taskId);
-            const model = selectedTaskModel(taskId);
-            const output = document.getElementById('performanceOutput');
+            const model = task?.best_model;
             if (!task || !model) {
-                if (output) output.textContent = 'No installed model is available for that task yet.';
-                showToast('No installed match', 'Download or stage a model for this task first.', 'info');
+                showToast('No installed match', 'Download or stage a model for this task first (Runtime & Performance).', 'info');
                 return;
             }
-            if (output) output.textContent = `Switching ${task.slot || 'main'} to ${model.alias} for ${task.name}...`;
             try {
                 const response = await fetch('/api/performance/tasks/' + encodeURIComponent(taskId) + '/switch', {
                     method: 'POST',
@@ -5731,250 +4830,13 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
                     body: JSON.stringify({ model: model.path, slot: task.slot || model.recommended_slot || 'main' })
                 });
                 const data = await response.json();
-                if (output) {
-                    output.textContent = data.message || '(no output)';
-                    if (data.output) output.textContent += '\n' + data.output;
-                    if (!response.ok) output.textContent += '\nTask switch failed.';
-                }
-                if (!response.ok) throw new Error(data.message || 'Task switch failed');
+                if (!response.ok) throw new Error(data.message || data.error || 'Task switch failed');
                 showToast('Task model active', `${task.name}: ${model.alias}`, 'success');
-                await refreshModelTuning();
-                await refreshPerformanceStatus();
-                await refreshServiceStatus();
+                await loadModelTuningData();
                 await loadSuiteChatModels();
                 await refreshSuiteChatHealth();
             } catch (error) {
-                if (output) output.textContent = 'Task switch failed: ' + error.message;
                 showToast('Task switch failed', error.message, 'error');
-            }
-        }
-
-        function modelSlotForm(slot) {
-            return document.querySelector(`[data-model-slot="${slot}"]`);
-        }
-
-        function selectedModelForSlot(slot) {
-            const form = modelSlotForm(slot);
-            if (!form) return null;
-            const path = form.elements.model?.value || '';
-            return (modelTuningData.models || []).find(model => model.path === path) || null;
-        }
-
-        function applyModelRecommendation(slot) {
-            const form = modelSlotForm(slot);
-            const model = selectedModelForSlot(slot);
-            if (!form || !model) return;
-            form.elements.alias.value = model.alias || '';
-            form.elements.ctx.value = model.recommended_ctx || form.elements.ctx.value || '';
-            form.elements.gpu_layers.value = model.recommended_gpu_layers || form.elements.gpu_layers.value || '';
-            form.elements.extra_args.value = model.recommended_extra_args || '';
-        }
-
-        function applyModelPreset(slot) {
-            const form = modelSlotForm(slot);
-            if (!form) return;
-            const presetId = form.elements.preset?.value || '';
-            const preset = (modelTuningData.presets || []).find(item => item.id === presetId);
-            if (!preset) return;
-            form.elements.ctx.value = preset.ctx || form.elements.ctx.value || '';
-            form.elements.gpu_layers.value = preset.gpu_layers || form.elements.gpu_layers.value || '';
-            form.elements.extra_args.value = preset.extra_args || '';
-        }
-
-        function assignModelFromInventory(index, slot) {
-            const model = (modelTuningData.models || [])[index];
-            assignModelPathToSlot(model, slot);
-            if (model) {
-                document.getElementById('performanceOutput').textContent = `${model.alias} is staged for ${slot}. Review the filled settings, then click Save & Switch to apply and restart.`;
-                activatePerformanceSubtab('slots');
-            }
-        }
-
-        function assignModelPathToSlot(model, slot) {
-            const form = modelSlotForm(slot);
-            if (!model || !form) return;
-            form.elements.model.value = model.path;
-            applyModelRecommendation(slot);
-        }
-
-        function stageKnownTunedModel(index, slot) {
-            const known = (modelTuningData.known_tuned_models || [])[index];
-            const local = known?.local_model;
-            const form = modelSlotForm(slot);
-            if (!known || !local || !form) return;
-            form.elements.model.value = local.path;
-            form.elements.alias.value = local.alias || known.id || '';
-            form.elements.ctx.value = known.ctx || local.recommended_ctx || '';
-            form.elements.gpu_layers.value = known.gpu_layers || local.recommended_gpu_layers || '';
-            form.elements.extra_args.value = known.extra_args || local.recommended_extra_args || '';
-            document.getElementById('performanceOutput').textContent = `${known.name} is staged for ${slot}. Review the tuned guide settings, then click Save & Switch to apply and restart.`;
-            activatePerformanceSubtab('slots');
-        }
-
-        async function copyKnownTunedDownload(index) {
-            const model = (modelTuningData.known_tuned_models || [])[index];
-            if (!model?.download_command) return;
-            try {
-                await copyTextToClipboard(model.download_command);
-                showToast('Download command copied', model.name, 'success');
-            } catch (error) {
-                showToast('Copy failed', error.message, 'error');
-            }
-        }
-
-        async function copyKnownTunedArgs(index) {
-            const model = (modelTuningData.known_tuned_models || [])[index];
-            if (!model?.extra_args) return;
-            try {
-                await copyTextToClipboard(model.extra_args);
-                showToast('llama-server args copied', model.name, 'success');
-            } catch (error) {
-                showToast('Copy failed', error.message, 'error');
-            }
-        }
-
-        async function saveModelSlot(slot) {
-            const form = modelSlotForm(slot);
-            const output = document.getElementById('performanceOutput');
-            if (!form) return;
-            const payload = {
-                model: form.elements.model?.value || '',
-                alias: form.elements.alias?.value || '',
-                ctx: form.elements.ctx?.value || '',
-                gpu_layers: form.elements.gpu_layers?.value || '',
-                extra_args: form.elements.extra_args?.value || '',
-                reasoning: form.elements.reasoning?.value || ''
-            };
-            output.textContent = 'Saving model slot: ' + slot;
-            try {
-                const response = await fetch('/api/performance/models/slots/' + encodeURIComponent(slot), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                output.textContent = data.message || '(no output)';
-                if (!response.ok) output.textContent += '\nSave failed.';
-                await refreshModelTuning();
-                await refreshPerformanceStatus();
-            } catch (error) {
-                output.textContent = 'Save failed: ' + error.message;
-            }
-        }
-
-        function modelSlotPayload(slot) {
-            const form = modelSlotForm(slot);
-            if (!form) return null;
-            return {
-                model: form.elements.model?.value || '',
-                alias: form.elements.alias?.value || '',
-                ctx: form.elements.ctx?.value || '',
-                gpu_layers: form.elements.gpu_layers?.value || '',
-                extra_args: form.elements.extra_args?.value || '',
-                reasoning: form.elements.reasoning?.value || ''
-            };
-        }
-
-        async function switchModelSlot(slot, throwOnError = false) {
-            const output = document.getElementById('performanceOutput');
-            const payload = modelSlotPayload(slot);
-            if (!payload) return;
-            output.textContent = 'Switching model slot: ' + slot;
-            try {
-                const response = await fetch('/api/performance/models/switch/' + encodeURIComponent(slot), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                output.textContent = data.message || '(no output)';
-                if (data.output) output.textContent += '\n' + data.output;
-                if (!response.ok) output.textContent += '\nSwitch failed.';
-                await refreshModelTuning();
-                await refreshPerformanceStatus();
-                await refreshServiceStatus();
-                await loadSuiteChatModels();
-                await refreshSuiteChatHealth();
-                if (!response.ok && throwOnError) throw new Error(data.message || 'Switch failed');
-            } catch (error) {
-                output.textContent = 'Switch failed: ' + error.message;
-                if (throwOnError) throw error;
-            }
-        }
-
-        async function testInventoryModelInChat(index) {
-            const model = (modelTuningData.models || [])[index];
-            const output = document.getElementById('performanceOutput');
-            if (!model) return;
-            assignModelPathToSlot(model, 'main');
-            if (output) output.textContent = `Switching main chat model to ${model.alias}...`;
-            try {
-                await switchModelSlot('main', true);
-                showToast('Chat model switched', model.alias, 'success');
-                activateTab('chat');
-            } catch (error) {
-                showToast('Chat model switch failed', error.message, 'error');
-            }
-        }
-
-        async function testKnownTunedModelInChat(index) {
-            const known = (modelTuningData.known_tuned_models || [])[index];
-            const output = document.getElementById('performanceOutput');
-            if (!known?.local_model) return;
-            stageKnownTunedModel(index, 'main');
-            if (output) output.textContent = `Switching main chat model to ${known.name}...`;
-            try {
-                await switchModelSlot('main', true);
-                showToast('Chat model switched', known.name, 'success');
-                activateTab('chat');
-            } catch (error) {
-                showToast('Chat model switch failed', error.message, 'error');
-            }
-        }
-
-        async function switchModelFromInventory(index, slot) {
-            assignModelFromInventory(index, slot);
-            try {
-                await switchModelSlot(slot, true);
-            } catch (error) {
-                showToast('Model switch failed', error.message, 'error');
-            }
-        }
-
-        async function switchKnownTunedModel(index, slot) {
-            stageKnownTunedModel(index, slot);
-            try {
-                await switchModelSlot(slot, true);
-            } catch (error) {
-                showToast('Model switch failed', error.message, 'error');
-            }
-        }
-
-        async function optimizeActiveModels() {
-            const output = document.getElementById('performanceOutput');
-            output.textContent = 'Optimizing active installed model slots...';
-            try {
-                const response = await fetch('/api/performance/models/optimize-active', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                const data = await response.json();
-                output.textContent = data.message || '(no output)';
-                if (data.changed) {
-                    output.textContent += '\nChanged: ' + Object.keys(data.changed).join(', ');
-                }
-                if (data.skipped && Object.keys(data.skipped).length) {
-                    output.textContent += '\nSkipped: ' + JSON.stringify(data.skipped, null, 2);
-                }
-                if (data.restart_required) {
-                    output.textContent += '\nNext step: restart the affected service, or click Save & Switch on a slot to load the new settings.';
-                }
-                if (!response.ok) output.textContent += '\nNo settings were changed.';
-                await refreshModelTuning();
-                await refreshPerformanceStatus();
-            } catch (error) {
-                output.textContent = 'Optimize failed: ' + error.message;
             }
         }
 
@@ -6750,11 +5612,12 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             { type: 'video', accept: 'video/*' },
             { type: 'model', accept: '.glb,.gltf,.obj,.fbx,.ply,.stl' },
             { type: 'audio', accept: 'audio/*' },
+            { type: 'file', accept: '' },
         ];
         const LIBRARY_PAGE_SIZE = 24;
         let libraryOutputs = [];
         let libraryFilters = MEDIA_TYPES.reduce(function(acc, media) {
-            acc[media.type] = { search: '', source: 'output', scope: 'mine', page: 1 };
+            acc[media.type] = { search: '', source: 'all', scope: 'mine', page: 1 };
             return acc;
         }, {});
         let librarySelection = {};
@@ -6943,7 +5806,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             const pageItems = filtered.slice(start, start + LIBRARY_PAGE_SIZE);
 
             if (!pageItems.length) {
-                grid.innerHTML = `<div class="preview-empty">No ${type === 'model' ? '3D' : type} files match.</div>`;
+                grid.innerHTML = `<div class="preview-empty">No ${type === 'model' ? '3D' : type === 'file' ? 'general' : type} files match.</div>`;
             } else {
                 const selectedKey = librarySelection[type] ? libraryItemKey(librarySelection[type]) : null;
                 grid.innerHTML = pageItems.map(function(item) {
@@ -7738,7 +6601,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             if (readout) readout.textContent = labels[engine] || 'DiffRhythm';
         }
 
-        // ComfyUI health badge (Runtime tab) - reuses the same 2s poll as
+        // ComfyUI health badge (Queue tab) - reuses the same 2s poll as
         // updateJobList() rather than a separate interval.
         function renderComfyHealth(health) {
             const badge = document.getElementById('comfyHealthBadge');
@@ -7761,69 +6624,6 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
             badge.title = health.last_error
                 ? `Last error: ${health.last_error}`
                 : `Last confirmed OK: ${health.last_ok_at ? new Date(health.last_ok_at).toLocaleTimeString() : 'never'}`;
-        }
-
-        // CPU/RAM/GPU readout (Runtime tab) - polled on the same 2s cadence as updateJobList.
-        function setResourceStat(prefix, valueText, detailText, percent) {
-            const value = document.getElementById(`resource${prefix}Value`);
-            const detail = document.getElementById(`resource${prefix}Detail`);
-            const bar = document.getElementById(`resource${prefix}Bar`);
-            if (value) value.textContent = valueText;
-            if (detail) detail.textContent = detailText || ' ';
-            if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent || 0))}%`;
-        }
-
-        async function updateResourceReadout() {
-            try {
-                const response = await fetch('/api/system/stats');
-                if (!response.ok) return;
-                const data = await response.json();
-
-                const cpu = data.cpu || {};
-                setResourceStat('Cpu',
-                    cpu.percent != null ? `${cpu.percent}%` : 'n/a',
-                    cpu.count ? `${cpu.count} threads` : '',
-                    cpu.percent);
-
-                const ram = data.ram || {};
-                setResourceStat('Ram',
-                    ram.total_gb != null ? `${ram.used_gb} / ${ram.total_gb} GB` : 'n/a',
-                    ram.percent != null ? `${ram.percent}% used` : '',
-                    ram.percent);
-
-                const gpu = data.gpu || {};
-                if (gpu.available) {
-                    setResourceStat('Gpu',
-                        gpu.busy_percent != null ? `${gpu.busy_percent}%` : 'n/a',
-                        gpu.temp_c != null || gpu.power_w != null
-                            ? `${gpu.temp_c != null ? gpu.temp_c + '°C' : ''}${gpu.temp_c != null && gpu.power_w != null ? ' · ' : ''}${gpu.power_w != null ? gpu.power_w + ' W' : ''}`
-                            : '',
-                        gpu.busy_percent);
-                    // Strix Halo/APU-style unified memory reports through GTT, not the small VRAM carve-out.
-                    const memUsed = gpu.gtt_total_gb ? gpu.gtt_used_gb : gpu.vram_used_gb;
-                    const memTotal = gpu.gtt_total_gb || gpu.vram_total_gb;
-                    const memPercent = memTotal ? (memUsed / memTotal) * 100 : null;
-                    setResourceStat('GpuMem',
-                        memTotal != null ? `${memUsed} / ${memTotal} GB` : 'n/a',
-                        gpu.gtt_total_gb ? 'shared (GTT)' : 'VRAM',
-                        memPercent);
-                } else {
-                    setResourceStat('Gpu', 'n/a', 'no AMD GPU found', 0);
-                    setResourceStat('GpuMem', 'n/a', '', 0);
-                }
-
-                const npu = data.npu || {};
-                if (npu.available) {
-                    setResourceStat('Npu',
-                        npu.active ? 'Active' : 'Idle',
-                        [npu.name, npu.fw_version ? `fw ${npu.fw_version}` : ''].filter(Boolean).join(' · '),
-                        npu.active ? 100 : 0);
-                } else {
-                    setResourceStat('Npu', 'n/a', 'no NPU found', 0);
-                }
-            } catch (error) {
-                // Keep last known values on transient failures.
-            }
         }
 
         async function retryJob(jobId) {
@@ -8906,6 +7706,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
 
         function renderStoryboardEditor() {
             document.getElementById('sbTitle').value = currentStoryboard.title || '';
+            document.getElementById('sbStory').value = currentStoryboard.story || '';
             document.getElementById('sbMediaStage').innerHTML = currentStoryboard.video
                 ? `<video src="${currentStoryboard.video.url}" controls style="max-width:100%; border-radius:8px;"></video>`
                 : '<div class="preview-empty">No video yet.</div>';
@@ -9065,6 +7866,7 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         async function saveStoryboard(notify) {
             const status = document.getElementById('sbStatus');
             currentStoryboard.title = document.getElementById('sbTitle').value.trim() || 'Untitled Storyboard';
+            currentStoryboard.story = document.getElementById('sbStory').value.trim();
             const response = await fetch(`/api/storyboards/${currentStoryboard.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -9837,8 +8639,6 @@ LLAMA_EXTRA_ARGS=${escapeHtml(settings.LLAMA_EXTRA_ARGS || '')}</div>
         function initJobMonitor() {
             updateJobList();
             setInterval(updateJobList, 2000);
-            updateResourceReadout();
-            setInterval(updateResourceReadout, 2000);
         }
 
         // Modal controls

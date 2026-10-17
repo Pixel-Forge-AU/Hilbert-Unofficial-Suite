@@ -2,11 +2,11 @@
 (chat history, generated-image library).
 
 Two possible outcomes:
-1. A signed X-Hearth-User header from a trusted reverse proxy - verified via HMAC so a client
-   hitting Studio directly on the LAN can't just claim to be someone else. This
+1. A signed X-Hearth-User header from a trusted reverse proxy - verified via HMAC
+   so a client hitting Studio directly on the LAN cannot claim another identity. This
    is the only source of a real identity: WordPress login is what "automatic"
    identification means here, since browsers stay signed in there across visits.
-2. "guest" - anything not proxied through a verified login (direct
+2. "guest" - anything not proxied through a verified WordPress login (direct
    LAN access, the standalone hilbert_chat.py service on port 39004, etc.) is
    always guest. There is deliberately no manual "pick who you are" override:
    that would be a client-asserted, spoofable identity.

@@ -1,0 +1,42 @@
+server:
+  host: 0.0.0.0
+  port: 39018
+  request_timeout_seconds: 30
+  poll_seconds: 2
+
+storage:
+  sqlite_path: ./state/jobs.sqlite3
+  logs_dir: ./logs
+
+comfy:
+  root: /opt/ComfyUI
+  python: /opt/ComfyUI/.venv/bin/python
+  listen_host: 127.0.0.1
+  base_port: 39100
+  extra_args: ["--disable-auto-launch"]
+
+workers:
+  - id: p40-0
+    label: Tesla P40 24GB
+    gpu_id: 0
+    port: 39100
+    weight: 90
+    max_inflight: 1
+    tags: [video, image-to-3d, high-vram, image]
+
+  - id: p100-0
+    label: Tesla P100 16GB
+    gpu_id: 1
+    port: 39101
+    weight: 70
+    max_inflight: 1
+    tags: [video, high-vram, image]
+
+  - id: p4-0
+    label: Tesla P4 8GB
+    gpu_id: 2
+    port: 39102
+    weight: 30
+    max_inflight: 1
+    tags: [preview, upscale, image]
+    extra_args: ["--lowvram"]
