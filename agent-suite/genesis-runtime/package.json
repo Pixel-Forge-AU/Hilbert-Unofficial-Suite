@@ -17,7 +17,7 @@
     "imapflow": "^1.2.12",
     "keytar": "^7.9.0",
     "mailparser": "^3.9.3",
-    "nodemailer": "^9.1.1",
+    "nodemailer": "^10.1.2",
     "three": "^0.185.1"
   },
   "overrides": {
